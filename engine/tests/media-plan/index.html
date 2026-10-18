@@ -1,0 +1,13 @@
+<!doctype html>
+<!-- Audio-plan fixture (src/api.rs media_plan test): data-has-audio video with data-volume and fades longer
+     than the clip, and nested media with data-hf-media-start-basis. Sources need not exist for probe. -->
+<html><head><style>html,body{margin:0;width:320px;height:180px}</style></head><body>
+<div id="root" data-composition-id="main" data-start="0" data-duration="10" data-width="320" data-height="180">
+  <video id="v" src="clip.mp4" data-start="1" data-duration="4" data-has-audio="true" data-volume="0.5" data-fade-in="3" data-fade-out="3"></video>
+  <div id="scene" data-composition-id="scene" data-start="2" data-duration="6">
+    <audio id="local" src="a.mp3" data-start="1" data-duration="2"></audio>
+    <audio id="global" src="b.mp3" data-start="1" data-duration="2" data-hf-media-start-basis="global"></audio>
+  </div>
+</div>
+<script>window.__timelines = { main: { duration: function () { return 10; }, seek: function () {}, pause: function () {}, time: function () { return 0; } } };</script>
+</body></html>

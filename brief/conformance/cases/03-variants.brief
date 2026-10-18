@@ -1,0 +1,10 @@
+// expect: ok
+Title: Ferro, three cuts
+Format: 9:16, 30 s, tiktok | 1:1, 15 s, instagram
+Uses: 02-shared.brief
+
+# open
+@MAYA
+I switched to $product last spring. {9:16}
+Here's why. [[end-card text:"$product" | to-end place-center]] {1:1}
+~ b-roll: the pour, slow [find: hands still framing:close-up] {9:16}

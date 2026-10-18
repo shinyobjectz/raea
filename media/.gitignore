@@ -1,0 +1,6 @@
+target/
+fixtures/*.mov
+fixtures/*.mp4
+fixtures/*.m4a
+out/
+raea-media-bench

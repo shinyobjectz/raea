@@ -1,0 +1,24 @@
+[package]
+name = "raea-embed"
+# renamed from ugc-embed 2026-10-15 (raea is UGC-agnostic: gaming and video too); moved from ~/host/agent/crates/ugc-embed on 2026-10-15 (agent/agent.feature phase 1); it kept its name and version
+version = "1.2.0"
+edition = "2021"
+license = "MIT"
+description = "Open, portable embeddings for ad cards (docs/ad-card.feature): SigLIP 2 for frames and label phrases, run with ONNX Runtime; no Python, no Apple-only models."
+
+[dependencies]
+# ort 2.0.0-rc.13: the same pin as ~/cadence/embed, whose prebuilt onnxruntime (aarch64-apple-darwin) is cached here
+ort = "=2.0.0-rc.13"
+tokenizers = { version = "0.23", default-features = false, features = ["onig"] }
+image = { version = "0.25", default-features = false, features = ["png", "jpeg"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[[bin]]
+name = "raea-embed"
+path = "src/bin/raea-embed.rs"
+
+# the old name, kept for the host app's knowledge scripts that call it
+[[bin]]
+name = "ugc-embed"
+path = "src/bin/raea-embed.rs"

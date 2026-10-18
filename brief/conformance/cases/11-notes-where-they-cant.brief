@@ -1,0 +1,6 @@
+// expect: 5:1 a note can't stand on a section heading | 6:20 a note can't stand on a synopsis
+Title: x
+Format: 9:16, 20 s
+
+# hook [[energy-ff]]
+= Stop the scroll. [[mood-urgent]]

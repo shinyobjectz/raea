@@ -1,0 +1,14 @@
+// expect: ok
+Title: the forms M3 writes that read one way (stage_brief, 2026-10-17)
+Format: 9:16, 30 s
+
+! hook reads within half a second
+! length within 30 s
+! never says "game changer" "world model", "state machine"
+
+# open
+@SHANE
+I don't know why it hasn't moved. [[lockup text:"it *hasn't* moved" | on:'hasn't moved' enter-pop]]
+And that's the point.
+[[captions keys:"point" | place-low]]
+~ b-roll: the team around a table [find: people:2-4]

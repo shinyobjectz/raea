@@ -1,0 +1,608 @@
+[
+ {
+  "q": "SELECT * FROM cube",
+  "rows": [
+   [
+    3,
+    "hero",
+    "#ff7a59",
+    0.3,
+    1.6,
+    1.4
+   ]
+  ],
+  "cols": [
+   "seq",
+   "id",
+   "color",
+   "rough",
+   "size",
+   "y"
+  ]
+ },
+ {
+  "q": "SELECT id, class, y FROM sphere ORDER BY id",
+  "rows": [
+   [
+    "ring0",
+    "ring",
+    0.6
+   ],
+   [
+    "ring1",
+    "ring",
+    0.6
+   ],
+   [
+    "ring10",
+    "ring",
+    0.6
+   ],
+   [
+    "ring11",
+    "ring",
+    0.6
+   ],
+   [
+    "ring12",
+    "ring",
+    0.6
+   ],
+   [
+    "ring13",
+    "ring",
+    0.6
+   ],
+   [
+    "ring2",
+    "ring",
+    0.6
+   ],
+   [
+    "ring3",
+    "ring",
+    0.6
+   ],
+   [
+    "ring4",
+    "ring",
+    0.6
+   ],
+   [
+    "ring5",
+    "ring",
+    0.6
+   ],
+   [
+    "ring6",
+    "ring",
+    0.6
+   ],
+   [
+    "ring7",
+    "ring",
+    0.6
+   ],
+   [
+    "ring8",
+    "ring",
+    0.6
+   ],
+   [
+    "ring9",
+    "ring",
+    0.6
+   ]
+  ],
+  "cols": [
+   "id",
+   "class",
+   "y"
+  ]
+ },
+ {
+  "q": "SELECT id, size FROM sphere WHERE class = 'ring' AND size > 0.3 ORDER BY id DESC LIMIT 3",
+  "rows": [
+   [
+    "ring9",
+    0.38
+   ],
+   [
+    "ring8",
+    0.38
+   ],
+   [
+    "ring7",
+    0.38
+   ]
+  ],
+  "cols": [
+   "id",
+   "size"
+  ]
+ },
+ {
+  "q": "SELECT count(*) FROM sphere",
+  "rows": [
+   [
+    14
+   ]
+  ],
+  "cols": [
+   "count_star()"
+  ]
+ },
+ {
+  "q": "SELECT class, count(*) AS n, avg(size) AS mean, max(y) AS top FROM sphere GROUP BY class ORDER BY class",
+  "rows": [
+   [
+    "ring",
+    14,
+    0.37999999999999995,
+    0.6
+   ]
+  ],
+  "cols": [
+   "class",
+   "n",
+   "mean",
+   "top"
+  ]
+ },
+ {
+  "q": "SELECT * FROM keys ORDER BY id, prop, frame",
+  "rows": [
+   [
+    0,
+    "face",
+    "visible",
+    0,
+    0.0,
+    "step"
+   ],
+   [
+    1,
+    "face",
+    "visible",
+    60,
+    1.0,
+    "step"
+   ],
+   [
+    2,
+    "face",
+    "y",
+    60,
+    1520.0,
+    "linear"
+   ],
+   [
+    3,
+    "face",
+    "y",
+    120,
+    1300.0,
+    "linear"
+   ],
+   [
+    4,
+    "hook",
+    "y",
+    0,
+    340.0,
+    "out"
+   ],
+   [
+    5,
+    "hook",
+    "y",
+    18,
+    260.0,
+    "out"
+   ],
+   [
+    6,
+    "sub",
+    "y",
+    14,
+    470.0,
+    "out"
+   ],
+   [
+    7,
+    "sub",
+    "y",
+    32,
+    410.0,
+    "out"
+   ]
+  ],
+  "cols": [
+   "seq",
+   "id",
+   "prop",
+   "frame",
+   "value",
+   "ease"
+  ]
+ },
+ {
+  "q": "SELECT id, prop, min(frame) AS first, max(frame) AS last, count(*) AS n FROM keys GROUP BY id, prop ORDER BY id, prop",
+  "rows": [
+   [
+    "face",
+    "visible",
+    0,
+    60,
+    2
+   ],
+   [
+    "face",
+    "y",
+    60,
+    120,
+    2
+   ],
+   [
+    "hook",
+    "y",
+    0,
+    18,
+    2
+   ],
+   [
+    "sub",
+    "y",
+    14,
+    32,
+    2
+   ]
+  ],
+  "cols": [
+   "id",
+   "prop",
+   "first",
+   "last",
+   "n"
+  ]
+ },
+ {
+  "q": "SELECT name, sql FROM rule ORDER BY seq",
+  "rows": [
+   [
+    "hero-turns",
+    "UPDATE cube SET rot_y = frame * 2 * pi() / 180 WHERE id = 'hero'"
+   ],
+   [
+    "ring-orbits",
+    "UPDATE sphere SET\n  x = 2.4 * cos(2 * pi() * (row_number() OVER () / count(*) OVER () + frame * 0.004)),\n  z = 2.4 * sin(2 * pi() * (row_number() OVER () / count(*) OVER () + frame * 0.004)),\n  y = 0.6 + 0.5 * sin(2 * pi() * row_number() OVER () * 3 / count(*) OVER () + frame * 0.08)\n  WHERE class = 'ring'"
+   ],
+   [
+    "ring-size-follows-height",
+    "UPDATE sphere SET scale = 0.55 + 0.6 * y / max(y) OVER () WHERE class = 'ring'"
+   ],
+   [
+    "hook-fades-in",
+    "UPDATE title SET opacity = least(1, frame / 14) WHERE id = 'hook'"
+   ],
+   [
+    "sub-fades-in",
+    "UPDATE title SET opacity = least(1, (frame - 14) / 18) WHERE id = 'sub' AND frame >= 14"
+   ],
+   [
+    "caption-clears-face",
+    "UPDATE caption SET y = least(y, (SELECT min(y) FROM face WHERE visible = 1) - height - 24)\n  WHERE (SELECT count(*) FROM face WHERE visible = 1) > 0"
+   ]
+  ],
+  "cols": [
+   "name",
+   "sql"
+  ]
+ },
+ {
+  "q": "SELECT name FROM rule WHERE sql LIKE '%sphere%' ORDER BY name",
+  "rows": [
+   [
+    "ring-orbits"
+   ],
+   [
+    "ring-size-follows-height"
+   ]
+  ],
+  "cols": [
+   "name"
+  ]
+ },
+ {
+  "q": "SELECT n, text FROM move ORDER BY n DESC LIMIT 5",
+  "rows": [
+   [
+    22.0,
+    "INSERT INTO transition (kind, col, frames, ease, align) VALUES ('caption', 'y', 10, 'out', 'before')"
+   ],
+   [
+    21.0,
+    "INSERT INTO rule (name, sql) VALUES ('caption-clears-face', $$UPDATE caption SET y = least(y, (SELECT min(y) FROM face WHERE visible = 1) - height - 24)\n  WHERE (SELECT count(*) FROM face WHERE visible = 1) > 0$$)"
+   ],
+   [
+    20.0,
+    "UPDATE cube SET color = '#ff7a59' WHERE id = 'hero'"
+   ],
+   [
+    19.0,
+    "INSERT INTO rule (name, sql) VALUES ('sub-fades-in', $$UPDATE title SET opacity = least(1, (frame - 14) / 18) WHERE id = 'sub' AND frame >= 14$$)"
+   ],
+   [
+    18.0,
+    "INSERT INTO rule (name, sql) VALUES ('hook-fades-in', $$UPDATE title SET opacity = least(1, frame / 14) WHERE id = 'hook'$$)"
+   ]
+  ],
+  "cols": [
+   "n",
+   "text"
+  ]
+ },
+ {
+  "q": "SELECT count(*) AS moves FROM move",
+  "rows": [
+   [
+    22.0
+   ]
+  ],
+  "cols": [
+   "moves"
+  ]
+ },
+ {
+  "q": "SELECT fps, width, height, frames FROM edit",
+  "rows": [
+   [
+    30.0,
+    1080,
+    1920,
+    150
+   ]
+  ],
+  "cols": [
+   "fps",
+   "width",
+   "height",
+   "frames"
+  ]
+ },
+ {
+  "q": "SELECT frames / fps AS seconds FROM edit",
+  "rows": [
+   [
+    5.0
+   ]
+  ],
+  "cols": [
+   "seconds"
+  ]
+ },
+ {
+  "q": "SELECT id, text, size, y FROM caption ORDER BY y",
+  "rows": [
+   [
+    "cap",
+    "one serum, one step",
+    64.0,
+    1480.0
+   ]
+  ],
+  "cols": [
+   "id",
+   "text",
+   "size",
+   "y"
+  ]
+ },
+ {
+  "q": "SELECT text, color FROM title",
+  "rows": [
+   [
+    "Stop scrolling",
+    "#fff8ec"
+   ],
+   [
+    "this changes your mornings",
+    "#ffcc66"
+   ]
+  ],
+  "cols": [
+   "text",
+   "color"
+  ]
+ },
+ {
+  "q": "SELECT id FROM sphere WHERE id IN ('ring0', 'ring3', 'ring9') ORDER BY id",
+  "rows": [
+   [
+    "ring0"
+   ],
+   [
+    "ring3"
+   ],
+   [
+    "ring9"
+   ]
+  ],
+  "cols": [
+   "id"
+  ]
+ },
+ {
+  "q": "SELECT id, y FROM sphere WHERE y BETWEEN 0.5 AND 1.5 ORDER BY y, id",
+  "rows": [
+   [
+    "ring0",
+    0.6
+   ],
+   [
+    "ring1",
+    0.6
+   ],
+   [
+    "ring10",
+    0.6
+   ],
+   [
+    "ring11",
+    0.6
+   ],
+   [
+    "ring12",
+    0.6
+   ],
+   [
+    "ring13",
+    0.6
+   ],
+   [
+    "ring2",
+    0.6
+   ],
+   [
+    "ring3",
+    0.6
+   ],
+   [
+    "ring4",
+    0.6
+   ],
+   [
+    "ring5",
+    0.6
+   ],
+   [
+    "ring6",
+    0.6
+   ],
+   [
+    "ring7",
+    0.6
+   ],
+   [
+    "ring8",
+    0.6
+   ],
+   [
+    "ring9",
+    0.6
+   ]
+  ],
+  "cols": [
+   "id",
+   "y"
+  ]
+ },
+ {
+  "q": "SELECT DISTINCT class FROM sphere ORDER BY class",
+  "rows": [
+   [
+    "ring"
+   ]
+  ],
+  "cols": [
+   "class"
+  ]
+ },
+ {
+  "q": "SELECT id, size * 2 AS double_size, upper(color) AS c FROM sphere WHERE class <> 'ring' ORDER BY id",
+  "rows": [],
+  "cols": []
+ },
+ {
+  "q": "SELECT kind, col, frames, ease, align FROM transition ORDER BY seq",
+  "rows": [
+   [
+    "caption",
+    "y",
+    10.0,
+    "out",
+    "before"
+   ]
+  ],
+  "cols": []
+ },
+ {
+  "q": "SELECT count(*) FROM asset",
+  "rows": [
+   [
+    0
+   ]
+  ],
+  "cols": [
+   "count_star()"
+  ]
+ },
+ {
+  "q": "SELECT id, lux FROM light",
+  "rows": [
+   [
+    "sun",
+    9000.0
+   ]
+  ],
+  "cols": [
+   "id",
+   "lux"
+  ]
+ },
+ {
+  "q": "SELECT id, bg, look_y FROM camera",
+  "rows": [
+   [
+    "cam",
+    "#1b1f3a",
+    1.0
+   ]
+  ],
+  "cols": [
+   "id",
+   "bg",
+   "look_y"
+  ]
+ },
+ {
+  "q": "SELECT id, visible FROM face WHERE visible IS NOT NULL",
+  "rows": [
+   [
+    "face",
+    0.0
+   ]
+  ],
+  "cols": [
+   "id",
+   "visible"
+  ]
+ },
+ {
+  "q": "SELECT sum(size) AS total, min(size) AS smallest FROM sphere WHERE class = 'ring'",
+  "rows": [
+   [
+    5.32,
+    0.38
+   ]
+  ],
+  "cols": [
+   "total",
+   "smallest"
+  ]
+ },
+ {
+  "q": "SELECT id FROM sphere ORDER BY seq LIMIT 2 OFFSET 1",
+  "rows": [
+   [
+    "ring1"
+   ],
+   [
+    "ring2"
+   ]
+  ],
+  "cols": [
+   "id"
+  ]
+ }
+]

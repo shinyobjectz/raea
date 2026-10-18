@@ -1,0 +1,26 @@
+<!doctype html>
+<!-- Text-fit fixture (the founder's 2026-10-15 screenshot, rebuilt): a row of six bordered cards, each a title over a
+     spaced-out monospace label. "FULFILLMENT" is wider than its card and spills past its border; four titles wrap to two
+     lines in cards too narrow for them; a seventh card, wide enough, holds its text on one line. -->
+<html><head><style>
+html,body{margin:0;width:1600px;height:400px;background:#fff;font-family:Inter,Helvetica,sans-serif;color:#111}
+#root{position:relative;width:1600px;height:400px;overflow:hidden}
+.row{position:absolute;left:110px;top:100px;display:flex;gap:20px}
+.card{width:150px;height:105px;box-sizing:border-box;padding:24px 20px 0 70px;border:1px solid #ddd;border-radius:6px;background:#fff;box-shadow:0 2px 4px rgba(0,0,0,0.08)}
+.t{font-size:20px;font-weight:700;line-height:26px}
+.l{font-family:Menlo,monospace;font-size:17px;letter-spacing:3px;color:#666}
+#wide{position:absolute;left:110px;top:260px;width:420px;height:80px;box-sizing:border-box;padding:16px 20px;border:1px solid #ddd;border-radius:6px}
+</style></head><body>
+<div id="root" data-composition-id="main" data-start="0" data-duration="1" data-width="1600" data-height="400">
+<div class="row">
+<div class="card" id="c1"><div class="t">Hire</div><div class="l" id="fulfill">FULFILLMENT</div></div>
+<div class="card" id="c2"><div class="t">Film</div><div class="l">CREATOR</div></div>
+<div class="card" id="c3"><div class="t">Check the footage</div><div class="l">QA</div></div>
+<div class="card" id="c4"><div class="t">Edit the cuts</div><div class="l">EDITORS</div></div>
+<div class="card" id="c5"><div class="t">Check the edit</div><div class="l">QA</div></div>
+<div class="card" id="c6"><div class="t">Client review</div><div class="l">CLIENT</div></div>
+</div>
+<div id="wide"><div class="t">Check the footage, then the edit</div></div>
+</div>
+<script>window.__timelines = { main: { duration: function () { return 1; }, seek: function () {}, pause: function () {}, time: function () { return 0; } } };</script>
+</body></html>

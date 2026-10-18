@@ -1,0 +1,38 @@
+# Vendored from https://github.com/DioxusLabs/blitz (rev a53fbab, packages/blitz-paint; rebased onto the 0.3.0-beta.3 release,
+# the one dioxus-native 0.8 pins, by a 3-way merge from a53fbab),
+# MIT OR Apache-2.0. Local change: text-shadow painting (src/text.rs, "text-shadow").
+# Inline <svg> follows its preserveAspectRatio (src/render.rs, draw_svg).
+# Colour stops get the CSS fix-up (src/gradient.rs, resolve_color_stops).
+[package]
+name = "blitz-paint"
+description = "Paint a Blitz Document using anyrender"
+version = "0.3.0-beta.3"
+license = "MIT OR Apache-2.0"
+edition = "2024"
+
+[features]
+default = ["svg"]
+tracing = ["dep:tracing"]
+svg = ["dep:anyrender_svg", "dep:usvg", "blitz-dom/svg"]
+custom-widget = ["blitz-dom/custom-widget"]
+font-embolden = []
+apple-font-embolden = []
+scrollbars = ["blitz-dom/scrollbars"]
+
+[dependencies]
+anyrender = "0.14.0"
+anyrender_svg = { version = "0.15.0", optional = true }
+blitz-traits = { version = "=0.3.0-beta.3", default-features = false }
+blitz-dom = { version = "=0.3.0-beta.3", default-features = false }
+style = { version = "0.22.0", package = "stylo" }
+euclid = "0.22"
+taffy = { git = "https://github.com/DioxusLabs/taffy", rev = "bc525c030e67d2fd58ecb7b96742f4fb34866c44", default-features = false, features = ["std", "flexbox", "flexbox_balance", "grid", "block_layout", "content_size", "calc", "detailed_layout_info"] }
+parley = { git = "https://github.com/linebender/parley", rev = "62790943af982ad3388a3ff96cef6f90ac80a8bb", default-features = false, features = ["std", "bytemuck"] }
+skrifa = { version = "0.44", default-features = false, features = ["std"] }
+color = "0.3"
+peniko = "0.6.0"
+kurbo = "0.13.1"
+usvg = { version = "0.48.1", optional = true }
+bytemuck = "1"
+smallvec = "1"
+tracing = { version = "0.1.40", optional = true }

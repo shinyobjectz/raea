@@ -1,0 +1,7 @@
+// expect: 7:1 claim:labtested isn't a claim
+Title: x
+Format: 9:16, 20 s
+$claim.gras: "GRAS verified" source "GRN-1234"
+
+@SHAWN
+It's lab tested. [[statcard big:"3x" | claim:labtested]]

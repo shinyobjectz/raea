@@ -1,0 +1,15 @@
+# decode on the UGC edit's sources: any-order identity (24 seeks forward vs shuffled), SSIM vs the ffmpeg reference
+# (untagged HD read as BT.709), decode fps over 300 frames; 2026-10-13, M4
+backend source                   any-order SSIM mean  SSIM min decode fps
+ffmpeg  take-h264.mp4              24/24      1.0000    1.0000       95.6
+apple   take-h264.mp4              24/24      0.9984    0.9983       98.5
+soft    take-h264.mp4              24/24      0.9985    0.9984       37.3
+av1     take-av1.mp4               24/24      0.9985    0.9983       61.3
+ffmpeg  broll-screen.mov           24/24      1.0000    1.0000       92.2
+apple   broll-screen.mov           24/24      0.9922    0.9913       94.9
+soft    broll-screen.mezz.mp4      24/24      0.9995    0.9994       67.4
+av1     broll-screen.av1.mp4       24/24      0.9997    0.9996       60.2
+ffmpeg  broll-rot.mov              24/24      1.0000    1.0000       95.1
+apple   broll-rot.mov              24/24      0.9983    0.9981      100.2
+soft    broll-rot.mov              24/24      0.9985    0.9983       35.1
+av1     broll-rot.av1.mp4          24/24      0.9985    0.9983       63.0

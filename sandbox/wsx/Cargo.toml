@@ -1,0 +1,25 @@
+[package]
+name = "wsx"
+version = "0.1.0"
+edition = "2021"
+[workspace]
+[lib]
+crate-type = ["staticlib", "rlib"]
+[[bin]]
+name = "wsxc"
+required-features = ["compile"]
+[[bin]]
+name = "wsx-suite"
+[features]
+# the Mac's compiler: modules compiled ahead of time for Pulley (the phone has no compiler and no JIT)
+compile = ["wasmtime/cranelift"]
+[dependencies]
+wasmtime = { version = "48.0.5", default-features = false, features = ["runtime", "pulley", "std"] }
+wasmtime-wasi = { version = "48.0.5", default-features = false, features = ["p1"] }
+serde_json = "1"
+# the one native-call layer (its registry; no V8 here): the sandbox's commands as wsx.* calls
+raea-native = { path = "../../native" }
+[profile.release]
+lto = true
+codegen-units = 1
+strip = true

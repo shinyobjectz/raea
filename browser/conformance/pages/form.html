@@ -1,0 +1,12 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Sign up</title>
+<style>body{font:16px Inter, sans-serif;margin:24px} .hidden{display:none}</style></head>
+<body>
+  <h1>Sign up</h1>
+  <label for="email">Email</label> <input id="email" type="email">
+  <label for="plan">Plan</label>
+  <select id="plan"><option>Go</option><option>Creator</option><option>Studio</option></select>
+  <button id="go" onclick="document.getElementById('out').textContent = 'Thanks, ' + document.getElementById('email').value + ' on ' + document.getElementById('plan').value; document.getElementById('out').classList.remove('hidden')">Join</button>
+  <p id="out" class="hidden" role="status"></p>
+  <a href="#terms">Terms</a>
+</body></html>

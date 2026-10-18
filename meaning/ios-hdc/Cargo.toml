@@ -1,0 +1,14 @@
+[package]
+name = "raea-hdc-probe"
+version = "0.1.0"
+edition = "2021"
+# The HDC sandwich's timing (meaning/src/hdc_time.rs over k.rs) as a static library for the iPhone probe app.
+
+[lib]
+path = "src/lib.rs"
+crate-type = ["staticlib"]
+
+[profile.release]
+opt-level = 3
+
+[workspace]

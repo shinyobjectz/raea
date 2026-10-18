@@ -1,0 +1,20 @@
+/* Preflight-style reset, as Tailwind/shadcn apps ship. */
+* { box-sizing: border-box; }
+button { font: inherit; line-height: inherit; color: inherit; }
+body { margin: 0; font-family: "Helvetica Neue", Helvetica, Arial, sans-serif; background: #f4f2ee; color: #1d1b18; }
+.board { padding: 24px; }
+h1 { font-size: 26px; margin: 0 0 18px; }
+.columns { display: flex; gap: 16px; align-items: flex-start; }
+.column { flex: 1; background: #e9e5de; border-radius: 10px; padding: 12px; }
+h2 { font-size: 15px; margin: 0 0 10px; text-transform: uppercase; letter-spacing: 0.06em; color: #5a554d; }
+/* inline-block: Blitz doesn't paint padding/radius on inline spans */
+.count { display: inline-block; background: #d6d0c5; border-radius: 999px; padding: 1px 8px; font-size: 12px; color: #3a362f; }
+.card { background: #fff; border-radius: 8px; padding: 10px 12px; margin-bottom: 8px; border: 1px solid #ddd6ca; }
+.title { font-size: 14px; font-weight: 600; margin-bottom: 6px; }
+.meta { display: flex; justify-content: space-between; font-size: 12px; color: #6b655c; margin-bottom: 6px; }
+.tags { display: flex; gap: 4px; flex-wrap: wrap; }
+.tag { font-size: 11px; padding: 2px 6px; border-radius: 4px; background: #eee9e0; }
+.tag-bug { background: #f7d9d4; color: #8a2d1c; }
+.tag-design { background: #dbe4f5; color: #24427a; }
+.tag-infra { background: #dcefe0; color: #245c33; }
+.advance { margin-top: 8px; font-size: 12px; border: 1px solid #c9c1b3; background: #faf8f4; border-radius: 6px; padding: 3px 8px; }

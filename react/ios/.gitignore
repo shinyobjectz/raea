@@ -1,0 +1,5 @@
+target/
+probe-build/
+probe/Bundle/
+probe/*.xcodeproj/
+probe-build-sim/

@@ -1,0 +1,11 @@
+target/
+examples/ugc/stills/
+examples/ugc/p1/
+examples/ugc/p2/
+examples/ugc/p3/
+examples/ugc/v-*.sql
+examples/ugc/sheet.png
+.gops/
+examples/out/*.mp4
+examples/out/previz/*.png
+examples/out/*.raw

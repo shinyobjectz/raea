@@ -1,0 +1,48 @@
+Metal System Trace (xcrun xctrace record --template 'Metal System Trace', headless), the UGC edit's frames 200-259 with RAEA_SERIAL, M4, 2026-10-14. GPU time per update (69 updates: 60 frames, 8 warm-ups, the careful first frame), by Bevy's command-buffer label, rdb's process only (bench script: the scratchpad's gpuagg2.py over the metal-gpu-intervals and metal-application-encoders-list tables).
+
+== step 0 path (RAEA_READBACK=rgba RAEA_COMPOSITE=ui; today's engine: no MSAA for an edit without 3D)
+  2.295 ms   1.2x  Fragment  ui
+  1.161 ms   1.0x  Fragment  clustering count pass
+  0.875 ms   1.0x  Compute   (unlabelled)
+  0.544 ms   1.1x  Compute   (wgpu internal) Signal
+  0.355 ms   1.0x  Fragment  main_opaque_pass_3d
+  0.225 ms   0.9x  Fragment  upscaling
+  0.142 ms   1.0x  Fragment  clustering populate pass
+  0.127 ms   1.0x  Compute   (wgpu internal) Transit
+  0.087 ms   1.0x  Vertex    ui
+  0.083 ms   4.1x  Compute   (wgpu internal) Pre Pass
+  0.067 ms   1.0x  Compute   clustering allocation local pass
+  0.051 ms   1.0x  Vertex    clustering count pass
+  0.051 ms   1.0x  Compute   clustering allocation global pass
+  0.042 ms   0.2x  Fragment  (wgpu internal) Signal
+  0.027 ms   1.0x  Compute   Command Buffer 0
+  0.025 ms   1.0x  Vertex    clustering populate pass
+  0.024 ms   0.0x  Fragment  (unlabelled)
+  0.021 ms   0.8x  Vertex    upscaling
+  0.018 ms   1.0x  Compute   clustering Z slicing pass
+  0.011 ms   0.0x  Compute   (wgpu internal) PendingWrites
+  0.011 ms   1.0x  Vertex    main_opaque_pass_3d
+  0.004 ms   0.2x  Vertex    (wgpu internal) Signal
+  6.246 ms per update in all (69 updates)
+
+== the engine's GPU path (default)
+  2.208 ms   2.2x  Compute   Command Buffer 0
+  0.470 ms   2.1x  Compute   (wgpu internal) Signal
+  0.286 ms   1.0x  Compute   (unlabelled)
+  0.235 ms   1.0x  Fragment  main_opaque_pass_3d
+  0.158 ms   1.0x  Fragment  upscaling
+  0.139 ms   1.0x  Compute   (wgpu internal) Transit
+  0.114 ms   1.0x  Fragment  clustering count pass
+  0.065 ms   4.1x  Compute   (wgpu internal) Pre Pass
+  0.042 ms   1.0x  Fragment  clustering populate pass
+  0.041 ms   1.0x  Compute   clustering allocation global pass
+  0.037 ms   1.0x  Compute   clustering allocation local pass
+  0.035 ms   0.0x  Compute   (wgpu internal) PendingWrites
+  0.032 ms   1.0x  Vertex    clustering populate pass
+  0.025 ms   1.0x  Vertex    ui
+  0.018 ms   1.0x  Compute   clustering Z slicing pass
+  0.016 ms   1.0x  Vertex    upscaling
+  0.016 ms   1.0x  Vertex    clustering count pass
+  0.015 ms   1.0x  Fragment  ui
+  0.006 ms   1.0x  Vertex    main_opaque_pass_3d
+  3.957 ms per update in all (69 updates)

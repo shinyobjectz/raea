@@ -1,0 +1,9 @@
+# raea's executables carry the JIT entitlement (tools/link-jit.sh): JavaScriptCore, the JS engine that replaces V8,
+# keeps its JIT off without it
+[target.aarch64-apple-darwin]
+linker = "tools/link-jit.sh"
+
+# no strip after linking: rustc's strip pass re-signs the binary and drops the entitlement (release has no debug info
+# of its own; std's stays)
+[profile.release]
+strip = false

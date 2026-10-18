@@ -1,0 +1,5 @@
+target/
+*.f32
+*.log
+ios-hdc/mac-enc/
+ios-hdc/phone-enc/

@@ -1,0 +1,11 @@
+// expect: ok
+Title: claims with sources
+Format: 9:16, 20 s
+$claim.gras: "GRAS verified" source "GRAS notice GRN-1234"
+$claim.allday: "runs all day"
+
+! claims sourced
+
+# proof
+@SHAWN
+Making it a safe choice for you and it's GRAS verified. [[statcard big:"270+" | claim:gras]]

@@ -1,0 +1,24 @@
+<!doctype html>
+<!-- Text-layout report fixture (src/api.rs boxes_at test): centred title with a nested span, two
+     overlapping labels, a transformed line, text off the right edge and a masked line. -->
+<html><head><style>
+html,body{margin:0;width:1080px;height:1920px;background:#222;font-family:Inter,Helvetica,sans-serif;color:#fff}
+#root{position:relative;width:1080px;height:1920px;overflow:hidden}
+#title{position:absolute;left:0;right:0;top:860px;text-align:center;font-size:96px;font-weight:800}
+#a{position:absolute;left:100px;top:1300px;font-size:64px}
+#b{position:absolute;left:180px;top:1320px;font-size:64px}
+#tilt{position:absolute;left:100px;top:300px;font-size:64px;transform:translateX(200px) scale(2)}
+#off{position:absolute;left:900px;top:1100px;font-size:80px;white-space:nowrap}
+.mask{position:absolute;left:100px;top:600px;height:80px;overflow:hidden}
+#hidden{display:block;font-size:64px;transform:translateY(100%)}
+</style></head><body>
+<div id="root" data-composition-id="main" data-start="0" data-duration="2" data-width="1080" data-height="1920">
+<div id="title">The <span class="hl">end</span> card</div>
+<div id="a">First label</div>
+<div id="b">Second label</div>
+<div id="tilt">Scaled</div>
+<div id="off">Runs off the edge</div>
+<div class="mask"><span id="hidden">Not yet revealed</span></div>
+</div>
+<script>window.__timelines = { main: { duration: function () { return 2; }, seek: function () {}, pause: function () {}, time: function () { return 0; } } };</script>
+</body></html>

@@ -1,0 +1,57 @@
+/* Glossier brand kit for the host app, from glossier.com (context.dev styleguide, 2026-10-09).
+   Link it from an edit:  <link rel="stylesheet" href="../assets/brand/brand.css">
+   Sizes are the website's; on a 1080x1920 video, scale them up (about 2.5x for captions and titles).
+   Edit freely: nothing overwrites this file unless the brand kit is refreshed. */
+@import url("https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;700&display=swap");
+
+:root {
+  --brand-accent: #8d3f2b;
+  --brand-background: #ffffff;
+  --brand-text: #000000;
+  --brand-color-1: #F7D7DA;
+  --brand-color-2: #1A1A1A;
+  --brand-font-heading: "DM Sans", sans-serif;
+  --brand-font: "DM Sans", sans-serif;
+  --brand-h1-size: 32px;
+  --brand-h1-weight: 700;
+  --brand-h1-line: 38px;
+  --brand-h1-tracking: 0px;
+  --brand-h2-size: 26px;
+  --brand-h2-weight: 400;
+  --brand-h2-line: 28px;
+  --brand-h2-tracking: 0px;
+  --brand-h3-size: 21px;
+  --brand-h3-weight: 400;
+  --brand-h3-line: 25px;
+  --brand-h3-tracking: 0px;
+  --brand-h4-size: 17px;
+  --brand-h4-weight: 400;
+  --brand-h4-line: 20.4px;
+  --brand-h4-tracking: 0.04px;
+  --brand-p-size: 14px;
+  --brand-p-weight: 400;
+  --brand-p-line: 19.6px;
+  --brand-p-tracking: 0px;
+  --brand-space-xs: 6px;
+  --brand-space-sm: 14px;
+  --brand-space-md: 28px;
+  --brand-space-lg: 40px;
+  --brand-space-xl: 56px;
+  --brand-shadow-sm: none;
+  --brand-shadow-md: none;
+  --brand-shadow-lg: none;
+  --brand-shadow-xl: none;
+  --brand-shadow-inner: none;
+  --brand-radius: 8px;
+}
+
+.brand-h1 { font-family: var(--brand-font-heading); font-size: var(--brand-h1-size); font-weight: var(--brand-h1-weight); line-height: var(--brand-h1-line); letter-spacing: var(--brand-h1-tracking); }
+.brand-h2 { font-family: var(--brand-font-heading); font-size: var(--brand-h2-size); font-weight: var(--brand-h2-weight); line-height: var(--brand-h2-line); letter-spacing: var(--brand-h2-tracking); }
+.brand-h3 { font-family: var(--brand-font-heading); font-size: var(--brand-h3-size); font-weight: var(--brand-h3-weight); line-height: var(--brand-h3-line); letter-spacing: var(--brand-h3-tracking); }
+.brand-h4 { font-family: var(--brand-font-heading); font-size: var(--brand-h4-size); font-weight: var(--brand-h4-weight); line-height: var(--brand-h4-line); letter-spacing: var(--brand-h4-tracking); }
+.brand-text { font-family: var(--brand-font); font-size: var(--brand-p-size); font-weight: var(--brand-p-weight); line-height: var(--brand-p-line); letter-spacing: var(--brand-p-tracking); }
+
+.brand-button-link { color: #000000; font-size: 14px; font-weight: 400; font-family: "DM Sans", "Gill Sans", sans-serif; text-decoration: underline; }
+.brand-button, .brand-button-primary { box-sizing: border-box; display: inline-block; min-width: 94px; min-height: 40px; background-color: #e8e8e8; color: #000000; border: 1px solid transparent; border-radius: 4px; padding: 8px 16px; font-size: 14px; font-weight: 400; font-family: "DM Sans", "Gill Sans", sans-serif; text-decoration: none; }
+.brand-button-secondary { box-sizing: border-box; display: inline-block; min-width: 94px; min-height: 40px; background-color: transparent; color: #000000; border: 1px solid #000000; border-radius: 4px; padding: 8px 16px; font-size: 14px; font-weight: 400; font-family: "DM Sans", "Gill Sans", sans-serif; text-decoration: none; }
+.brand-card { background-color: #ffffff; color: #000000; border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; }

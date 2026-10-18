@@ -1,0 +1,29 @@
+[package]
+name = "pi-ai"
+description = "Unified multi-provider LLM API (Rust port of @earendil-works/pi-ai). Streams from Anthropic, OpenAI, Google Gemini, and any OpenAI-compatible endpoint."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+readme = "README.md"
+keywords = ["llm", "ai", "anthropic", "openai", "agent"]
+categories = ["api-bindings", "asynchronous"]
+
+[dependencies]
+tokio = { workspace = true }
+tokio-util = { workspace = true }
+reqwest = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+async-trait = { workspace = true }
+futures = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+chrono = { workspace = true }
+async-stream = { workspace = true }
+bytes = { workspace = true }
+url = { workspace = true }
+uuid = { workspace = true }
+eventsource-stream = { workspace = true }

@@ -1,0 +1,16 @@
+/* hooks */
+.panel { margin: 14px 24px; padding: 14px 18px; border-radius: 10px; background: #f1f3f5; font: 16px Helvetica, Arial, sans-serif; }
+.label { display: inline-block; font-weight: 700; margin-bottom: 8px; }
+.bar { height: 14px; border-radius: 7px; }
+.num { margin-top: 6px; color: #495057; font-size: 14px; }
+.wait { background: #ffe3e3; } .ok { background: #d3f9d8; }
+.dots { display: flex; gap: 6px; } .dot { width: 18px; height: 18px; border-radius: 9px; background: #7048e8; }
+/* timeline */
+.scene { padding: 40px 56px; font-family: Helvetica, Arial, sans-serif; }
+.scene h1 { font-size: 40px; margin: 0 0 28px; }
+.track { height: 22px; border-radius: 11px; background: #e9ecef; overflow: hidden; }
+.fill { height: 100%; background: linear-gradient(90deg, #4263eb, #12b886); }
+.pct { font-size: 28px; font-weight: 700; margin: 12px 0 20px; }
+.scene ul { list-style: none; padding: 0; margin: 0; display: flex; gap: 14px; }
+.scene li { padding: 10px 18px; border-radius: 8px; background: #f1f3f5; font-size: 20px; }
+.scene li.done { background: #d3f9d8; color: #2b8a3e; }

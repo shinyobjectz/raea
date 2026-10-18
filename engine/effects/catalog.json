@@ -1,0 +1,619 @@
+{
+ "$comment": "raea effects catalog (docs/ENGINE-COMPLETENESS.md, effects). Source of truth for the apps' Settings > Effects list and the Agent's effect vocabulary. status: stable (on by default) | beta (off by default, listed under Beta effects). needs: ML tracks an effect reads (segmentation, depth, landmarks), produced on device. dsl: the one-line form a composition uses (data-fx). Entries are added as each effect renders like Chrome and passes the Agent eval. params: each argument in order: name, type (length = px number, color = any CSS colour, hexcolor = #rgb/#rrggbb/rgb(), number, time = seconds like 0.2s or 200ms, times = a space-separated list of times, enum), default, min/max or values. Any length or number argument can be a range \"a..b\" (e.g. blur(0px..12px)): it animates from a to b over the element's time on screen; \"a..b..c@0s..1s..2s\" sets keyframes at those times.",
+ "version": 1,
+ "effects": [
+  {
+   "id": "blur",
+   "name": "Blur",
+   "summary": "Soft focus over the whole element",
+   "status": "beta",
+   "needs": [],
+   "dsl": "blur(radius, light)",
+   "params": [
+    {
+     "name": "radius",
+     "type": "length",
+     "default": "8px",
+     "min": 0,
+     "max": 200
+    },
+    {
+     "name": "light",
+     "type": "enum",
+     "default": "srgb",
+     "values": [
+      "srgb",
+      "linear"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "glow",
+   "name": "Glow",
+   "summary": "Soft light around shapes and text",
+   "status": "beta",
+   "needs": [],
+   "dsl": "glow(radius, color)",
+   "params": [
+    {
+     "name": "radius",
+     "type": "length",
+     "default": "12px",
+     "min": 0,
+     "max": 200
+    },
+    {
+     "name": "color",
+     "type": "color",
+     "default": null
+    },
+    {
+     "name": "strength",
+     "type": "number",
+     "default": 1,
+     "min": 0,
+     "max": 1
+    }
+   ]
+  },
+  {
+   "id": "goo",
+   "name": "Goo",
+   "summary": "Shapes melt together where they meet. Put it on a transparent element holding the shapes (on a filled background nothing changes) and use a radius about half the gap between the shapes; raise it until they bridge",
+   "status": "beta",
+   "needs": [],
+   "dsl": "goo(radius)",
+   "params": [
+    {
+     "name": "radius",
+     "type": "length",
+     "default": "10px",
+     "min": 1,
+     "max": 60
+    }
+   ]
+  },
+  {
+   "id": "duotone",
+   "name": "Duotone",
+   "summary": "Two-colour look from the image's light and dark",
+   "status": "beta",
+   "needs": [],
+   "dsl": "duotone(dark, light)",
+   "params": [
+    {
+     "name": "dark",
+     "type": "hexcolor",
+     "default": "#1a1033"
+    },
+    {
+     "name": "light",
+     "type": "hexcolor",
+     "default": "#ffcc33"
+    }
+   ]
+  },
+  {
+   "id": "grain",
+   "name": "Film grain",
+   "summary": "Fine noise over the picture",
+   "status": "beta",
+   "needs": [],
+   "dsl": "grain(amount, size, blend)",
+   "params": [
+    {
+     "name": "amount",
+     "type": "number",
+     "default": 0.25,
+     "min": 0,
+     "max": 1
+    },
+    {
+     "name": "size",
+     "type": "number",
+     "default": 1,
+     "min": 0.25,
+     "max": 8
+    },
+    {
+     "name": "blend",
+     "type": "enum",
+     "default": "overlay",
+     "values": [
+      "overlay",
+      "film"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "warp",
+   "name": "Warp",
+   "summary": "Wavy distortion",
+   "status": "beta",
+   "needs": [],
+   "dsl": "warp(amount, scale, speed)",
+   "params": [
+    {
+     "name": "amount",
+     "type": "length",
+     "default": "20px",
+     "min": 0,
+     "max": 200
+    },
+    {
+     "name": "scale",
+     "type": "number",
+     "default": 0.02,
+     "min": 0.001,
+     "max": 0.5
+    },
+    {
+     "name": "speed",
+     "type": "number",
+     "default": 0,
+     "min": 0,
+     "max": 10
+    }
+   ]
+  },
+  {
+   "id": "motion-blur",
+   "name": "Motion blur",
+   "summary": "A streak along one fixed direction (horizontal or vertical) over the whole element; it doesn't follow the element's movement, so animate length (0px..40px..0px@\u2026) with the move",
+   "status": "beta",
+   "needs": [],
+   "dsl": "motion-blur(length, direction, sharp)",
+   "params": [
+    {
+     "name": "length",
+     "type": "length",
+     "default": "20px",
+     "min": 0,
+     "max": 300
+    },
+    {
+     "name": "direction",
+     "type": "enum",
+     "values": [
+      "horizontal",
+      "vertical"
+     ],
+     "default": "horizontal"
+    },
+    {
+     "name": "sharp",
+     "type": "number",
+     "default": 0,
+     "min": 0,
+     "max": 1
+    },
+    {
+     "name": "light",
+     "type": "enum",
+     "default": "srgb",
+     "values": [
+      "srgb",
+      "linear"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "background-blur",
+   "name": "Background blur",
+   "summary": "Blurs everything behind the person in a clip",
+   "status": "beta",
+   "needs": [
+    "segmentation"
+   ],
+   "dsl": "background-blur(subject, radius)",
+   "params": [
+    {
+     "name": "subject",
+     "type": "enum",
+     "values": [
+      "person",
+      "hair"
+     ],
+     "default": "person"
+    },
+    {
+     "name": "radius",
+     "type": "length",
+     "default": "16px",
+     "min": 0,
+     "max": 120
+    }
+   ]
+  },
+  {
+   "id": "cutout",
+   "name": "Cutout",
+   "summary": "Keeps only the person from a clip, background removed",
+   "status": "beta",
+   "needs": [
+    "segmentation"
+   ],
+   "dsl": "cutout(subject)",
+   "params": [
+    {
+     "name": "subject",
+     "type": "enum",
+     "values": [
+      "person",
+      "hair"
+     ],
+     "default": "person"
+    }
+   ]
+  },
+  {
+   "id": "mirror",
+   "name": "Mirror",
+   "summary": "The picture flipped left-right (or upside down)",
+   "status": "beta",
+   "needs": [],
+   "dsl": "mirror(direction)",
+   "params": [
+    {
+     "name": "direction",
+     "type": "enum",
+     "default": "horizontal",
+     "values": [
+      "horizontal",
+      "vertical"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "zoom",
+   "name": "Zoom",
+   "summary": "Push in on the picture, optionally snapping back at the end",
+   "status": "beta",
+   "needs": [],
+   "dsl": "zoom(scale, in, out)",
+   "params": [
+    {
+     "name": "scale",
+     "type": "number",
+     "default": 1.3,
+     "min": 0.1,
+     "max": 10
+    },
+    {
+     "name": "in",
+     "type": "time",
+     "default": "0.6s",
+     "min": 0,
+     "max": 60
+    },
+    {
+     "name": "out",
+     "type": "time",
+     "default": "0s",
+     "min": 0,
+     "max": 60
+    }
+   ]
+  },
+  {
+   "id": "scale",
+   "name": "Scale",
+   "summary": "Scale about the centre; keyframes animate it",
+   "status": "beta",
+   "needs": [],
+   "dsl": "scale(x, y)",
+   "params": [
+    {
+     "name": "x",
+     "type": "number",
+     "default": 1,
+     "min": -10,
+     "max": 10
+    },
+    {
+     "name": "y",
+     "type": "number",
+     "default": null,
+     "min": -10,
+     "max": 10
+    }
+   ]
+  },
+  {
+   "id": "rotate",
+   "name": "Rotate",
+   "summary": "Turn about the centre, in degrees; keyframes animate it",
+   "status": "beta",
+   "needs": [],
+   "dsl": "rotate(degrees)",
+   "params": [
+    {
+     "name": "degrees",
+     "type": "number",
+     "default": 0,
+     "min": -3600,
+     "max": 3600
+    }
+   ]
+  },
+  {
+   "id": "shake",
+   "name": "Shake",
+   "summary": "Camera shake: quick jolts between corners",
+   "status": "beta",
+   "needs": [],
+   "dsl": "shake(amount, step, scale)",
+   "params": [
+    {
+     "name": "amount",
+     "type": "number",
+     "default": 2,
+     "min": 0,
+     "max": 50
+    },
+    {
+     "name": "step",
+     "type": "time",
+     "default": "0.05s",
+     "min": 0.008,
+     "max": 2
+    },
+    {
+     "name": "scale",
+     "type": "number",
+     "default": 1,
+     "min": 0.5,
+     "max": 3
+    }
+   ]
+  },
+  {
+   "id": "flash",
+   "name": "Flash",
+   "summary": "A colour washing over the picture and away: steadily every period, or once on each beat listed in at (times on the element's clock, like 0.15s 0.55s 1.05s)",
+   "status": "beta",
+   "needs": [],
+   "dsl": "flash(color, period, peak, shape, at)",
+   "params": [
+    {
+     "name": "color",
+     "type": "color",
+     "default": "#fff"
+    },
+    {
+     "name": "period",
+     "type": "time",
+     "default": "0.2s",
+     "min": 0.008,
+     "max": 60
+    },
+    {
+     "name": "peak",
+     "type": "number",
+     "default": 1,
+     "min": 0,
+     "max": 1
+    },
+    {
+     "name": "shape",
+     "type": "enum",
+     "default": "triangle",
+     "values": [
+      "triangle",
+      "saw",
+      "square"
+     ]
+    },
+    {
+     "name": "at",
+     "type": "times",
+     "default": "",
+     "min": 0,
+     "max": 3600
+    }
+   ]
+  },
+  {
+   "id": "invert",
+   "name": "Invert",
+   "summary": "Colours inverted like a film negative, optionally flickering",
+   "status": "beta",
+   "needs": [],
+   "dsl": "invert(amount, flicker, every, for)",
+   "params": [
+    {
+     "name": "amount",
+     "type": "number",
+     "default": 1,
+     "min": 0,
+     "max": 1
+    },
+    {
+     "name": "flicker",
+     "type": "time",
+     "default": "0s",
+     "min": 0,
+     "max": 10
+    },
+    {
+     "name": "every",
+     "type": "time",
+     "default": "0s",
+     "min": 0,
+     "max": 60
+    },
+    {
+     "name": "for",
+     "type": "time",
+     "default": "0s",
+     "min": 0,
+     "max": 60
+    }
+   ]
+  },
+  {
+   "id": "vignette",
+   "name": "Vignette",
+   "summary": "Darkened edges",
+   "status": "beta",
+   "needs": [],
+   "dsl": "vignette(amount, size, softness, color)",
+   "params": [
+    {
+     "name": "amount",
+     "type": "number",
+     "default": 0.5,
+     "min": 0,
+     "max": 1
+    },
+    {
+     "name": "size",
+     "type": "number",
+     "default": 0.5,
+     "min": 0,
+     "max": 1
+    },
+    {
+     "name": "softness",
+     "type": "number",
+     "default": 0.5,
+     "min": 0.01,
+     "max": 2
+    },
+    {
+     "name": "color",
+     "type": "color",
+     "default": "#000"
+    }
+   ]
+  },
+  {
+   "id": "iris",
+   "name": "Iris",
+   "summary": "Fade out, then open again through a growing oval",
+   "status": "beta",
+   "needs": [],
+   "dsl": "iris(fade, open, softness, aspect)",
+   "params": [
+    {
+     "name": "fade",
+     "type": "time",
+     "default": "0.3s",
+     "min": 0,
+     "max": 60
+    },
+    {
+     "name": "open",
+     "type": "time",
+     "default": "2.6s",
+     "min": 0.01,
+     "max": 60
+    },
+    {
+     "name": "softness",
+     "type": "number",
+     "default": 0.15,
+     "min": 0.01,
+     "max": 1
+    },
+    {
+     "name": "aspect",
+     "type": "number",
+     "default": 1,
+     "min": 0.1,
+     "max": 10
+    }
+   ]
+  },
+  {
+   "id": "bloom",
+   "name": "Bloom",
+   "summary": "Light bleeding out of the bright parts",
+   "status": "beta",
+   "needs": [],
+   "dsl": "bloom(radius, strength, threshold)",
+   "params": [
+    {
+     "name": "radius",
+     "type": "length",
+     "default": "20px",
+     "min": 0,
+     "max": 200
+    },
+    {
+     "name": "strength",
+     "type": "number",
+     "default": 0.6,
+     "min": 0,
+     "max": 4
+    },
+    {
+     "name": "threshold",
+     "type": "number",
+     "default": 0.6,
+     "min": 0,
+     "max": 1
+    }
+   ]
+  },
+  {
+   "id": "grade",
+   "name": "Grade",
+   "summary": "Colour grade: saturation, brightness, contrast (1 = unchanged)",
+   "status": "beta",
+   "needs": [],
+   "dsl": "grade(saturation, brightness, contrast)",
+   "params": [
+    {
+     "name": "saturation",
+     "type": "number",
+     "default": 1,
+     "min": 0,
+     "max": 4
+    },
+    {
+     "name": "brightness",
+     "type": "number",
+     "default": 1,
+     "min": 0,
+     "max": 4
+    },
+    {
+     "name": "contrast",
+     "type": "number",
+     "default": 1,
+     "min": 0,
+     "max": 4
+    }
+   ]
+  },
+  {
+   "id": "rgb-split",
+   "name": "RGB Split",
+   "summary": "Chromatic aberration: red and blue pulled apart",
+   "status": "beta",
+   "needs": [],
+   "dsl": "rgb-split(distance, angle)",
+   "params": [
+    {
+     "name": "distance",
+     "type": "length",
+     "default": "6px",
+     "min": -100,
+     "max": 100
+    },
+    {
+     "name": "angle",
+     "type": "number",
+     "default": 0,
+     "min": -360,
+     "max": 360
+    }
+   ]
+  }
+ ]
+}

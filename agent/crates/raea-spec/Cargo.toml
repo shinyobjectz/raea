@@ -1,0 +1,7 @@
+[package]
+name = "raea-spec"
+version = "0.1.0"
+edition = "2021"
+description = "Gherkin for the Agent harness: Features, Rules, Backgrounds, Scenarios and tags, for agent harnesses (moved from ugc-spec, host agent/harness.feature stage 1)"
+
+[dependencies]

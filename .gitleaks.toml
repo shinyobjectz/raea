@@ -1,0 +1,8 @@
+# gitleaks: the default rules, minus raea's asset ledgers, whose "key" field is a content hash of the made file
+# (prompt, seed and model), not a credential.
+[extend]
+useDefault = true
+
+[allowlist]
+description = "asset ledgers"
+paths = ['''(^|/)assets/made\.jsonl$''']

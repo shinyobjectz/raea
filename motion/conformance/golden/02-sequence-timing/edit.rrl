@@ -1,0 +1,7 @@
+edit {fps: 30, width: 1080, height: 1920, frames: 90}
+camera cam {bg: #101010}
+box a {x: 90, y: 300, w: 900, h: 300, bg: #2f6bff, radius: 32, from: 0, to: 40}
+title at in a {text: "FIRST", x: 0, y: 90, w: 900, size: 110, weight: 800, font: "Inter", color: #ffffff, align: center, line: 1}
+box b {x: 90, y: 1100, w: 900, h: 300, bg: #ff5a36, radius: 32, from: 30, to: 90}
+title bt in b {text: "SECOND", x: 0, y: 90, w: 900, size: 110, weight: 800, font: "Inter", color: #ffffff, align: center, line: 1}
+b.x {30: 290, 45: 90}

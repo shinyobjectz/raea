@@ -1,0 +1,32 @@
+name: RaeaHdc
+options:
+  bundleIdPrefix: com.shinyobjectz
+  deploymentTarget:
+    iOS: "17.0"
+settings:
+  base:
+    DEVELOPMENT_TEAM: BJJZ79J5NL
+    CODE_SIGN_STYLE: Automatic
+targets:
+  RaeaHdc:
+    type: application
+    platform: iOS
+    sources:
+      - Probe
+      - path: models/SigLIP2SeenBits.mlpackage
+      - path: models/YAMNet.mlpackage
+      - path: inputs
+        type: folder
+        buildPhase: resources
+    info:
+      path: Probe/Info.plist
+      properties:
+        CFBundleDisplayName: Raea HDC
+        UILaunchScreen: {}
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.shinyobjectz.raeahdc
+        SWIFT_OBJC_BRIDGING_HEADER: Probe/probe.h
+        LIBRARY_SEARCH_PATHS: $(SRCROOT)/../target/aarch64-apple-ios/release
+        OTHER_LDFLAGS: -lraea_hdc_probe -framework CoreML -framework AVFoundation
+        DEAD_CODE_STRIPPING: YES

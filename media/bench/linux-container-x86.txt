@@ -1,0 +1,25 @@
+G8 re-run, 2026-10-14: the soft backend end to end in a Linux container (rust:1-slim, x86_64, Docker Engine in WSL2 on the CUDA box), headless.
+Build: cargo build --release --no-default-features --features soft (bench/linux-run.sh steps; cmake added for opusic-sys).
+
+== Linux x86_64 (WSL2 kernel 6.6.87.2-microsoft-standard-WSL2, Docker container rust:1-slim), rustc 1.99.0 (b940084d7 2026-09-28)
+== decode (openh264, BT.709)
+{"backend":"soft","decode_s":11.012451851,"fps":27.241889822452038,"frames":300,"hash":"a64d0a5c26cd9af3","open_s":0.059017051}
+== seek: any order + SSIM vs ffmpeg
+== rotated source
+== encode (openh264 + Opus via muxide)
+{"backend":"soft","bytes":5089810,"codec":"h264 (openh264)","encode_s":3.193030946,"fps":46.97730856254595,"frames":150,"kbps":8143.696000000001,"ssim_mean":0.951565390942464}
+stream|codec_name=h264|duration=5.000000|nb_read_frames=150
+stream|codec_name=opus|duration=5.000000|nb_read_frames=250
+ffmpeg decode errors: 0
+== audio decode parity (Symphonia vs ffmpeg)
+== mix vs ffmpeg amix
+{"ffmpeg_lufs":-20.05105580097326,"offset_samples":0,"ours_lufs":-20.05105462497048,"residual_db":-117.32673263198353}
+
+-- second pass (seek with --ref as the file itself; audio parity by loudness, both decoders)
+== seek: any order + SSIM vs ffmpeg
+{"backend":"soft","identical_any_order":24,"seeks":24,"ssim_vs_ref_mean":0.9984935078309856,"ssim_vs_ref_min":0.9983955862169609}
+== rotated source
+{"backend":"soft","identical_any_order":24,"seeks":24,"ssim_vs_ref_mean":0.9985018779400252,"ssim_vs_ref_min":0.9984258377214974}
+== audio decode parity (Symphonia vs ffmpeg)
+{"backend":"ffmpeg","channels":1,"decode_s":0.121366471,"file":"fixtures/take-voice.m4a","lufs":-22.64467537689185,"peak_db":-4.001524395337336,"rate":48000,"seconds":25.641333333333332}
+{"backend":"soft","channels":1,"decode_s":0.027232264,"file":"fixtures/take-voice.m4a","lufs":-22.644674409118206,"peak_db":-4.001522753989658,"rate":48000,"seconds":25.633333333333333}

@@ -1,0 +1,50 @@
+apply 0 ['  after:  [{"edit":[30.0,1080,1920,150]}]'] 
+apply 0 ['  after:  [{"bg":"#1b1f3a","id":"cam","kind":"camera","look_y":1.0,"x":0.0,"y":2.2,"z":9.0}]'] 
+apply 0 ['  after:  [{"dir_x":-0.5,"dir_y":-1.0,"dir_z":-0.4,"id":"sun","kind":"light","lux":9000.0}]'] 
+apply 0 ['  after:  [{"color":"#2a2440","id":"floor","kind":"plane","size":30.0}]'] 
+apply 0 ['  after:  [{"color":"#ff7a59","id":"hero","kind":"cube","rough":0.3,"size":1.6,"y":1.4}]'] 
+apply 0 ['  after:  [{"color":"#3fd28a","id":"hero","kind":"cube","rough":0.3,"size":1.6,"y":1.4}]'] 
+apply 0 ['  after:  14 rows (ring0, ring1, ring10, ring11 ...)'] 
+apply 0 ['  after:  [{"color":"#fff8ec","font":"Avenir Next","id":"hook","kind":"title","opacity":0.0,"size":120.0,"text":"Stop scrolling","weight":800.0,"y":260.0},{"color":"#ffcc66","font":"Avenir Next","id":"sub","kind":"title","opacity":0.0,"size":52.0,"text":"this changes your mornings","weight":600.0,"y":410.0}]'] 
+apply 0 ['  after:  [{"color":"#ffffff","font":"Avenir Next","height":80.0,"id":"cap","kind":"caption","size":64.0,"text":"one serum, one step","weight":700.0,"y":1480.0}]'] 
+apply 0 ['  after:  [{"id":"face","kind":"face","visible":0.0,"y":1520.0}]'] 
+apply 0 ['  after:  [{"keys":{"ease":"step","frame":0,"id":"face","prop":"visible","value":0.0}},{"keys":{"ease":"step","frame":60,"id":"face","prop":"visible","value":1.0}},{"keys":{"ease":"linear","frame":60,"id":"face","prop":"y","value":1520.0}},{"keys":{"ease":"linear","frame":120,"id":"face","prop":"y","value":1300.0}}]'] 
+apply 0 ['  after:  [{"keys":{"ease":"out","frame":0,"id":"hook","prop":"y","value":340.0}},{"keys":{"ease":"out","frame":18,"id":"hook","prop":"y","value":260.0}},{"keys":{"ease":"out","frame":14,"id":"sub","prop":"y","value":470.0}},{"keys":{"ease":"out","frame":32,"id":"sub","prop":"y","value":410.0}}]'] 
+apply 0 ['  after:  [{"rule":"hero-turns","sql":"UPDATE cube SET rot_y = frame * 2 * pi() / 180 WHERE id = \'hero\'"}]'] 
+apply 0 ['  after:  [{"rule":"wobble","sql":"UPDATE cube SET rot_x = 0.3 * sin(frame * 0.2) WHERE id = \'hero\'"}]'] 
+apply 0 ['  after:  [{"rule":"ring-orbits","sql":"UPDATE sphere SET\\n  x = 2.4 * cos(2 * pi() * (row_number() OVER () / count(*) OVER () + frame * 0.004)),\\n  z = 2.4 * sin(2 * pi() * (row_number() OVER () / count(*) OVER () + frame * 0.004)),\\n  y = 0.6 + 0.5 * sin(2 * pi() * row_number() OVER () * 3 / count(*) OVER () + frame * 0.08)\\n  WHERE class = \'ring\'"}]'] 
+apply 0 ['  after:  [{"rule":"ring-size-follows-height","sql":"UPDATE sphere SET scale = 0.55 + 0.6 * y / max(y) OVER () WHERE class = \'ring\'"}]'] 
+apply 0 ['  after:  []'] 
+apply 0 ['  after:  [{"rule":"hook-fades-in","sql":"UPDATE title SET opacity = least(1, frame / 14) WHERE id = \'hook\'"}]'] 
+apply 0 ['  after:  [{"rule":"sub-fades-in","sql":"UPDATE title SET opacity = least(1, (frame - 14) / 18) WHERE id = \'sub\' AND frame >= 14"}]'] 
+apply 0 ['  after:  [{"color":"#ff7a59","id":"hero","kind":"cube","rough":0.3,"size":1.6,"y":1.4}]'] 
+apply 0 ['  after:  [{"rule":"caption-clears-face","sql":"UPDATE caption SET y = least(y, (SELECT min(y) FROM face WHERE visible = 1) - height - 24)\\n  WHERE (SELECT count(*) FROM face WHERE visible = 1) > 0"}]'] 
+apply 0 ['  after:  []'] 
+  1  INSERT INTO edit VALUES (30, 1080, 1920, 150)
+  2  INSERT INTO camera (id, x, y, z, look_y, bg) VALUES ('cam', 0, 2.2, 9, 1, '#1b1f3a')
+  3  INSERT INTO light (id, dir_x, dir_y, dir_z, lux) VALUES ('sun', -0.5, -1, -0.4, 9000)
+  4  INSERT INTO plane (id, size, color) VALUES ('floor', 30, '#2a2440')
+  5  INSERT INTO cube (id, size, color, y, rough) VALUES ('hero', 1.6, '#ff7a59', 1.4, 0.3)
+  6  UPDATE cube SET color = '#3fd28a' WHERE id = 'hero'
+  7  INSERT INTO sphere (id, class, size, color, y, rough, metal) SELECT 'ring' || i, 'ring', 0.38, '#ffd8c2', 0.6, 0.2, 0.3 FROM range(14) t (i)
+  8  INSERT INTO title (id, text, font, weight, size, color, y, opacity) VALUES ('hook', 'Stop scrolling', 'Avenir Next', 800, 120, '#fff8ec', 260, 0), ('sub', 'this changes your mornings', 'Avenir Next', 600, 52, '#ffcc66', 410, 0)
+  9  INSERT INTO caption (id, text, font, weight, size, color, y, height) VALUES ('cap', 'one serum, one step', 'Avenir Next', 700, 64, '#ffffff', 1480, 80)
+ 10  INSERT INTO face (id, y, visible) VALUES ('face', 1520, 0)
+ 11  INSERT INTO keys VALUES ('face', 'visible', 0, 0, 'step'), ('face', 'visible', 60, 1, 'step'), ('face', 'y', 60, 1520, 'linear'), ('face', 'y', 120, 1300, 'linear')
+ 12  INSERT INTO keys VALUES ('hook', 'y', 0, 340, 'out'), ('hook', 'y', 18, 260, 'out'), ('sub', 'y', 14, 470, 'out'), ('sub', 'y', 32, 410, 'out')
+ 13  INSERT INTO rule (name, sql) VALUES ('hero-turns', $$UPDATE cube SET rot_y = frame * 2 * pi() / 180 WHERE id = 'hero'$$)
+ 14  INSERT INTO rule (name, sql) VALUES ('wobble', $$UPDATE cube SET rot_x = 0.3 * sin(frame * 0.2) WHERE id = 'hero'$$)
+ 15  INSERT INTO rule (name, sql) VALUES ('ring-orbits', $$UPDATE sphere SET
+  x = 2.4 * cos(2 * pi() * (row_number() OVER () / count(*) OVER () + frame * 0.004)),
+  z = 2.4 * sin(2 * pi() * (row_number() OVER () / count(*) OVER () + frame * 0.004)),
+  y = 0.6 + 0.5 * sin(2 * pi() * row_number() OVER () * 3 / count(*) OVER () + frame * 0.08)
+  WHERE class = 'ring'$$)
+ 16  INSERT INTO rule (name, sql) VALUES ('ring-size-follows-height', $$UPDATE sphere SET scale = 0.55 + 0.6 * y / max(y) OVER () WHERE class = 'ring'$$)
+ 17  DELETE FROM rule WHERE name = 'wobble'
+ 18  INSERT INTO rule (name, sql) VALUES ('hook-fades-in', $$UPDATE title SET opacity = least(1, frame / 14) WHERE id = 'hook'$$)
+ 19  INSERT INTO rule (name, sql) VALUES ('sub-fades-in', $$UPDATE title SET opacity = least(1, (frame - 14) / 18) WHERE id = 'sub' AND frame >= 14$$)
+ 20  UPDATE cube SET color = '#ff7a59' WHERE id = 'hero'
+ 21  INSERT INTO rule (name, sql) VALUES ('caption-clears-face', $$UPDATE caption SET y = least(y, (SELECT min(y) FROM face WHERE visible = 1) - height - 24)
+  WHERE (SELECT count(*) FROM face WHERE visible = 1) > 0$$)
+ 22  INSERT INTO transition (kind, col, frames, ease, align) VALUES ('caption', 'y', 10, 'out', 'before')
+live.rdb 150 d33c8739979bb9d5

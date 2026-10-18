@@ -1,0 +1,29 @@
+[package]
+name = "raea-void-native"
+version = "0.1.0"
+edition = "2024"
+publish = false
+description = "raea void on Blitz: the shell rendered by Blitz (Stylo, Taffy, Parley, Vello on the GPU) through Dioxus Native, no webview"
+
+[workspace]
+
+[[bin]]
+name = "void-native"
+path = "src/main.rs"
+
+[dependencies]
+# Dioxus Native: Blitz 0.3.0-beta.3 and anyrender_vello (GPU), the same anyrender_vello_cpu 0.18 raea vendors
+# (no networking: void loads nothing from the web, and blitz-net would build OpenSSL from source)
+dioxus = { version = "=0.8.0-alpha.2", default-features = false, features = ["macro", "html", "signals", "hooks"] }
+dioxus-native = { version = "=0.8.0-alpha.2", default-features = false, features = ["html", "svg", "system-fonts", "clipboard", "vello-hybrid", "woff", "apple-font-embolden", "accessibility"] }
+# custom widgets (the stage, the box's cube): Blitz's Widget trait, painted into an anyrender Scene
+blitz-dom = { version = "=0.3.0-beta.3", default-features = false }
+anyrender = "0.14"
+peniko = "0.6"
+kurbo = "0.13"
+# the stage's frame texture, on the renderer's own device (no image atlas: written in place every frame)
+wgpu = "30"
+wgpu_context = "0.10"
+
+[profile.release]
+debug = "line-tables-only"

@@ -1,0 +1,15 @@
+// expect: ok
+Title: two hooks, two shapes
+Format: 9:16, 30 s, tiktok | 1:1, 15 s, instagram
+
+# hook {A}
+@MAYA
+I used to hate oat milk.
+
+# hook {B}
+@MAYA
+Nobody warned me about oat milk.
+
+# proof
+@MAYA
+It's creamy, and it's 90 calories. {9:16}

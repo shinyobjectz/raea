@@ -1,0 +1,7 @@
+// expect: 5:2 `drone` isn't a beat's kind | 6:31 `sparkle` isn't a find | 7:1 an open beat is
+Title: x
+Format: 9:16, 20 s
+
+~ drone: over the hills
+~ b-roll: a pour [find: hands sparkle]
+~ the pour

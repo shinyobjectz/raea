@@ -1,0 +1,5 @@
+edit {fps: 30, width: 1080, height: 1920, frames: 60}
+camera cam {bg: #000000}
+box card {x: 90, y: 700, w: 900, h: 400, bg: #111111, radius: 40}
+title label in card {text: "30 MIN", x: 0, y: 120, w: 900, size: 160, weight: 800, font: "Inter", color: #c6ff3a, align: center, line: 1}
+card.opacity {0: 0, 15: 1}

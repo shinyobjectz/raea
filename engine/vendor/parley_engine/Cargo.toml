@@ -1,0 +1,31 @@
+# Vendored from https://github.com/linebender/parley (rev 62790943, parley_engine), Apache-2.0 OR MIT.
+# Local changes: Blink's macOS font metric rules (src/shape/shaped_text.rs, "blink_metrics"); shaping at
+# HarfBuzz's 16.16 scale with variable-font advances keeping their HVAR fraction, as Blink + CoreText do
+# (src/shape/shaper.rs, src/shape/shaped_text.rs "advance_fraction").
+[package]
+name = "parley_engine"
+version = "0.11.0"
+description = "Parley Engine provides low level APIs for implementing text layout."
+edition = "2024"
+license = "Apache-2.0 OR MIT"
+
+[features]
+default = ["std"]
+std = ["fontique/std", "harfrust/std", "parlance/std", "parley_emoji/std", "skrifa/std"]
+libm = ["fontique/libm", "harfrust/libm", "skrifa/libm"]
+bytemuck = ["fontique/bytemuck", "parlance/bytemuck"]
+complex-scripts = []
+
+[dependencies]
+fontique = { git = "https://github.com/linebender/parley", rev = "62790943af982ad3388a3ff96cef6f90ac80a8bb", default-features = false }
+parlance = { git = "https://github.com/linebender/parley", rev = "62790943af982ad3388a3ff96cef6f90ac80a8bb", default-features = false }
+parley_data = { git = "https://github.com/linebender/parley", rev = "62790943af982ad3388a3ff96cef6f90ac80a8bb", default-features = false, features = ["baked"] }
+parley_emoji = { git = "https://github.com/linebender/parley", rev = "62790943af982ad3388a3ff96cef6f90ac80a8bb", default-features = false }
+harfrust = { version = "0.12.0", default-features = false }
+hashbrown = { version = "0.17.0", default-features = false, features = ["default-hasher", "raw-entry"] }
+icu_locale_core = { version = "2.3.0", default-features = false }
+icu_normalizer = { version = "2.3.0", default-features = false, features = ["compiled_data"] }
+icu_properties = { version = "2.3.0", default-features = false, features = ["compiled_data"] }
+icu_segmenter = { version = "2.3.0", default-features = false, features = ["compiled_data"] }
+linebender_resource_handle = { version = "0.1.1", default-features = false }
+skrifa = { version = "0.44.0", default-features = false }

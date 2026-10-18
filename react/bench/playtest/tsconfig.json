@@ -1,0 +1,9 @@
+{
+  "compilerOptions": {
+    "noEmit": true, "strict": true, "target": "es2022", "module": "esnext", "moduleResolution": "bundler",
+    "jsx": "react-jsx", "skipLibCheck": true, "allowImportingTsExtensions": true, "types": [],
+    "baseUrl": ".",
+    "paths": { "@raea/motion/playtest": ["../../../motion/src/playtest.ts"], "react": ["../../../motion/node_modules/@types/react"], "react/jsx-runtime": ["../../../motion/node_modules/@types/react/jsx-runtime"] }
+  },
+  "files": ["dsl.typetest.ts", "../games/platformer/edit.playtest.ts", "../playtest/fixtures/ledge-fixed/edit.playtest.ts"]
+}

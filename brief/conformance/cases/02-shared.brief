@@ -1,0 +1,11 @@
+// expect: ok
+Title: Ferro, the ask
+$product: Ferro cold brew
+$can: media/ferro-can.png
+
+! never says "game changer"
+! nothing covers the face
+! speaking -> face
+
+~ product: the can cracked open on a counter [find: $can hands action]
+~ to-camera: someone saying why they switched [find: face speech eye-contact people:1]

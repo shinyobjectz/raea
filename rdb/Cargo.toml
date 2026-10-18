@@ -1,0 +1,78 @@
+[package]
+name = "rdb"
+version = "0.1.0"
+edition = "2024"
+publish = false
+description = "raea's authoring language: plain SQL (DuckDB dialect) compiled to Bevy systems (docs/relational-plan.feature)"
+
+[workspace]
+
+[dependencies]
+sqlparser = { version = "=0.63.0", features = ["visitor"] }
+sha2 = "0.10"
+bevy = { version = "=0.19.1", default-features = false, features = ["std", "default_app", "default_font", "multi_threaded", "3d_bevy_render", "ui_bevy_render", "png", "tonemapping_luts", "ktx2", "zstd_rust"] }
+image = { version = "0.25", default-features = false, features = ["png", "jpeg"] }
+# a page decoded straight into the overlay premultiplies as vello does (gpuview.rs page_image)
+vello_common = "0.3.0"
+# 3D shapes as values (docs/media.feature M2): CSG in pure Rust (a port of Manifold 3.5, Apache-2.0), glyph outlines for text3d
+manifold-rust = "0.16.0"
+skrifa = "0.44"
+serde_json = { version = "1", features = ["float_roundtrip"] }
+regex = "1"
+# which font families are on this machine (fonts.rs): the renderer's own fontique
+fontique = { path = "../engine/vendor/fontique" }
+# raea's rows and systems (Blitz 2D), running inside this Bevy World
+raea = { path = "../engine", default-features = false, features = ["network"] }
+# the media plane: clips decode and the render encodes through a MediaBackend (soft everywhere, apple on Apple)
+# K on the GPU: the render path's kernels (kernels/*.k) compile to WGSL here and run in Bevy's render schedule
+raea-kgpu = { path = "../kgpu" }
+# its passes' errors, stalls and latency in the run's trace, as rdb's (raea-gputrace)
+raea-gputrace = { path = "../gputrace" }
+# the same wgpu Bevy uses (the NV12 pass records on its device)
+wgpu = "=29.0.4"
+bytemuck = "1"
+raea-media = { path = "../media", default-features = false, features = ["soft", "apple", "av1"] }
+
+# RAEA_ZEROCOPY (Apple): VideoToolbox's decoded buffers wrapped as Metal textures inside wgpu, no copy
+[target.'cfg(target_vendor = "apple")'.dependencies]
+objc2-core-foundation = "0.3"
+objc2-core-video = { version = "0.3", features = ["objc2-metal"] }
+objc2-metal = { version = "0.3", default-features = false, features = ["std", "MTLTexture", "MTLPixelFormat", "MTLDevice", "MTLResource", "MTLAllocation"] }
+
+[features]
+# per-system spans as a chrome trace (RUST_LOG=info, trace-*.json in the working directory)
+trace = ["bevy/trace", "bevy/trace_chrome"]
+
+# raea's vendored patches (they only apply at a workspace root, so they are repeated here)
+[patch.crates-io]
+blitz-paint = { path = "../engine/vendor/blitz-paint" }
+blitz-dom = { path = "../engine/vendor/blitz-dom" }
+# stylo_taffy without container-type containing blocks (vendor/stylo_taffy/Cargo.toml)
+stylo_taffy = { path = "../engine/vendor/stylo_taffy" }
+
+# `cargo build --profile profiling`: release plus line tables, so samply sees inlined frames
+# (bench/profile.py summarizes the recordings).
+
+# Vello's CPU rasterizer with render-speed fixes that keep its output bit-identical
+# (see the headers of vendor/vello_common/Cargo.toml and vendor/vello_cpu/Cargo.toml)
+# muxide with the AV1 sequence-header fix (see ../media/vendor/muxide)
+muxide = { path = "../media/vendor/muxide" }
+# `filter: url(#id)` parses in Servo builds (see vendor/stylo/Cargo.toml)
+stylo = { path = "../engine/vendor/stylo" }
+vello_common = { path = "../engine/vendor/vello_common" }
+vello_cpu = { path = "../engine/vendor/vello_cpu" }
+# clips as clip paths instead of isolated layers (see vendor/anyrender_vello_cpu/Cargo.toml)
+anyrender_vello_cpu = { path = "../engine/vendor/anyrender_vello_cpu" }
+# iOS: libc only binds mach_task_self on macOS (see vendor/num_threads/Cargo.toml)
+num_threads = { path = "../engine/vendor/num_threads" }
+# filter graphs with SVG's per-axis parameters, subregions and colour spaces; usvg filters rendered
+# (see vendor/anyrender/Cargo.toml and vendor/anyrender_svg/Cargo.toml)
+anyrender = { path = "../engine/vendor/anyrender" }
+anyrender_svg = { path = "../engine/vendor/anyrender_svg" }
+
+# parley's engine with Blink's macOS vertical font metrics (see vendor/parley_engine/Cargo.toml)
+[patch."https://github.com/linebender/parley"]
+parley_engine = { path = "../engine/vendor/parley_engine" }
+fontique = { path = "../engine/vendor/fontique" }
+# line boxes at LayoutUnit precision (see vendor/parley/Cargo.toml)
+parley = { path = "../engine/vendor/parley" }

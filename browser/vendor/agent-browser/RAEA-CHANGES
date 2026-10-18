@@ -1,0 +1,9 @@
+agent-browser, vendored into raea from https://github.com/vercel-labs/agent-browser at commit dac13bb (version 0.39.1,
+2026-10-15), Apache-2.0 (LICENSE beside this file). Only cli/ is kept (its tests/ removed), plus an empty
+packages/dashboard/out/ that its build script expects.
+
+raea's changes, all in cli/:
+- src/lib.rs (new): the crate's modules as a library, so raea-browser runs the daemon's command execution in process.
+- Cargo.toml: `autobins = false`, a `[lib]` section, an empty `[workspace]` (it builds on its own inside raea), and
+  the release profiles removed (the host workspace sets them).
+Nothing else is modified.

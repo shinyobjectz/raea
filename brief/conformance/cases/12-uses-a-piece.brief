@@ -1,0 +1,4 @@
+// expect: 3:1 `Uses: 01-piece.brief` names a piece
+Title: x
+Uses: 01-piece.brief
+Format: 9:16, 20 s

@@ -1,0 +1,6 @@
+// expect: 6:1 $product is text, not a picture
+Title: x
+Format: 9:16, 20 s
+$product: Ferro
+
+~ product: the can [find: $product]

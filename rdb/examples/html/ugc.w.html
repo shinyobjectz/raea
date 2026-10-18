@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+<style>
+body { margin: 0; background: #000; }
+#root { position: relative; width: 100%; height: 100%; overflow: hidden; background: #000; }
+.take { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.cw { position: absolute; left: 60px; width: 960px; top: 1340px; text-align: center; font: 800 84px/1.1 "Avenir Next", sans-serif;
+       color: #fff; text-shadow: 0 0 3px #000, 0 4px 16px rgba(0,0,0,.8); }
+#title { position: absolute; left: 80px; width: 920px; top: 360px; text-align: center; font: 900 110px/1.05 "Avenir Next", sans-serif;
+          color: #ffd23f; text-shadow: 0 6px 24px rgba(0,0,0,.85); opacity: 0; }
+</style></head><body>
+<div id="root" data-composition-id="main" data-width="1080" data-height="1920" data-duration="23.1">
+<video id="v1" class="take" src="../ugc/media/take-h264.mp4" data-start="0.0" data-duration="4.2" data-media-start="0.24" muted playsinline></video>
+<audio id="av1" src="../ugc/media/take-voice.m4a" data-start="0.0" data-duration="4.2" data-media-start="0.24"></audio>
+<video id="v2" class="take" src="../ugc/media/take-h264.mp4" data-start="4.2" data-duration="0.96" data-media-start="4.44" muted playsinline></video>
+<audio id="av2" src="../ugc/media/take-voice.m4a" data-start="4.2" data-duration="0.96" data-media-start="4.44"></audio>
+<video id="v3" class="take" src="../ugc/media/take-h264.mp4" data-start="5.16" data-duration="1.14" data-media-start="5.4" muted playsinline></video>
+<audio id="av3" src="../ugc/media/take-voice.m4a" data-start="5.16" data-duration="1.14" data-media-start="5.4"></audio>
+<video id="v4" class="take" src="../ugc/media/take-h264.mp4" data-start="6.3" data-duration="5.1" data-media-start="6.54" muted playsinline></video>
+<audio id="av4" src="../ugc/media/take-voice.m4a" data-start="6.3" data-duration="5.1" data-media-start="6.54"></audio>
+<video id="v5" class="take" src="../ugc/media/take-h264.mp4" data-start="11.4" data-duration="5.88" data-media-start="11.64" muted playsinline></video>
+<audio id="av5" src="../ugc/media/take-voice.m4a" data-start="11.4" data-duration="5.88" data-media-start="11.64"></audio>
+<video id="v6" class="take" src="../ugc/media/take-h264.mp4" data-start="17.28" data-duration="5.82" data-media-start="17.52" muted playsinline></video>
+<audio id="av6" src="../ugc/media/take-voice.m4a" data-start="17.28" data-duration="5.82" data-media-start="17.52"></audio>
+<div id="w0" class="cw" data-start="0.0" data-duration="0.42">All</div>
+<div id="w1" class="cw" data-start="0.42" data-duration="0.42">right,</div>
+<div id="w2" class="cw" data-start="0.84" data-duration="0.42">so</div>
+<div id="w3" class="cw" data-start="1.26" data-duration="0.42">we&#x27;re</div>
+<div id="w4" class="cw" data-start="1.68" data-duration="0.42">not</div>
+<div id="w5" class="cw" data-start="2.1" data-duration="0.42">automating</div>
+<div id="w6" class="cw" data-start="2.52" data-duration="0.42">our</div>
+<div id="w7" class="cw" data-start="2.94" data-duration="0.42">creatives</div>
+<div id="w8" class="cw" data-start="3.36" data-duration="0.42">with</div>
+<div id="w9" class="cw" data-start="3.78" data-duration="0.42">AI.</div>
+<div id="w10" class="cw" data-start="4.2" data-duration="0.32">We&#x27;re</div>
+<div id="w11" class="cw" data-start="4.52" data-duration="0.32">simulating</div>
+<div id="w12" class="cw" data-start="4.84" data-duration="0.32">them.</div>
+<div id="w13" class="cw" data-start="5.16" data-duration="0.285">And</div>
+<div id="w14" class="cw" data-start="5.445" data-duration="0.285">the</div>
+<div id="w15" class="cw" data-start="5.73" data-duration="0.285">difference</div>
+<div id="w16" class="cw" data-start="6.015" data-duration="0.285">matters.</div>
+<div id="w17" class="cw" data-start="6.3" data-duration="0.425">Automating</div>
+<div id="w18" class="cw" data-start="6.725" data-duration="0.425">means</div>
+<div id="w19" class="cw" data-start="7.15" data-duration="0.425">handing</div>
+<div id="w20" class="cw" data-start="7.575" data-duration="0.425">someone&#x27;s</div>
+<div id="w21" class="cw" data-start="8.0" data-duration="0.425">job</div>
+<div id="w22" class="cw" data-start="8.425" data-duration="0.425">to</div>
+<div id="w23" class="cw" data-start="8.85" data-duration="0.425">a</div>
+<div id="w24" class="cw" data-start="9.275" data-duration="0.425">model</div>
+<div id="w25" class="cw" data-start="9.7" data-duration="0.425">and</div>
+<div id="w26" class="cw" data-start="10.125" data-duration="0.425">seeing</div>
+<div id="w27" class="cw" data-start="10.55" data-duration="0.425">what</div>
+<div id="w28" class="cw" data-start="10.975" data-duration="0.425">breaks.</div>
+<div id="w29" class="cw" data-start="11.4" data-duration="0.3675">Simulating</div>
+<div id="w30" class="cw" data-start="11.7675" data-duration="0.3675">means</div>
+<div id="w31" class="cw" data-start="12.135" data-duration="0.3675">modeling</div>
+<div id="w32" class="cw" data-start="12.5025" data-duration="0.3675">how</div>
+<div id="w33" class="cw" data-start="12.87" data-duration="0.3675">the</div>
+<div id="w34" class="cw" data-start="13.2375" data-duration="0.3675">whole</div>
+<div id="w35" class="cw" data-start="13.605" data-duration="0.3675">agency</div>
+<div id="w36" class="cw" data-start="13.9725" data-duration="0.3675">works,</div>
+<div id="w37" class="cw" data-start="14.34" data-duration="0.3675">then</div>
+<div id="w38" class="cw" data-start="14.7075" data-duration="0.3675">testing</div>
+<div id="w39" class="cw" data-start="15.075" data-duration="0.3675">a</div>
+<div id="w40" class="cw" data-start="15.4425" data-duration="0.3675">change</div>
+<div id="w41" class="cw" data-start="15.81" data-duration="0.3675">before</div>
+<div id="w42" class="cw" data-start="16.1775" data-duration="0.3675">anyone&#x27;s</div>
+<div id="w43" class="cw" data-start="16.545" data-duration="0.3675">job</div>
+<div id="w44" class="cw" data-start="16.9125" data-duration="0.3675">changes.</div>
+<div id="w45" class="cw" data-start="17.28" data-duration="0.4157">To</div>
+<div id="w46" class="cw" data-start="17.6957" data-duration="0.4157">simulate</div>
+<div id="w47" class="cw" data-start="18.1114" data-duration="0.4157">an</div>
+<div id="w48" class="cw" data-start="18.5271" data-duration="0.4157">agency,</div>
+<div id="w49" class="cw" data-start="18.9429" data-duration="0.4157">you</div>
+<div id="w50" class="cw" data-start="19.3586" data-duration="0.4157">1st</div>
+<div id="w51" class="cw" data-start="19.7743" data-duration="0.4157">need</div>
+<div id="w52" class="cw" data-start="20.19" data-duration="0.4157">an</div>
+<div id="w53" class="cw" data-start="20.6057" data-duration="0.4157">accurate</div>
+<div id="w54" class="cw" data-start="21.0214" data-duration="0.4157">map</div>
+<div id="w55" class="cw" data-start="21.4371" data-duration="0.4157">of</div>
+<div id="w56" class="cw" data-start="21.8529" data-duration="0.4157">how</div>
+<div id="w57" class="cw" data-start="22.2686" data-duration="0.4157">it</div>
+<div id="w58" class="cw" data-start="22.6843" data-duration="0.4157">runs.</div>
+<div id="title" data-start="0" data-duration="2.4">Stop scrolling</div>
+</div>
+<script>
+const tl = gsap.timeline({ paused: true });
+tl.fromTo("#title", { opacity: 0, scale: 0.8 }, { opacity: 1, scale: 1, duration: 0.6, ease: "back.out(2)" }, 0)
+  .to("#title", { y: -20, duration: 1.2, ease: "sine.inOut" }, 0.6)
+  .to("#title", { opacity: 0, duration: 0.4 }, 2.0);
+window.__timelines = { main: tl };
+</script>
+</body></html>

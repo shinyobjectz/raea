@@ -1,0 +1,11 @@
+{
+  "name": "raea",
+  "owner": { "name": "Shane Murphy", "url": "https://raea.io" },
+  "plugins": [
+    {
+      "name": "raea",
+      "source": "./",
+      "description": "Make video, motion graphics, games and 3D with raea, the Render Anything Engine."
+    }
+  ]
+}

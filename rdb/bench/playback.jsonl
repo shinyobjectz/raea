@@ -1,0 +1,4 @@
+{"audio_error":null,"audio_samples_decoded":1179584,"avfoundation_playable":true,"avfoundation_readable":true,"duration":24.6,"file":"../out/ugc-apple.mp4","video_error":null,"video_frames_decoded":738}
+{"audio_error":null,"audio_samples_decoded":1180800,"avfoundation_playable":true,"avfoundation_readable":true,"duration":24.6,"file":"../out/ugc-soft.mp4","video_error":null,"video_frames_decoded":738}
+{"audio_error":null,"audio_samples_decoded":1180800,"avfoundation_playable":true,"avfoundation_readable":true,"duration":24.6,"file":"../out/ugc-ffmpeg.mp4","video_error":null,"video_frames_decoded":738}
+{"audio_error":null,"audio_samples_decoded":1180800,"avfoundation_playable":true,"avfoundation_readable":true,"duration":24.6,"file":"../out/ugc-av1.mp4","video_error":null,"video_frames_decoded":738}

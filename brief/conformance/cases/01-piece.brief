@@ -1,0 +1,21 @@
+// expect: ok
+Title: Pottery studio: the bowl that cracked
+Format: 9:16, 20 s, tiktok
+Mode: organic
+Angle: the failures are the lesson
+
+# the crack
+= Open on the failure, before any context.
+.TAKE03 - AT THE KILN
+@JUNE
+(flat, then laughing)
+That's forty hours, gone. [[label text:"40 hours" | on:'forty hours' enter-fade dur-sm place-top sfx:'ceramic tick' sfx-gain:-16]]
+
+# why
+.TAKE01 - AT THE WHEEL
+@JUNE
+PUNCH IN 1.15X:
+The wall was thinner on one side, and the kiln found it.
+
+---
+:root { music: "sparse marimba, warm room tone"; music-gain: -24; }

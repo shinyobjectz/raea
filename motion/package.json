@@ -1,0 +1,29 @@
+{
+  "name": "@raea/motion",
+  "private": true,
+  "version": "0.3.0",
+  "description": "raea's TypeScript SDK for video, motion and games: a familiar API for React video, rendered by Bevy",
+  "type": "module",
+  "main": "src/index.tsx",
+  "exports": {
+    ".": "./src/index.tsx",
+    "./test": "./src/test.tsx",
+    "./3d": "./src/3d.tsx",
+    "./ecs": "./src/ecs.ts",
+    "./native": "./src/native.ts",
+    "./codecs": "./src/codecs.ts",
+    "./playtest": "./src/playtest.ts"
+  },
+  "scripts": {
+    "test": "bun test conformance",
+    "guard": "tools/no-foreign-sdk.sh"
+  },
+  "dependencies": {
+    "mediabunny": "1.61.0",
+    "react": "19.2.0",
+    "react-dom": "19.2.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.0"
+  }
+}

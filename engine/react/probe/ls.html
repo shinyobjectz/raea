@@ -1,0 +1,10 @@
+<!doctype html><html><head><meta charset="utf-8"><style>html,body{margin:0;width:700px;height:260px;background:#fff;font-family:Inter,sans-serif}#out{font:13px monospace;white-space:pre}
+:root{--t:-0.025em}</style></head>
+<body><div id="root" data-composition-id="main" data-start="0" data-duration="1" data-width="700" data-height="260">
+<div><span id="a" style="font-size:20px;font-weight:600">Launch plan</span></div>
+<div><span id="b" style="font-size:20px;font-weight:600;letter-spacing:-0.5px">Launch plan</span></div>
+<div><span id="c" style="font-size:20px;font-weight:600;letter-spacing:-0.025em">Launch plan</span></div>
+<div><span id="d" style="font-size:20px;font-weight:600;letter-spacing:var(--t)">Launch plan</span></div>
+<div><span id="e" style="font-size:20px;font-weight:600;letter-spacing:3px">Launch plan</span></div>
+<div id="out"></div></div>
+<script>document.getElementById("out").textContent=["a","b","c","d","e"].map(function(k){var el=document.getElementById(k);return k+" "+el.getBoundingClientRect().width.toFixed(2)+" "+getComputedStyle(el).letterSpacing}).join("\n")</script></body></html>

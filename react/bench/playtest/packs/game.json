@@ -1,0 +1,109 @@
+{
+ "pack": "game",
+ "version": 1,
+ "about": "A game, from a bot's playtest (react/docs/playtest.md). Rules read the run's report and trace (no model call). clef answers only what needs eyes, each question on the view it names: clean views for taste and quality, debug views (overlays drawn) for diagnosis. Every model check is advisory until calibration on judged games shows it separates good from bad.",
+ "checks": [
+  {
+   "id": "play.finishes",
+   "scope": "session",
+   "eye": "rule",
+   "rule": "finished",
+   "status": "warn",
+   "fix": "A bot couldn't reach the goal: report.json's ceiling says where play stops. Make the obstacle there passable (a jump that clears it, a platform, a shorter gap)."
+  },
+  {
+   "id": "play.no_softlock",
+   "scope": "session",
+   "eye": "rule",
+   "rule": "softlocks",
+   "status": "warn",
+   "fix": "Some reachable state can't get back to the frontier (report.json softlocks): give the player a way out, or end the game there."
+  },
+  {
+   "id": "play.ends",
+   "scope": "session",
+   "eye": "rule",
+   "rule": "has_outcome",
+   "status": "advisory",
+   "fix": "The game never says won or lost (no finish, lives that wrap): give it an end the player can see."
+  },
+  {
+   "id": "play.death_loop",
+   "scope": "session",
+   "eye": "rule",
+   "rule": "death_loop",
+   "status": "warn",
+   "fix": "Most deaths in the search happen in one 400-px stretch: the respawn puts the player back in front of the same hazard. Respawn past it, or make it clearable."
+  },
+  {
+   "id": "moment.death_readable",
+   "scope": "moment",
+   "eye": "clef",
+   "view": "death",
+   "layer": "clean",
+   "input": "videos",
+   "type": "yes",
+   "ask": "In this clip from a side-scrolling game, the player character loses a life. Is it visually clear what caused it (falling into a pit, or touching an enemy)?",
+   "threshold": 0.5,
+   "invert": true,
+   "context": [
+    "moment",
+    "observe"
+   ],
+   "clef": {
+    "type": "noul",
+    "instructions": "In this clip from a side-scrolling game, the player character loses a life. Is it visually clear what caused it (falling into a pit, or touching an enemy)?"
+   },
+   "status": "advisory",
+   "fix": "Make the cause of a death readable: a visible pit edge, an enemy that reads as dangerous, a beat of reaction before the respawn."
+  },
+  {
+   "id": "moment.death_fair",
+   "scope": "moment",
+   "eye": "clef",
+   "view": "death.debug",
+   "layer": "debug",
+   "input": "videos",
+   "type": "yes",
+   "ask": "Collision boxes are drawn: green is the player, magenta outlines are enemies, cyan lines are platform tops. Does the player lose the life without its green box touching a magenta box, while still over solid ground?",
+   "threshold": 0.5,
+   "context": [
+    "moment"
+   ],
+   "clef": {
+    "type": "noul",
+    "instructions": "Collision boxes are drawn: green is the player, magenta outlines are enemies, cyan lines are platform tops. Does the player lose the life without its green box touching a magenta box, while still over solid ground?"
+   },
+   "status": "advisory",
+   "fix": "The death looks unfair against the hitboxes: tighten the hazard's box or the player's."
+  },
+  {
+   "id": "session.looks",
+   "scope": "session",
+   "eye": "clef",
+   "view": "session.look",
+   "layer": "clean",
+   "input": "images",
+   "type": "score",
+   "ask": "These frames are taken across a play of a small 2D game. How polished and coherent does it look as a game someone would want to play?",
+   "threshold": 2,
+   "below": true,
+   "context": [
+    "session"
+   ],
+   "clef": {
+    "type": "choice",
+    "instructions": "These frames are taken across a play of a small 2D game. How polished and coherent does it look as a game someone would want to play?",
+    "criteria": {
+     "poor": null,
+     "weak": null,
+     "acceptable": null,
+     "strong": null,
+     "excellent": null
+    }
+   },
+   "status": "advisory",
+   "fix": "Raise the look: a consistent palette, readable characters against the background, feedback on events."
+  }
+ ]
+}

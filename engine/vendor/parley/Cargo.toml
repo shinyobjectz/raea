@@ -1,0 +1,29 @@
+# Vendored from https://github.com/linebender/parley (rev 62790943, parley), Apache-2.0 OR MIT.
+# Local change (raea): BreakLines::break_remaining_in (line vs layout advance, for text-wrap: balance).
+# Local changes (raea): quantized line boxes keep Blink's LayoutUnit precision (1/64 px) for each
+# line's top instead of rounding it to a whole pixel (src/layout/line_break.rs, "LayoutUnit"); glyph runs start at
+# offsets built from their predecessors' widths ceiled to 1/64 px, like Blink's text items (src/layout/line.rs).
+[package]
+name = "parley"
+version = "0.11.0"
+description = "Parley provides an API for implementing rich text layout."
+edition = "2024"
+rust-version = "1.88"
+license = "Apache-2.0 OR MIT"
+
+[features]
+default = ["system"]
+std = ["fontique/std", "parley_engine/std", "parlance/std"]
+libm = ["fontique/libm", "parley_engine/libm", "dep:core_maths"]
+bytemuck = ["fontique/bytemuck", "parlance/bytemuck", "parley_engine/bytemuck"]
+system = ["std", "fontique/system"]
+complex-scripts = ["parley_engine/complex-scripts"]
+
+[dependencies]
+smallvec = "1.15.1"
+linebender_resource_handle = { version = "0.1.1", default-features = false }
+fontique = { git = "https://github.com/linebender/parley", rev = "62790943af982ad3388a3ff96cef6f90ac80a8bb", default-features = false }
+parlance = { git = "https://github.com/linebender/parley", rev = "62790943af982ad3388a3ff96cef6f90ac80a8bb", default-features = false }
+parley_engine = { git = "https://github.com/linebender/parley", rev = "62790943af982ad3388a3ff96cef6f90ac80a8bb", default-features = false }
+core_maths = { version = "0.1.1", optional = true }
+hashbrown = { version = "0.17.0", default-features = false, features = ["default-hasher", "raw-entry"] }

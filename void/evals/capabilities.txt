@@ -1,0 +1,5 @@
+# What raea can do so far: a scenario tagged @needs:<name> runs once its name is listed here. (pages and play were
+# rrl's, retired 2026-10-17; the TypeScript procedure has neither yet, so their scenarios run and are judged on the render.)
+pages     rrl stills --pages: one still per slide (an agent session, piece 4)
+play      game edits: next: rules, input rows, rrl play --script headless (an agent session, pieces 1-3)
+# live    rrl play's live window (an agent session)

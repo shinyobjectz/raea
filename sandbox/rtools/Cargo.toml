@@ -1,0 +1,13 @@
+[package]
+name = "rtools"
+version = "0.1.0"
+edition = "2021"
+[workspace]
+[dependencies]
+regex-lite = "0.1.9"
+[profile.release]
+opt-level = "z"
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true

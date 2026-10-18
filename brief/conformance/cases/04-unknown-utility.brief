@@ -1,0 +1,6 @@
+// expect: 6:40 `pops` isn't a utility
+Title: x
+Format: 9:16, 20 s
+
+@JUNE
+Hi there. [[lockup text:"hi" | on:'Hi' pops]]

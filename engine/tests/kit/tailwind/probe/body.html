@@ -1,0 +1,62 @@
+<section data-s="colors" class="flex gap-3 p-4 bg-white">
+  <div class="size-16 rounded-lg bg-blue-500"></div><div class="size-16 rounded-lg bg-blue-500/50"></div>
+  <div class="size-16 rounded-lg bg-emerald-400 text-white grid place-items-center font-bold">Aa</div>
+  <div class="size-16 rounded-lg bg-black/20 border-4 border-rose-500/60"></div><div class="size-16 rounded-lg bg-[#123456]"></div>
+  <p class="text-slate-700 text-lg">oklch text <span class="text-violet-600/70">mixed</span></p>
+</section>
+<section data-s="rings" class="flex gap-6 p-6 bg-slate-50">
+  <div class="size-16 rounded-xl bg-white ring-2 ring-blue-500/40 ring-offset-2"></div>
+  <div class="size-16 rounded-xl bg-white shadow-lg"></div><div class="size-16 rounded-xl bg-white shadow-md shadow-blue-500/30"></div>
+  <div class="size-16 rounded-full bg-white inset-shadow-sm border border-slate-200"></div>
+  <div class="size-16 rounded-md bg-white outline-2 outline-offset-2 outline-amber-500"></div>
+  <div class="size-16 rounded-md bg-white ring ring-slate-900/10 shadow-xs"></div>
+</section>
+<section data-s="transforms" class="flex gap-8 p-6 bg-white">
+  <div class="size-14 bg-indigo-500 translate-x-4 translate-y-1"></div><div class="size-14 bg-indigo-500 rotate-12"></div>
+  <div class="size-14 bg-indigo-500 scale-75"></div><div class="size-14 bg-indigo-500 -skew-x-6"></div>
+  <div class="size-14 bg-indigo-500 rotate-45 scale-90 translate-x-2"></div>
+</section>
+<section data-s="gradients" class="grid grid-cols-3 gap-3 p-4 bg-white">
+  <div class="h-16 rounded-lg bg-linear-to-r from-pink-500 via-purple-500 to-indigo-500"></div>
+  <div class="h-16 rounded-lg bg-linear-to-b from-amber-200 to-orange-500"></div>
+  <div class="h-16 rounded-lg bg-radial from-sky-300 to-sky-700"></div>
+  <div class="h-16 rounded-lg bg-linear-45 from-lime-300 to-teal-600"></div>
+  <div class="h-16 rounded-lg bg-conic from-red-500 via-yellow-400 to-red-500"></div>
+  <div class="h-16 rounded-lg bg-linear-to-r/srgb from-pink-500 to-indigo-500"></div>
+</section>
+<section data-s="type" class="p-4 bg-white max-w-xl">
+  <h2 class="text-3xl font-semibold tracking-tight leading-snug text-balance text-slate-900">A balanced heading that wraps onto two lines here</h2>
+  <p class="mt-2 text-sm text-slate-500 line-clamp-2">Line clamp keeps this paragraph to two lines even though it goes on and on and on, well past the width of the box, so the rest is cut off with an ellipsis at the end.</p>
+  <p class="mt-2 truncate w-64 underline decoration-2 decoration-sky-500 underline-offset-4 uppercase text-xs tracking-widest">truncated uppercase underlined text that is long</p>
+  <p class="mt-2 font-mono text-sm tabular-nums">1234567890 <code class="rounded bg-slate-100 px-1 py-0.5">code</code></p>
+</section>
+<section data-s="layout" class="p-4 bg-white">
+  <div class="flex items-center justify-between rounded-lg border border-slate-200 p-3"><span class="font-medium">Left</span><span class="ms-auto ps-4 text-slate-500">Right</span></div>
+  <div class="mt-3 flex space-x-2"><div class="size-8 bg-rose-300"></div><div class="size-8 bg-rose-400"></div><div class="size-8 bg-rose-500"></div></div>
+  <div class="mt-3 divide-y divide-slate-200 rounded border border-slate-200"><div class="p-2">one</div><div class="p-2">two</div><div class="p-2">three</div></div>
+  <div class="mt-3 grid grid-cols-[1fr_2fr] gap-2"><div class="bg-slate-200 h-6"></div><div class="bg-slate-300 h-6"></div></div>
+</section>
+<section data-s="variants" class="p-4 bg-white">
+  <ul class="w-64"><li class="p-1 first:bg-red-200 odd:bg-slate-100">first</li><li class="p-1 odd:bg-slate-100">second</li><li class="p-1 odd:bg-slate-100 last:font-bold">third</li></ul>
+  <div class="mt-2 dark flex gap-2"><div class="p-2 bg-white dark:bg-slate-800 dark:text-white">dark variant</div></div>
+  <div class="mt-2 group" data-state="open"><div class="p-2 data-[state=open]:bg-green-200 group-data-[state=open]:border-2 border-green-600" data-state="open">data-state</div></div>
+  <label class="mt-2 flex gap-2 has-checked:bg-amber-100 p-2"><input type="checkbox" checked class="accent-amber-600"> has-checked</label>
+  <div class="mt-2 not-first:bg-sky-100 p-1">not-first</div>
+</section>
+<section data-s="effects" class="relative flex gap-4 p-4 bg-[url(data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMCIgaGVpZ2h0PSIyMCI+PHJlY3Qgd2lkdGg9IjEwIiBoZWlnaHQ9IjEwIiBmaWxsPSIjZjBhIi8+PC9zdmc+)]">
+  <div class="size-16 bg-blue-500 opacity-50"></div><div class="size-16 bg-blue-500 blur-sm"></div>
+  <div class="size-16 bg-white/30 backdrop-blur-md border border-white/40"></div>
+  <div class="size-16 bg-emerald-500 drop-shadow-lg"></div><div class="size-16 bg-yellow-300 mix-blend-multiply"></div>
+  <div class="size-16 bg-blue-500 grayscale brightness-125"></div>
+</section>
+<section data-s="container" class="@container w-[600px] p-4 bg-white">
+  <div class="text-sm @md:text-lg @md:font-bold">container query text</div>
+  <div class="grid grid-cols-1 @lg:grid-cols-3 gap-2 mt-2"><div class="h-6 bg-teal-200"></div><div class="h-6 bg-teal-300"></div><div class="h-6 bg-teal-400"></div></div>
+</section>
+<section data-s="forms" class="flex flex-col gap-2 p-4 bg-white w-80">
+  <input class="rounded-md border border-slate-300 px-3 py-2 text-sm placeholder:text-slate-400 shadow-xs" placeholder="Email address">
+  <button class="inline-flex items-center justify-center gap-2 rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white shadow-sm">Button</button>
+  <button class="rounded-md border border-slate-200 bg-white px-4 py-2 text-sm font-medium">Outline</button>
+  <select class="rounded-md border border-slate-300 px-2 py-1 text-sm"><option>Select</option></select>
+  <div class="aspect-video w-40 bg-slate-200 rounded"></div>
+</section>

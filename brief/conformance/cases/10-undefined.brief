@@ -1,0 +1,6 @@
+// expect: 6:1 $thing isn't defined | 6:1 {4:5}: no deliverable
+Title: x
+Format: 9:16, 20 s
+
+@A
+Try $thing. {4:5}

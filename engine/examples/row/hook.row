@@ -1,0 +1,18 @@
+// A 9:16 hook: animated title, a spring-scaled subtitle, captions from a words column, and an end card
+// implemented in React. One declaration per element: the name is its id, `in` is its parent.
+import EndCard "./EndCard.tsx"
+
+edit  :: Edit{fps = 30, size = {1080, 1920}, frames = 150}
+words :: bind("words")
+
+bg :: box{w = 1080, h = 1920, bg = "linear-gradient(180deg, #1b1f3a, #3a1b2f)"}
+
+hook :: title{"Stop scrolling", in = bg, span = 0..<90}
+hook.y       = ease(.out, {0 = 760, 14 = 620})
+hook.opacity = {0 = 0, 10 = 1}
+
+sub :: text{"this changes your mornings", in = bg, span = 12..<90, y = 820, color = "#ffcc66"}
+sub.scale = spring(0.6, 1, at = 0, stiffness = 180, damping = 12)
+
+caps :: captions{in = bg, words = words}
+end  :: EndCard{in = bg, from = 96, y = 760, title = "Shop the kit"}

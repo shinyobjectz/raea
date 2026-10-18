@@ -1,0 +1,296 @@
+[
+ {
+  "package": "@fontsource/inter",
+  "family": "inter",
+  "weight": "400",
+  "style": "normal",
+  "file": "inter-400-normal.woff2"
+ },
+ {
+  "package": "@fontsource/inter",
+  "family": "inter",
+  "weight": "700",
+  "style": "normal",
+  "file": "inter-700-normal.woff2"
+ },
+ {
+  "package": "@fontsource/inter",
+  "family": "inter",
+  "weight": "900",
+  "style": "normal",
+  "file": "inter-900-normal.woff2"
+ },
+ {
+  "package": "@fontsource/montserrat",
+  "family": "montserrat",
+  "weight": "400",
+  "style": "normal",
+  "file": "montserrat-400-normal.woff2"
+ },
+ {
+  "package": "@fontsource/montserrat",
+  "family": "montserrat",
+  "weight": "700",
+  "style": "normal",
+  "file": "montserrat-700-normal.woff2"
+ },
+ {
+  "package": "@fontsource/montserrat",
+  "family": "montserrat",
+  "weight": "900",
+  "style": "normal",
+  "file": "montserrat-900-normal.woff2"
+ },
+ {
+  "package": "@fontsource/outfit",
+  "family": "outfit",
+  "weight": "400",
+  "style": "normal",
+  "file": "outfit-400-normal.woff2"
+ },
+ {
+  "package": "@fontsource/outfit",
+  "family": "outfit",
+  "weight": "700",
+  "style": "normal",
+  "file": "outfit-700-normal.woff2"
+ },
+ {
+  "package": "@fontsource/outfit",
+  "family": "outfit",
+  "weight": "900",
+  "style": "normal",
+  "file": "outfit-900-normal.woff2"
+ },
+ {
+  "package": "@fontsource/nunito",
+  "family": "nunito",
+  "weight": "400",
+  "style": "normal",
+  "file": "nunito-400-normal.woff2"
+ },
+ {
+  "package": "@fontsource/nunito",
+  "family": "nunito",
+  "weight": "700",
+  "style": "normal",
+  "file": "nunito-700-normal.woff2"
+ },
+ {
+  "package": "@fontsource/nunito",
+  "family": "nunito",
+  "weight": "900",
+  "style": "normal",
+  "file": "nunito-900-normal.woff2"
+ },
+ {
+  "package": "@fontsource/oswald",
+  "family": "oswald",
+  "weight": "400",
+  "style": "normal",
+  "file": "oswald-400-normal.woff2"
+ },
+ {
+  "package": "@fontsource/oswald",
+  "family": "oswald",
+  "weight": "700",
+  "style": "normal",
+  "file": "oswald-700-normal.woff2"
+ },
+ {
+  "package": "@fontsource/league-gothic",
+  "family": "league-gothic",
+  "weight": "400",
+  "style": "normal",
+  "file": "league-gothic-400-normal.woff2"
+ },
+ {
+  "package": "@fontsource/archivo-black",
+  "family": "archivo-black",
+  "weight": "400",
+  "style": "normal",
+  "file": "archivo-black-400-normal.woff2"
+ },
+ {
+  "package": "@fontsource/space-mono",
+  "family": "space-mono",
+  "weight": "400",
+  "style": "normal",
+  "file": "space-mono-400-normal.woff2"
+ },
+ {
+  "package": "@fontsource/space-mono",
+  "family": "space-mono",
+  "weight": "700",
+  "style": "normal",
+  "file": "space-mono-700-normal.woff2"
+ },
+ {
+  "package": "@fontsource/ibm-plex-mono",
+  "family": "ibm-plex-mono",
+  "weight": "400",
+  "style": "normal",
+  "file": "ibm-plex-mono-400-normal.woff2"
+ },
+ {
+  "package": "@fontsource/ibm-plex-mono",
+  "family": "ibm-plex-mono",
+  "weight": "700",
+  "style": "normal",
+  "file": "ibm-plex-mono-700-normal.woff2"
+ },
+ {
+  "package": "@fontsource/jetbrains-mono",
+  "family": "jetbrains-mono",
+  "weight": "400",
+  "style": "normal",
+  "file": "jetbrains-mono-400-normal.woff2"
+ },
+ {
+  "package": "@fontsource/jetbrains-mono",
+  "family": "jetbrains-mono",
+  "weight": "700",
+  "style": "normal",
+  "file": "jetbrains-mono-700-normal.woff2"
+ },
+ {
+  "package": "@fontsource/eb-garamond",
+  "family": "eb-garamond",
+  "weight": "400",
+  "style": "normal",
+  "file": "eb-garamond-400-normal.woff2"
+ },
+ {
+  "package": "@fontsource/eb-garamond",
+  "family": "eb-garamond",
+  "weight": "700",
+  "style": "normal",
+  "file": "eb-garamond-700-normal.woff2"
+ },
+ {
+  "package": "@fontsource/playfair-display",
+  "family": "playfair-display",
+  "weight": "400",
+  "style": "normal",
+  "file": "playfair-display-400-normal.woff2"
+ },
+ {
+  "package": "@fontsource/playfair-display",
+  "family": "playfair-display",
+  "weight": "700",
+  "style": "normal",
+  "file": "playfair-display-700-normal.woff2"
+ },
+ {
+  "package": "@fontsource/playfair-display",
+  "family": "playfair-display",
+  "weight": "900",
+  "style": "normal",
+  "file": "playfair-display-900-normal.woff2"
+ },
+ {
+  "package": "@fontsource/source-code-pro",
+  "family": "source-code-pro",
+  "weight": "400",
+  "style": "normal",
+  "file": "source-code-pro-400-normal.woff2"
+ },
+ {
+  "package": "@fontsource/source-code-pro",
+  "family": "source-code-pro",
+  "weight": "700",
+  "style": "normal",
+  "file": "source-code-pro-700-normal.woff2"
+ },
+ {
+  "package": "@fontsource/noto-sans-jp",
+  "family": "noto-sans-jp",
+  "weight": "400",
+  "style": "normal",
+  "file": "noto-sans-jp-400-normal.woff2"
+ },
+ {
+  "package": "@fontsource/noto-sans-jp",
+  "family": "noto-sans-jp",
+  "weight": "700",
+  "style": "normal",
+  "file": "noto-sans-jp-700-normal.woff2"
+ },
+ {
+  "package": "@fontsource/roboto",
+  "family": "roboto",
+  "weight": "400",
+  "style": "normal",
+  "file": "roboto-400-normal.woff2"
+ },
+ {
+  "package": "@fontsource/roboto",
+  "family": "roboto",
+  "weight": "700",
+  "style": "normal",
+  "file": "roboto-700-normal.woff2"
+ },
+ {
+  "package": "@fontsource/roboto",
+  "family": "roboto",
+  "weight": "900",
+  "style": "normal",
+  "file": "roboto-900-normal.woff2"
+ },
+ {
+  "package": "@fontsource/open-sans",
+  "family": "open-sans",
+  "weight": "400",
+  "style": "normal",
+  "file": "open-sans-400-normal.woff2"
+ },
+ {
+  "package": "@fontsource/open-sans",
+  "family": "open-sans",
+  "weight": "700",
+  "style": "normal",
+  "file": "open-sans-700-normal.woff2"
+ },
+ {
+  "package": "@fontsource/lato",
+  "family": "lato",
+  "weight": "400",
+  "style": "normal",
+  "file": "lato-400-normal.woff2"
+ },
+ {
+  "package": "@fontsource/lato",
+  "family": "lato",
+  "weight": "700",
+  "style": "normal",
+  "file": "lato-700-normal.woff2"
+ },
+ {
+  "package": "@fontsource/lato",
+  "family": "lato",
+  "weight": "900",
+  "style": "normal",
+  "file": "lato-900-normal.woff2"
+ },
+ {
+  "package": "@fontsource/poppins",
+  "family": "poppins",
+  "weight": "400",
+  "style": "normal",
+  "file": "poppins-400-normal.woff2"
+ },
+ {
+  "package": "@fontsource/poppins",
+  "family": "poppins",
+  "weight": "700",
+  "style": "normal",
+  "file": "poppins-700-normal.woff2"
+ },
+ {
+  "package": "@fontsource/poppins",
+  "family": "poppins",
+  "weight": "900",
+  "style": "normal",
+  "file": "poppins-900-normal.woff2"
+ }
+]

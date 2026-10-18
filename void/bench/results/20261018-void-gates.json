@@ -1,0 +1,812 @@
+{
+ "what": "The no-V8 goal's gates measured inside void's own window (void/bench/probe.rs + gates.py), 2026-10-18, M5 Pro, a 60 Hz 2560x1440 display at scale 1. void built 09:09 from rrl-overnight HEAD 9a80d0f plus the working tree (other sessions' uncommitted react/src changes included); raea-motion built 08:59.",
+ "window_onscreen_12s": {
+  "note": "a fresh test window (RAEA_VOID_BACKGROUND=1), measured in its first seconds while macOS drew it; window = each chrome frame rendered and presented (ON_RENDER); stage = step + paint into the chrome's texture; input = a key change through stage_native::key to the end of the first window present after the stage painted it",
+  "pong": {
+   "budget_ms": 16.666666666666668,
+   "composition_fps": 120.0,
+   "display_hz": 60.0,
+   "input_to_present_ms": {
+    "max": 50.471,
+    "p50": 41.16,
+    "p99": 50.458,
+    "p99_frames": 6.0549599999999995,
+    "sent": 77,
+    "timed": 77,
+    "to_paint_max": 33.73,
+    "to_paint_p50": 23.819,
+    "to_paint_p99": 32.988,
+    "to_paint_timed": 77
+   },
+   "page": [
+    708,
+    748
+   ],
+   "seconds": 12.0,
+   "stage": {
+    "gap_ms": {
+     "max": 35.294,
+     "p50": 16.671,
+     "p99": 17.507
+    },
+    "missed": 3,
+    "painted": 718,
+    "painted_fps": 59.72699233020303,
+    "stepped": 1444,
+    "work_ms": {
+     "max": 35.288,
+     "p50": 16.667,
+     "p99": 17.503
+    }
+   },
+   "stage_error": null,
+   "stage_frame": 1574,
+   "window": {
+    "gap_ms": {
+     "max": 35.262,
+     "p50": 16.666,
+     "p99": 17.582
+    },
+    "missed": 3,
+    "render_ms": {
+     "max": 35.206,
+     "p50": 16.615,
+     "p99": 17.528
+    },
+    "rendered": 718,
+    "rendered_fps": 59.72699233020303
+   },
+   "load1": {
+    "start": 7.28,
+    "end": 6.93
+   },
+   "onscreen": true,
+   "rss_mb": {
+    "first": 491.7,
+    "last": 498.3,
+    "max": 498.3,
+    "footprint_last": 579.6
+   }
+  },
+  "platformer": {
+   "budget_ms": 16.666666666666668,
+   "composition_fps": 120.0,
+   "display_hz": 60.0,
+   "input_to_present_ms": {
+    "max": 51.045,
+    "p50": 42.983,
+    "p99": 50.903,
+    "p99_frames": 6.108359999999999,
+    "sent": 77,
+    "timed": 77,
+    "to_paint_max": 35.681,
+    "to_paint_p50": 25.281,
+    "to_paint_p99": 33.581,
+    "to_paint_timed": 77
+   },
+   "page": [
+    708,
+    748
+   ],
+   "seconds": 12.0,
+   "stage": {
+    "gap_ms": {
+     "max": 34.095,
+     "p50": 16.684,
+     "p99": 21.539
+    },
+    "missed": 4,
+    "painted": 719,
+    "painted_fps": 59.74580652526807,
+    "stepped": 1445,
+    "work_ms": {
+     "max": 34.093,
+     "p50": 16.681,
+     "p99": 21.536
+    }
+   },
+   "stage_error": null,
+   "stage_frame": 1817,
+   "window": {
+    "gap_ms": {
+     "max": 33.857,
+     "p50": 16.688,
+     "p99": 17.902
+    },
+    "missed": 1,
+    "render_ms": {
+     "max": 33.769,
+     "p50": 16.617,
+     "p99": 17.86
+    },
+    "rendered": 721,
+    "rendered_fps": 59.9119979203314
+   },
+   "load1": {
+    "start": 20.91,
+    "end": 20.18
+   },
+   "onscreen": true,
+   "rss_mb": {
+    "first": 472.8,
+    "last": 475.3,
+    "max": 475.3,
+    "footprint_last": 603.3
+   }
+  },
+  "titles": {
+   "budget_ms": 33.333333333333336,
+   "composition_fps": 30.0,
+   "display_hz": 60.0,
+   "input_to_present_ms": {
+    "max": 0.0,
+    "p50": 0.0,
+    "p99": 0.0,
+    "p99_frames": 0.0,
+    "sent": 0,
+    "timed": 0,
+    "to_paint_max": 0.0,
+    "to_paint_p50": 0.0,
+    "to_paint_p99": 0.0,
+    "to_paint_timed": 0
+   },
+   "page": [
+    1080,
+    1920
+   ],
+   "seconds": 12.0,
+   "stage": {
+    "gap_ms": {
+     "max": 68.295,
+     "p50": 33.364,
+     "p99": 66.894
+    },
+    "missed": 30,
+    "painted": 352,
+    "painted_fps": 29.334197672801313,
+    "stepped": 361,
+    "work_ms": {
+     "max": 67.727,
+     "p50": 17.938,
+     "p99": 52.407
+    }
+   },
+   "stage_error": null,
+   "stage_frame": 424,
+   "window": {
+    "gap_ms": {
+     "max": 70.704,
+     "p50": 32.756,
+     "p99": 67.028
+    },
+    "missed": 35,
+    "render_ms": {
+     "max": 68.767,
+     "p50": 30.608,
+     "p99": 66.467
+    },
+    "rendered": 386,
+    "rendered_fps": 32.16761449346962
+   },
+   "load1": {
+    "start": 24.83,
+    "end": 23.57
+   },
+   "onscreen": true,
+   "rss_mb": {
+    "first": 497.4,
+    "last": 528.2,
+    "max": 528.2,
+    "footprint_last": 742.7
+   }
+  }
+ },
+ "stage_only_300s": {
+  "note": "the window went off screen (kCGWindowIsOnscreen unset) within ~15 s of launch, so the chrome rendered nothing (window counts 0) while the stage kept stepping and painting its texture at 120 fps; these are stage-thread numbers only",
+  "pong": {
+   "kind": "game",
+   "opened_s": 1.0,
+   "measured": {
+    "budget_ms": 16.666666666666668,
+    "composition_fps": 120.0,
+    "display_hz": 60.0,
+    "input_to_present_ms": {
+     "max": 0.0,
+     "p50": 0.0,
+     "p99": 0.0,
+     "p99_frames": 0.0,
+     "sent": 1964,
+     "timed": 0
+    },
+    "page": [
+     708,
+     748
+    ],
+    "seconds": 300.5,
+    "stage": {
+     "gap_ms": {
+      "max": 22.558,
+      "p50": 8.324,
+      "p99": 9.223
+     },
+     "missed": 0,
+     "painted": 36059,
+     "painted_fps": 119.99795455384879,
+     "stepped": 36060,
+     "work_ms": {
+      "max": 15.536,
+      "p50": 1.142,
+      "p99": 1.76
+     }
+    },
+    "stage_error": null,
+    "stage_frame": 91428,
+    "window": {
+     "gap_ms": {
+      "max": 0.0,
+      "p50": 0.0,
+      "p99": 0.0
+     },
+     "missed": 0,
+     "render_ms": {
+      "max": 0.0,
+      "p50": 0.0,
+      "p99": 0.0
+     },
+     "rendered": 0,
+     "rendered_fps": 0.0
+    },
+    "load1": {
+     "at_lock": 24.33,
+     "start": 24.33,
+     "end": 12.61
+    },
+    "rss_mb": {
+     "first": 533.1,
+     "last": 544.5,
+     "max": 544.5,
+     "footprint_last": 441.4
+    }
+   },
+   "render_vs_play": [
+    {
+     "frame": 98629,
+     "play": "$SCRATCH/shots/pong-void-now.png",
+     "error": null,
+     "render": "$SCRATCH/shots/pong-render-98629.png",
+     "sizes": {
+      "void": [
+       708,
+       748
+      ],
+      "render": [
+       1920,
+       1080
+      ]
+     },
+     "note": "sizes differ (a responsive game laid out at void's stage box); compared after scaling void's page",
+     "ssim": 0.840265
+    }
+   ],
+   "void_vs_offscreen_play": [
+    {
+     "frame": 289,
+     "page": [
+      708,
+      748
+     ],
+     "void": "$SCRATCH/shots/pong-void-nokeys.png",
+     "offscreen": "$SCRATCH/shots/pong-offscreen-289.png",
+     "ssim": 0.999974
+    }
+   ]
+  },
+  "platformer": {
+   "kind": "game",
+   "opened_s": 2.0,
+   "measured": {
+    "budget_ms": 16.666666666666668,
+    "composition_fps": 120.0,
+    "display_hz": 60.0,
+    "input_to_present_ms": {
+     "max": 0.0,
+     "p50": 0.0,
+     "p99": 0.0,
+     "p99_frames": 0.0,
+     "sent": 1963,
+     "timed": 0
+    },
+    "page": [
+     708,
+     748
+    ],
+    "seconds": 300.6,
+    "stage": {
+     "gap_ms": {
+      "max": 25.303,
+      "p50": 8.326,
+      "p99": 9.257
+     },
+     "missed": 1,
+     "painted": 36067,
+     "painted_fps": 119.96412576391906,
+     "stepped": 36078,
+     "work_ms": {
+      "max": 21.99,
+      "p50": 0.954,
+      "p99": 1.572
+     }
+    },
+    "stage_error": null,
+    "stage_frame": 118114,
+    "window": {
+     "gap_ms": {
+      "max": 0.0,
+      "p50": 0.0,
+      "p99": 0.0
+     },
+     "missed": 0,
+     "render_ms": {
+      "max": 0.0,
+      "p50": 0.0,
+      "p99": 0.0
+     },
+     "rendered": 0,
+     "rendered_fps": 0.0
+    },
+    "load1": {
+     "at_lock": 31.07,
+     "start": 31.07,
+     "end": 20.77
+    },
+    "rss_mb": {
+     "first": 650.4,
+     "last": 650.0,
+     "max": 650.6,
+     "footprint_last": 429.4
+    }
+   },
+   "render_vs_play": [
+    {
+     "frame": 125315,
+     "play": "$SCRATCH/shots/platformer-void-now.png",
+     "error": null,
+     "render": "$SCRATCH/shots/platformer-render-125315.png",
+     "sizes": {
+      "void": [
+       708,
+       748
+      ],
+      "render": [
+       1920,
+       1080
+      ]
+     },
+     "note": "sizes differ (a responsive game laid out at void's stage box); compared after scaling void's page",
+     "ssim": 0.890479
+    }
+   ],
+   "void_vs_offscreen_play": [
+    {
+     "frame": 284,
+     "page": [
+      708,
+      748
+     ],
+     "void": "$SCRATCH/shots/platformer-void-nokeys.png",
+     "offscreen": "$SCRATCH/shots/platformer-offscreen-284.png",
+     "ssim": 0.999992
+    }
+   ]
+  }
+ },
+ "stage_only_60s_with_render_checks": {
+  "pong": {
+   "kind": "game",
+   "opened_s": 2.0,
+   "measured": {
+    "budget_ms": 16.666666666666668,
+    "composition_fps": 120.0,
+    "display_hz": 60.0,
+    "input_to_present_ms": {
+     "max": 0.0,
+     "p50": 0.0,
+     "p99": 0.0,
+     "p99_frames": 0.0,
+     "sent": 396,
+     "timed": 0,
+     "to_paint_max": 9.923,
+     "to_paint_p50": 5.787,
+     "to_paint_p99": 9.471,
+     "to_paint_timed": 396
+    },
+    "page": [
+     708,
+     748
+    ],
+    "seconds": 60.4,
+    "stage": {
+     "gap_ms": {
+      "max": 13.227,
+      "p50": 8.322,
+      "p99": 9.32
+     },
+     "missed": 0,
+     "painted": 7249,
+     "painted_fps": 120.01063755351811,
+     "stepped": 7249,
+     "work_ms": {
+      "max": 5.872,
+      "p50": 0.828,
+      "p99": 1.304
+     }
+    },
+    "stage_error": null,
+    "stage_frame": 62464,
+    "window": {
+     "gap_ms": {
+      "max": 0.0,
+      "p50": 0.0,
+      "p99": 0.0
+     },
+     "missed": 0,
+     "render_ms": {
+      "max": 0.0,
+      "p50": 0.0,
+      "p99": 0.0
+     },
+     "rendered": 0,
+     "rendered_fps": 0.0
+    },
+    "load1": {
+     "at_lock": 3.5,
+     "start": 3.5,
+     "end": 2.83
+    },
+    "rss_mb": {
+     "first": 468.4,
+     "last": 470.8,
+     "max": 470.8,
+     "footprint_last": 408.0
+    }
+   },
+   "render_vs_play": [
+    {
+     "frame": 69663,
+     "play": "$SCRATCH/shots/pong-void-now.png",
+     "error": null,
+     "render": "$SCRATCH/shots/pong-render-69663.png",
+     "sizes": {
+      "void": [
+       708,
+       748
+      ],
+      "render": [
+       1920,
+       1080
+      ]
+     },
+     "note": "sizes differ (a responsive game laid out at void's stage box); compared after scaling void's page",
+     "ssim": 0.840265
+    }
+   ],
+   "void_vs_offscreen_play": [
+    {
+     "frame": 276,
+     "page": [
+      708,
+      748
+     ],
+     "void": "$SCRATCH/shots/pong-void-nokeys.png",
+     "offscreen": "$SCRATCH/shots/pong-offscreen-276.png",
+     "ssim": 0.999974
+    }
+   ]
+  },
+  "platformer": {
+   "kind": "game",
+   "opened_s": 2.0,
+   "measured": {
+    "budget_ms": 16.666666666666668,
+    "composition_fps": 120.0,
+    "display_hz": 60.0,
+    "input_to_present_ms": {
+     "max": 0.0,
+     "p50": 0.0,
+     "p99": 0.0,
+     "p99_frames": 0.0,
+     "sent": 395,
+     "timed": 0,
+     "to_paint_max": 18.637,
+     "to_paint_p50": 5.268,
+     "to_paint_p99": 9.924,
+     "to_paint_timed": 395
+    },
+    "page": [
+     708,
+     748
+    ],
+    "seconds": 60.4,
+    "stage": {
+     "gap_ms": {
+      "max": 28.021,
+      "p50": 8.325,
+      "p99": 9.466
+     },
+     "missed": 1,
+     "painted": 7253,
+     "painted_fps": 119.9936136027174,
+     "stepped": 7254,
+     "work_ms": {
+      "max": 24.249,
+      "p50": 0.937,
+      "p99": 1.95
+     }
+    },
+    "stage_error": null,
+    "stage_frame": 30052,
+    "window": {
+     "gap_ms": {
+      "max": 0.0,
+      "p50": 0.0,
+      "p99": 0.0
+     },
+     "missed": 0,
+     "render_ms": {
+      "max": 0.0,
+      "p50": 0.0,
+      "p99": 0.0
+     },
+     "rendered": 0,
+     "rendered_fps": 0.0
+    },
+    "load1": {
+     "at_lock": 5.17,
+     "start": 5.17,
+     "end": 6.8
+    },
+    "rss_mb": {
+     "first": 308.4,
+     "last": 311.2,
+     "max": 311.2,
+     "footprint_last": 423.9
+    }
+   },
+   "render_vs_play": [
+    {
+     "frame": 37250,
+     "play": "$SCRATCH/shots/platformer-void-now.png",
+     "error": null,
+     "render": "$SCRATCH/shots/platformer-render-37250.png",
+     "sizes": {
+      "void": [
+       708,
+       748
+      ],
+      "render": [
+       1920,
+       1080
+      ]
+     },
+     "note": "sizes differ (a responsive game laid out at void's stage box); compared after scaling void's page",
+     "ssim": 0.897284
+    }
+   ],
+   "void_vs_offscreen_play": [
+    {
+     "frame": 281,
+     "page": [
+      708,
+      748
+     ],
+     "void": "$SCRATCH/shots/platformer-void-nokeys.png",
+     "offscreen": "$SCRATCH/shots/platformer-offscreen-281.png",
+     "ssim": 0.999992
+    }
+   ]
+  },
+  "titles": {
+   "kind": "timeline",
+   "opened_s": 2.0,
+   "measured": {
+    "budget_ms": 33.333333333333336,
+    "composition_fps": 30.0,
+    "display_hz": 60.0,
+    "input_to_present_ms": {
+     "max": 0.0,
+     "p50": 0.0,
+     "p99": 0.0,
+     "p99_frames": 0.0,
+     "sent": 0,
+     "timed": 0,
+     "to_paint_max": 0.0,
+     "to_paint_p50": 0.0,
+     "to_paint_p99": 0.0,
+     "to_paint_timed": 0
+    },
+    "page": [
+     1080,
+     1920
+    ],
+    "seconds": 30.2,
+    "stage": {
+     "gap_ms": {
+      "max": 34.866,
+      "p50": 33.336,
+      "p99": 34.401
+     },
+     "missed": 0,
+     "painted": 906,
+     "painted_fps": 30.0173669601451,
+     "stepped": 906,
+     "work_ms": {
+      "max": 9.285,
+      "p50": 0.983,
+      "p99": 9.087
+     }
+    },
+    "stage_error": null,
+    "stage_frame": 296,
+    "window": {
+     "gap_ms": {
+      "max": 0.0,
+      "p50": 0.0,
+      "p99": 0.0
+     },
+     "missed": 0,
+     "render_ms": {
+      "max": 0.0,
+      "p50": 0.0,
+      "p99": 0.0
+     },
+     "rendered": 0,
+     "rendered_fps": 0.0
+    },
+    "load1": {
+     "at_lock": 5.86,
+     "start": 5.86,
+     "end": 4.76
+    },
+    "rss_mb": {
+     "first": 320.3,
+     "last": 328.7,
+     "max": 328.7,
+     "footprint_last": 487.1
+    }
+   },
+   "render_vs_play": [
+    {
+     "frame": 0,
+     "play": "$SCRATCH/shots/titles-void-0.png",
+     "render": "$SCRATCH/shots/titles-render-0.png",
+     "sizes": {
+      "void": [
+       1080,
+       1920
+      ],
+      "render": [
+       1080,
+       1920
+      ]
+     },
+     "ssim": 1.0,
+     "offscreen": "$SCRATCH/shots/titles-offscreen-0.png"
+    },
+    {
+     "frame": 45,
+     "play": "$SCRATCH/shots/titles-void-45.png",
+     "render": "$SCRATCH/shots/titles-render-45.png",
+     "sizes": {
+      "void": [
+       1080,
+       1920
+      ],
+      "render": [
+       1080,
+       1920
+      ]
+     },
+     "ssim": 0.99867,
+     "offscreen": "$SCRATCH/shots/titles-offscreen-45.png"
+    },
+    {
+     "frame": 120,
+     "play": "$SCRATCH/shots/titles-void-120.png",
+     "render": "$SCRATCH/shots/titles-render-120.png",
+     "sizes": {
+      "void": [
+       1080,
+       1920
+      ],
+      "render": [
+       1080,
+       1920
+      ]
+     },
+     "ssim": 0.996748,
+     "offscreen": "$SCRATCH/shots/titles-offscreen-120.png"
+    },
+    {
+     "frame": 300,
+     "play": "$SCRATCH/shots/titles-void-300.png",
+     "render": "$SCRATCH/shots/titles-render-300.png",
+     "sizes": {
+      "void": [
+       1080,
+       1920
+      ],
+      "render": [
+       1080,
+       1920
+      ]
+     },
+     "ssim": 0.996588,
+     "offscreen": "$SCRATCH/shots/titles-offscreen-300.png"
+    },
+    {
+     "frame": 450,
+     "play": "$SCRATCH/shots/titles-void-450.png",
+     "render": "$SCRATCH/shots/titles-render-450.png",
+     "sizes": {
+      "void": [
+       1080,
+       1920
+      ],
+      "render": [
+       1080,
+       1920
+      ]
+     },
+     "ssim": 0.996575,
+     "offscreen": "$SCRATCH/shots/titles-offscreen-450.png"
+    },
+    {
+     "frame": 599,
+     "play": "$SCRATCH/shots/titles-void-599.png",
+     "render": "$SCRATCH/shots/titles-render-599.png",
+     "sizes": {
+      "void": [
+       1080,
+       1920
+      ],
+      "render": [
+       1080,
+       1920
+      ]
+     },
+     "ssim": 0.995103,
+     "offscreen": "$SCRATCH/shots/titles-offscreen-599.png"
+    }
+   ],
+   "void_vs_offscreen_play": [
+    {
+     "frame": 0,
+     "ssim": 1.0
+    },
+    {
+     "frame": 45,
+     "ssim": 0.99867
+    },
+    {
+     "frame": 120,
+     "ssim": 0.996748
+    },
+    {
+     "frame": 300,
+     "ssim": 0.996588
+    },
+    {
+     "frame": 450,
+     "ssim": 0.996575
+    },
+    {
+     "frame": 599,
+     "ssim": 0.995103
+    }
+   ]
+  }
+ },
+ "video": {
+  "cj-reel (media/golden/10-cj-reel)": "not measured: baked play panics at engine/vendor/blitz-dom/src/mutator.rs:671 (insert_nodes_before) a few seconds in, in void (the panic hook aborts void) and offscreen alike; 20-cj-simulate the same. The coordinator says it is a lite-runtime bug and is on it."
+ }
+}

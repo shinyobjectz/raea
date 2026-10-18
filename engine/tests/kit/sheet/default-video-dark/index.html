@@ -1,0 +1,48 @@
+<!doctype html>
+<!-- The kit's part sheet (kit/components.feature, "The part sheet"): every part alone, in light and in dark. Nothing
+     composed. Query: ?scale=video renders it at video scale (html.kit-video, 1rem = 40px, a 1080-wide page);
+     ?brand=glossier links the Glossier fixture's brand.css first, so the parts re-theme from brand.css alone. -->
+<html lang="en" class="kit-video">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Kit parts</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@700;800;900&display=swap">
+  <link rel="stylesheet" href="kit.css">
+  <style>
+    /* The sheet's layout only; the parts are untouched. */
+    body { margin: 0; background: #DDDCE4; font-family: ui-sans-serif, system-ui, sans-serif; }
+    .sheet { display: grid; grid-template-columns: 1fr 1fr; }
+    html.kit-video .sheet { grid-template-columns: 1fr; width: 1080px; }
+    .mode { display: flex; flex-direction: column; gap: 1.6rem; padding: 2rem; background: var(--canvas); }
+    .part { display: flex; flex-direction: column; gap: 0.6rem; align-items: flex-start; }
+    .part > h2 { margin: 0; font: 600 0.7rem/1 ui-monospace, monospace; letter-spacing: 0.04em; text-transform: uppercase; color: var(--ink-3); }
+    .row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem; }
+    .w { width: 100%; max-width: 22rem; }
+    .logo-mark { display: inline-block; width: 2.25rem; height: 2.25rem; border-radius: 0.5rem; background: var(--brand-2); }
+  </style>
+</head>
+<body>
+<div id="root" data-composition-id="kit" data-width="1080" data-height="3850" data-duration="1">
+  <div class="sheet">
+    
+    <section class="mode dark" id="dark"></section>
+  </div>
+  <template id="parts">
+    <div class="part"><h2>button</h2><div class="row"><a class="kit-btn" href="#">Work with me</a><button class="kit-btn kit-btn-quiet" type="button">See my rates</button></div></div>
+    <div class="part"><h2>card</h2><div class="kit-card w"><b>Morning routine</b><span>A calm 30-second TikTok for dry skin.</span></div></div>
+    <div class="part"><h2>badge</h2><div class="row"><span class="kit-badge">Paid ad</span><span class="kit-badge">30s</span></div></div>
+    <div class="part"><h2>avatar</h2><div class="row"><span class="kit-avatar">JR</span><span class="kit-avatar" data-ring>MK</span></div></div>
+    <div class="part"><h2>logo lockup</h2><span class="kit-logo"><span class="logo-mark"></span>Dewy Days</span></div>
+    <div class="part"><h2>quote</h2><figure class="kit-quote w"><blockquote>Our best-performing ad this quarter.</blockquote><figcaption>Maya, Dewy Days</figcaption></figure></div>
+    <div class="part"><h2>stat</h2><div class="kit-stat"><b>3.2×</b><span>return on ad spend</span></div></div>
+    <div class="part"><h2>price tag</h2><div class="kit-price w"><b>$450</b><span>per video</span><small>Usage rights for 3 months included</small></div></div>
+    <div class="part"><h2>lower third</h2><div class="kit-lower-third"><b>Jordan Rivera</b><span>Skincare creator, Toronto</span></div></div>
+    <div class="part"><h2>list rows</h2><ul class="kit-rows w"><li><span>Videos</span><span>3 × 30s</span></li><li><span>Revisions</span><span>2 rounds</span></li><li><span>Delivery</span><span>7 days</span></li></ul></div>
+  </template>
+  <script>
+    for (const id of ["dark"]) document.getElementById(id).append(document.getElementById("parts").content.cloneNode(true));
+  </script>
+</div>
+</body>
+</html>

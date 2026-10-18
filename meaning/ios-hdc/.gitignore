@@ -1,0 +1,6 @@
+target/
+app/build/
+app/RaeaHdc.xcodeproj/
+phone-console.log
+app/models/
+app/inputs/clip.mp4

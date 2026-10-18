@@ -1,0 +1,61 @@
+[package]
+name = "raea-react"
+version = "0.1.0"
+edition = "2024"
+description = "React on jitless V8 inside Bevy: React's commits become Bevy entities (engine/docs/bevy.feature, B2-B3)"
+license = "MIT OR Apache-2.0"
+
+[features]
+default = ["sandbox", "browser"]
+sandbox = ["dep:wsx"]
+# agent-browser in process (Chrome over CDP) as browser.* calls; the Mac's, not the iPhone's
+browser = ["dep:raea-browser"]
+
+[dependencies]
+# the one native-call layer (registry, generated types, the V8 binding and web shims)
+raea-native = { path = "../native", features = ["modules"] }
+# the bundle's functions by span (bake.rs: an edit re-bakes only the frames where a changed component renders)
+raea-modules = { path = "../modules" }
+# the agent's sandbox (WASI tools on Wasmtime/Pulley) as wsx.* native calls
+wsx = { path = "../sandbox/wsx", optional = true }
+raea-browser = { path = "../browser", optional = true }
+# the same Bevy and feature set as rdb, so the two share one build
+bevy = { version = "=0.19.1", default-features = false, features = ["std", "default_app", "default_font", "multi_threaded", "3d_bevy_render", "ui_bevy_render", "png", "tonemapping_luts", "ktx2", "zstd_rust"] }
+serde_json = "1"
+# the engine: raea::dom, the Blitz document React's entities are mirrored into (bevy.feature B3)
+raea = { path = "../engine", default-features = false, features = ["network"] }
+
+# the painted pages as PNG assets
+image = { version = "0.25", default-features = false, features = ["png"] }
+# raea-motion: <Video>/<Audio> decoded natively at their source times (the platform's decoders, Symphonia)
+raea-media = { path = "../media", default-features = false, features = ["soft", "apple"] }
+# @raea/motion's native calls: Manifold solids (rdb::shape) and the scene's rows
+rdb = { path = "../rdb" }
+manifold-rust = "0.16.0"
+regex = "1"
+base64 = "0.22"
+# a page's identity in a render (motion.rs store_page): xxHash3, many GB/s
+twox-hash = { version = "2", default-features = false, features = ["xxhash3_64"] }
+# raea-motion play: a window of its own for the live stage (src/play.rs)
+winit = "=0.30.13"
+# live sound (src/audio.rs): the mixer's output device, the same cpal void uses
+cpal = "0.15"
+
+# the same vendored Blitz, Stylo, Vello and Parley as rdb (see rdb/Cargo.toml)
+[patch.crates-io]
+blitz-paint = { path = "../engine/vendor/blitz-paint" }
+blitz-dom = { path = "../engine/vendor/blitz-dom" }
+stylo_taffy = { path = "../engine/vendor/stylo_taffy" }
+muxide = { path = "../media/vendor/muxide" }
+stylo = { path = "../engine/vendor/stylo" }
+vello_common = { path = "../engine/vendor/vello_common" }
+vello_cpu = { path = "../engine/vendor/vello_cpu" }
+anyrender_vello_cpu = { path = "../engine/vendor/anyrender_vello_cpu" }
+num_threads = { path = "../engine/vendor/num_threads" }
+anyrender = { path = "../engine/vendor/anyrender" }
+anyrender_svg = { path = "../engine/vendor/anyrender_svg" }
+
+[patch."https://github.com/linebender/parley"]
+parley_engine = { path = "../engine/vendor/parley_engine" }
+fontique = { path = "../engine/vendor/fontique" }
+parley = { path = "../engine/vendor/parley" }

@@ -1,0 +1,3 @@
+target/
+*.rgba
+composite-test.png

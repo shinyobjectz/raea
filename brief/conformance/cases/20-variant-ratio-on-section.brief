@@ -1,0 +1,7 @@
+// expect: 5:1 a deliverable ({1:1}) tags lines and beats
+Title: x
+Format: 9:16, 30 s | 1:1, 15 s
+
+# hook {1:1}
+@MAYA
+Hi.

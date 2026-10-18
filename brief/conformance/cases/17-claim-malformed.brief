@@ -1,0 +1,4 @@
+// expect: 4:1 a claim is
+Title: x
+Format: 9:16, 20 s
+$claim.gras: GRAS verified, trust me

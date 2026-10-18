@@ -1,0 +1,1 @@
+{ "compilerOptions": { "jsx": "react-jsx", "jsxImportSource": "react", "strict": false, "module": "esnext", "target": "es2022", "moduleResolution": "bundler" } }

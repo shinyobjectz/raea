@@ -1,0 +1,32 @@
+The direct render (RAEA_DIRECT=1): edits without 3D rendered through gpuview's pool and kernels (composite.k ->
+nv12buf.k -> a ring of 3 readbacks in flight) with no Bevy schedules. UGC edit, 738 frames, 1080x1920, M4, Apple
+decode and VideoToolbox encode, guarded, 2026-10-14, load ~4 (the orchestrator's build had just finished).
+
+Exact: hash-only renders, two runs and one shuffled run: 738/738 frames byte-identical to the engine's GPU path
+(examples/out/ref/gpu-apple-a.txt). The first try differed on the zoom 1.18 clips (147 frames): gpuview read row values
+as f64 where the engine's World holds f32 (1.18 -> 1.17999995), moving the 16.16 source map; gpuview now rounds slot
+inputs through f32 as the engine does.
+
+Speed, incl. encode, alternating (fps, ms per frame):
+rep  engine (GPU path)   direct    direct ms/frame: decode+upload  rules  overlay  submit  wait  copy  encoder push
+1    180.2               212.4     2.14  0.21  0.22  0.03  0.00  0.21  1.81
+2    183.3               208.5     2.24  0.21  0.22  0.03  0.00  0.22  1.79
+3    181.1               212.0     2.10  0.20  0.21  0.03  0.00  0.22  1.87
+(engine column: frames / wall incl. setup and audio mix; direct: the frame loop incl. encode)
+
+The ceiling is the encoder: VideoToolbox H.264 alone, 300 frames of the take pushed as NV12 from memory, 8 Mbps:
+212.1 fps, 212.0 fps (raea-media encode apple ... --nv12). The direct render runs at it. The encoder on its own thread
+didn't raise it (its queue stays full: 194, 208, 148 fps, under background load); it stays, as it frees the loop the day
+the encoder is faster.
+Without the encoder (hash-only, minus the hashing's 3.16 ms): ~2.7 ms per frame, ~370 fps, of which decode+upload ~1.9.
+The GPU is never waited on (wait 0.00 ms): composite + NV12 + copy finish while the CPU prepares the next frame.
+
+Pool budget (engine::pool_budget: RAEA_POOL_MB, else 1 GiB on the Mac, 256 MiB on iOS/Android): at 256 MB the engine
+and the direct render give the same 738 hashes, with the same 929 uploads (a render in order reuses frames only within
+a few frames); peak footprint 628 MB (engine) and 614 MB (direct) vs 1431 MB at 1 GiB.
+
+GPU per stage (RAEA_GPU_TIMES=1: timestamp queries, one frame at a time; each upload as its own staging copy), ms per
+frame over 738 frames, two runs: uploads 0.214 / 0.196, composite.k 1.794 / 1.777, nv12buf.k 0.360 / 0.372, readback
+copy 0.029 / 0.012; sum 2.40 / 2.36. Frames unchanged (hash-only run = gpu-apple-a.txt).
+Un-overlapped GPU per frame (RAEA_SERIAL, the engine): step 0 path (RAEA_READBACK=rgba RAEA_COMPOSITE=ui) 4.81,
+the engine's GPU path 4.13.

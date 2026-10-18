@@ -1,0 +1,240 @@
+// Copyright 2024 the Vello Authors
+// SPDX-License-Identifier: Apache-2.0 OR MIT
+
+use crate::util;
+use anyrender::PaintScene;
+use kurbo::{Affine, BezPath};
+use peniko::{BlendMode, Fill};
+use usvg::{Node, Path};
+
+pub(crate) fn render_group<S: PaintScene, F: FnMut(&mut S, &usvg::Node)>(
+    scene: &mut S,
+    group: &usvg::Group,
+    transform: Affine,
+    global_transform: Affine,
+    error_handler: &mut F,
+) {
+    for node in group.children() {
+        let transform = transform * util::to_affine(&node.abs_transform());
+        match node {
+            usvg::Node::Group(g) => {
+                let alpha = g.opacity().get();
+                let is_fully_opaque = alpha >= 1.0;
+                let mix = util::to_mix(g.blend_mode());
+
+                // Support clip-path with a single path
+                let clip_path = g
+                    .clip_path()
+                    .and_then(|path| path.root().children().first());
+
+                // raea: SVG filters, applied to the group's content before its clip-path and
+                // opacity, in a layer clipped to the filter region
+                let filter = crate::filter::convert_filters(g.filters()).map(std::sync::Arc::new);
+
+                let did_push_layer = match clip_path {
+                    // If there is a clip path, then push a layer that clips using it
+                    Some(usvg::Node::Path(clip_path)) => {
+                        let local_path = util::to_bez_path(clip_path);
+                        scene.push_layer(
+                            match clip_path.fill().map(|fill| fill.rule()) {
+                                Some(usvg::FillRule::EvenOdd) => Fill::EvenOdd,
+                                _ => Fill::NonZero,
+                            },
+                            BlendMode {
+                                mix,
+                                compose: peniko::Compose::SrcOver,
+                            },
+                            alpha,
+                            global_transform * transform,
+                            &local_path,
+                            None,
+                            None,
+                        );
+
+                        true
+                    }
+                    // Else if there is blending to be done then push a layer with a rectangular clip
+                    #[allow(deprecated)]
+                    _ if filter.is_none() && (mix != peniko::Mix::Normal || !is_fully_opaque) => {
+                        // Use the layer bounding box as the clip path. It is in the group's
+                        // content coordinate space, so map it to canvas space and outset it
+                        // by 2px on each side (like resvg) so anti-aliased pixels at the
+                        // layer edge aren't clipped.
+                        let bounding_box = g.layer_bounding_box();
+                        let rect = kurbo::Rect::from_origin_size(
+                            (bounding_box.x() as f64, bounding_box.y() as f64),
+                            (bounding_box.width() as f64, bounding_box.height() as f64),
+                        );
+                        let rect = (global_transform * transform)
+                            .transform_rect_bbox(rect)
+                            .inflate(2.0, 2.0);
+                        scene.push_layer(
+                            Fill::NonZero,
+                            BlendMode {
+                                mix,
+                                compose: peniko::Compose::SrcOver,
+                            },
+                            alpha,
+                            Affine::IDENTITY,
+                            &rect,
+                            None,
+                            None,
+                        );
+
+                        true
+                    }
+                    // Else if there is no clip or blending then don't push a layer
+                    _ => false,
+                };
+
+                let did_push_filter = match (&filter, filter.as_ref().and_then(|f| f.region())) {
+                    (Some(filter), Some(region)) => {
+                        // the clip layer, when there is one, already applies opacity and blending
+                        let (alpha, mix) = if did_push_layer { (1.0, peniko::Mix::Normal) } else { (alpha, mix) };
+                        scene.push_layer(
+                            Fill::NonZero,
+                            BlendMode {
+                                mix,
+                                compose: peniko::Compose::SrcOver,
+                            },
+                            alpha,
+                            global_transform * transform,
+                            &region,
+                            Some(filter.clone()),
+                            None,
+                        );
+                        true
+                    }
+                    _ => false,
+                };
+
+                render_group(scene, g, Affine::IDENTITY, global_transform, error_handler);
+
+                if did_push_filter {
+                    scene.pop_layer();
+                }
+                if did_push_layer {
+                    scene.pop_layer();
+                }
+            }
+            usvg::Node::Path(path) => {
+                if !path.is_visible() {
+                    continue;
+                }
+                let local_path = util::to_bez_path(path);
+
+                let transform = global_transform * transform;
+                match path.paint_order() {
+                    usvg::PaintOrder::FillAndStroke => {
+                        fill(scene, error_handler, path, transform, &local_path, node);
+                        stroke(scene, error_handler, path, transform, &local_path, node);
+                    }
+                    usvg::PaintOrder::StrokeAndFill => {
+                        stroke(scene, error_handler, path, transform, &local_path, node);
+                        fill(scene, error_handler, path, transform, &local_path, node);
+                    }
+                }
+            }
+            usvg::Node::Image(img) => {
+                if !img.is_visible() {
+                    continue;
+                }
+                match img.kind() {
+                    usvg::ImageKind::JPEG(_)
+                    | usvg::ImageKind::PNG(_)
+                    | usvg::ImageKind::GIF(_)
+                    | usvg::ImageKind::WEBP(_) => {
+                        #[cfg(feature = "image")]
+                        {
+                            let Ok(decoded_image) = util::decode_raw_raster_image(img.kind())
+                            else {
+                                error_handler(scene, node);
+                                continue;
+                            };
+                            let image = util::into_image(decoded_image, img.rendering_mode());
+                            let image_ts = global_transform * util::to_affine(&img.abs_transform());
+                            scene.draw_image(image.as_ref(), image_ts);
+                        }
+
+                        #[cfg(not(feature = "image"))]
+                        {
+                            error_handler(scene, node);
+                            continue;
+                        }
+                    }
+                    usvg::ImageKind::SVG(svg) => {
+                        render_group(
+                            scene,
+                            svg.root(),
+                            transform,
+                            global_transform,
+                            error_handler,
+                        );
+                    }
+                }
+            }
+            usvg::Node::Text(text) => {
+                // The children of the flattened text group already carry the
+                // text node's absolute transform, so recurse with the identity
+                // transform (like the group case) to avoid applying it twice.
+                render_group(
+                    scene,
+                    text.flattened(),
+                    Affine::IDENTITY,
+                    global_transform,
+                    error_handler,
+                );
+            }
+        }
+    }
+}
+
+fn fill<S: PaintScene, F: FnMut(&mut S, &usvg::Node)>(
+    scene: &mut S,
+    error_handler: &mut F,
+    path: &Path,
+    transform: Affine,
+    local_path: &BezPath,
+    node: &Node,
+) {
+    if let Some(fill) = &path.fill() {
+        if let Some((paint, brush_transform)) = util::to_brush(fill.paint(), fill.opacity()) {
+            scene.fill(
+                match fill.rule() {
+                    usvg::FillRule::NonZero => Fill::NonZero,
+                    usvg::FillRule::EvenOdd => Fill::EvenOdd,
+                },
+                transform,
+                paint.as_ref(),
+                Some(brush_transform),
+                local_path,
+            );
+        } else {
+            error_handler(scene, node);
+        }
+    }
+}
+
+fn stroke<S: PaintScene, F: FnMut(&mut S, &usvg::Node)>(
+    scene: &mut S,
+    error_handler: &mut F,
+    path: &Path,
+    transform: Affine,
+    local_path: &BezPath,
+    node: &Node,
+) {
+    if let Some(stroke) = &path.stroke() {
+        if let Some((paint, brush_transform)) = util::to_brush(stroke.paint(), stroke.opacity()) {
+            let conv_stroke = util::to_stroke(stroke);
+            scene.stroke(
+                &conv_stroke,
+                transform,
+                paint.as_ref(),
+                Some(brush_transform),
+                local_path,
+            );
+        } else {
+            error_handler(scene, node);
+        }
+    }
+}

@@ -1,0 +1,19 @@
+Zero-copy (RAEA_ZEROCOPY=1) vs copy + upload, the UGC edit's direct render, Apple decode, M4, 2026-10-14, load ~6.
+Exact: hash-only, in order and shuffled: 738/738 = examples/out/ref/gpu-apple-a.txt (also under RAEA_GPU_TIMES).
+
+to mp4 (VideoToolbox), ms per frame:
+rep zerocopy fps    decode+upload  cpu/upload  sink(encoder push)
+1   0        191.4  2.31           0.523       1.74
+1   1        197.4  0.65           0.039*      3.36
+2   0        197.8  2.05           0.466       2.02
+2   1        190.3  0.75           0.070*      3.20
+3   0        192.7  2.44           0.519       1.56
+3   1        145.3  2.54           0.062*      2.59   (load spike)
+* overlay uploads only: no frame is copied
+
+GPU (RAEA_GPU_TIMES, one frame at a time), ms per frame:
+rep zerocopy composite copy   nv12   upload total
+1   0        1.999     0.016  0.414  0.248  2.676
+1   1        2.445     0.210  0.450  0.028  3.133
+2   0        2.091     0.013  0.419  0.269  2.793
+2   1        2.261     0.186  0.417  0.027  2.890

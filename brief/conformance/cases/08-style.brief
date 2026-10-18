@@ -1,0 +1,9 @@
+// expect: 7:29 `energy` isn't a property of :root | 8:1 `@must` rules are `!` lines | 9:1 `lockup` isn't a selector
+Title: x
+Format: 9:16, 20 s
+
+# a
+---
+:root { music: "warm keys"; energy: f; }
+@must { no black frames; }
+lockup { ease: emphasized; }

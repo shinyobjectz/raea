@@ -1,0 +1,5 @@
+// expect: 3:1 `Build goal:` isn't a title-page key
+Title: x
+Build goal: y
+
+# a

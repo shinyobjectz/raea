@@ -1,0 +1,5 @@
+// expect: 5:2 `! Action The bracket clicks shut` isn't a check
+Title: x
+Format: 9:16, 20 s
+
+!Action The bracket clicks shut [[follow | place-low]]

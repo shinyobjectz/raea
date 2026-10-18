@@ -1,0 +1,8 @@
+v-empty step0 gpu 3.52 main 0.11 render 2.70 readback 5.19
+v-empty gpu gpu 3.18 main 0.10 render 1.87 readback 0.21
+v-noclips step0 gpu 3.48 main 0.49 render 2.60 readback 5.12
+v-noclips gpu gpu 3.02 main 0.38 render 1.76 readback 0.19
+v-noclip2d step0 gpu 4.84 main 2.82 render 5.07 readback 5.37
+v-noclip2d gpu gpu 4.51 main 1.45 render 2.62 readback 0.21
+ugc step0 gpu 4.93 main 3.41 render 5.43 readback 5.48
+ugc gpu gpu 4.62 main 1.80 render 2.78 readback 0.21

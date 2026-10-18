@@ -1,0 +1,12 @@
+// expect: ok
+Title: pacing rules
+Format: 9:16, 20 s
+
+! no shot longer than 6 s
+! the hook ends by 3 s
+! a cut at least every 4 s
+! claims sourced
+
+# hook
+@JUNE
+That's forty hours, gone.

@@ -1,0 +1,33 @@
+# The DOM bindings of blitz-vibey-script (vendor/blitz-vibey-script) ported from Boa to JavaScriptCore (by way of
+# V8, retired): the system's engine on macOS and iOS, its ICU the system's. Same public API (`ScriptDocument`); the DOM
+# natives keep their Boa shape through src/js_jsc.rs. Shares bootstrap.js, geometry.js and web.js with
+# blitz-vibey-script.
+[package]
+name = "blitz-v8-script"
+description = "JavaScript execution for Blitz using JavaScriptCore"
+version = "0.3.0-beta.3"
+license = "MIT OR Apache-2.0"
+edition = "2024"
+rust-version = "1.91.0"
+
+[features]
+default = []
+tracing = ["dep:tracing", "blitz-dom/tracing"]
+
+[dependencies]
+# (raea) the one native-call layer: __raea_call and the web shims in every page context
+raea-native = { path = "../../../native" }
+# (raea) import specifiers resolved to URLs for JavaScriptCore's module loader
+raea-modules = { path = "../../../modules" }
+blitz-dom = { version = "=0.3.0-beta.3", default-features = false, features = ["autofocus"] }
+blitz-html = { version = "=0.3.0-beta.3", default-features = false }
+blitz-traits = { version = "=0.3.0-beta.3", default-features = false }
+markup5ever = "0.40.0"
+style = { version = "0.22.0", package = "stylo" }
+icu_properties = { version = "2.3", default-features = false, features = ["compiled_data"] }
+keyboard-types = "0.7"
+log = "0.4"
+url = "2.5.0"
+data-url = "0.3.1"
+web-time = "1"
+tracing = { version = "0.1.40", optional = true }

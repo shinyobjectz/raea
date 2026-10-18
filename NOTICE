@@ -1,0 +1,38 @@
+raea, the Render Anything Engine
+Copyright 2026 Shane Murphy
+Licensed under the Functional Source License, Version 1.1, ALv2 Future License (LICENSE.md).
+
+raea includes software and work derived from the following projects, each under its own licence.
+
+HyperFrames: https://github.com/heygen-com/hyperframes
+  Copyright HeyGen. Licensed under the Apache License, Version 2.0 (LICENSES/Apache-2.0.txt).
+  raea's HTML composition path ports from HyperFrames' packages/core and packages/producer: the composition format,
+  the compile rules for sub-compositions (inlining, CSS and script scoping, inner-root wrappers), the runtime timing
+  rules (data-start expressions, clip visibility, frame snapping, timeline nesting, variables) and the deterministic
+  font rules. The ported files carry a header saying so: engine/src/compile.rs, fonts.rs, scene.rs, runtime.rs and
+  gsap_shim.js. raea renamed the format's runtime names (window.__raea, data-raea-* attributes, the "html" profile).
+
+Blitz: https://github.com/DioxusLabs/blitz
+  Copyright DioxusLabs contributors. MIT OR Apache-2.0. engine/vendor/blitz-paint is a modified copy of
+  packages/blitz-paint (text-shadow painting, tiled-gradient limit); see its Cargo.toml and licence files.
+
+pi: https://github.com/nktkt/pi (a Rust port of https://github.com/earendil-works/pi)
+  MIT. agent/crates/pi-ai and pi-agent are copies with changes listed in agent/crates/NOTICE.md
+  (licence: agent/crates/LICENSE-pi-rust-port).
+
+muxide: media/vendor/muxide, MIT OR Apache-2.0 (its LICENSE-MIT and LICENSE-APACHE).
+
+GSAP compatibility: engine/src/gsap_shim.js and engine/src/gsap.rs are an independent implementation of the GSAP
+  authoring API, evaluated with animato. No GSAP code is included. GSAP is a trademark of GreenSock / Webflow.
+
+WebGL (the engine's `webgl` feature, engine/vendor/angle): prebuilt dynamic libraries taken unmodified from the
+  Electron 38.4.0 release for darwin-arm64 (Chromium 140). libEGL.dylib and libGLESv2.dylib are ANGLE
+  (https://chromium.googlesource.com/angle/angle, BSD-3-Clause, Copyright The ANGLE Project Authors);
+  libvk_swiftshader.dylib and vk_swiftshader_icd.json are SwiftShader (https://swiftshader.googlesource.com/SwiftShader,
+  Apache-2.0, Copyright The SwiftShader Authors). Electron is MIT (engine/vendor/angle/LICENSE.electron); the Chromium
+  third-party notices are in engine/vendor/angle/LICENSES.chromium.html. They are loaded at run time through EGL and
+  are not linked into the binary.
+
+animato (MIT OR Apache-2.0), Stylo (MPL-2.0), Vello (Apache-2.0 OR MIT), Boa (MIT OR Unlicense), usvg (Apache-2.0 OR
+MIT), mediabunny (MPL-2.0, used unmodified), manifold-rust (Apache-2.0), Bevy (MIT OR Apache-2.0) and the other
+crates and packages in each Cargo.lock and package.json, each under its own licence.

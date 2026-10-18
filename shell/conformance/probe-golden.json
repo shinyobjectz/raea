@@ -1,0 +1,114 @@
+{
+ "ls -R": {
+  "exit": 0,
+  "stdout": ".:\nclips.json\nedits\nnotes.txt\n\n./edits:\nsign.rrl\n"
+ },
+ "wc -l notes.txt": {
+  "exit": 0,
+  "stdout": "200 notes.txt\n"
+ },
+ "sort -r notes.txt | head -3": {
+  "exit": 0,
+  "stdout": "take 199 talking head\ntake 198 talking head\ntake 197 talking head\n"
+ },
+ "head -n 3 notes.txt": {
+  "exit": 0,
+  "stdout": "take 037 talking head\ntake 074 talking head\ntake 111 talking head\n"
+ },
+ "grep -rn mesh . | wc -l": {
+  "exit": 0,
+  "stdout": "29\n"
+ },
+ "grep -rn mesh . | head -2": {
+  "exit": 0,
+  "stdout": "edits/sign.rrl:1:mesh sign {shape: \"minus(rounded_box(2.4, 1.1, 0.25, 0.08), text3d(\\\"SALE\\\", 0.62, 0.6))\"}\nnotes.txt:7:take 059 mesh sign\n"
+ },
+ "jq '.clips | map(.to - .from) | add' clips.json": {
+  "exit": 0,
+  "stdout": "922\n"
+ },
+ "cp notes.txt edits/notes-copy.txt && wc -c edits/notes-copy.txt": {
+  "exit": 0,
+  "stdout": "4316 edits/notes-copy.txt\n"
+ },
+ "cat /etc/hosts": {
+  "exit": 1,
+  "stdout": ""
+ },
+ "cat ../../../etc/hosts": {
+  "exit": 1,
+  "stdout": ""
+ },
+ "find . -name '*.rrl'": {
+  "exit": 0,
+  "stdout": "./edits/sign.rrl\n"
+ },
+ "sed 's/talking head/TALKING/g' notes.txt | grep -c TALKING": {
+  "exit": 0,
+  "stdout": "172\n"
+ },
+ "awk '{print $2}' notes.txt | sort -n | uniq | wc -l": {
+  "exit": 0,
+  "stdout": "200\n"
+ },
+ "cut -d' ' -f3- notes.txt | sort | uniq -c": {
+  "exit": 0,
+  "stdout": "  28 mesh sign\n 172 talking head\n"
+ },
+ "tr a-z A-Z < edits/sign.rrl": {
+  "exit": 0,
+  "stdout": "MESH SIGN {SHAPE: \"MINUS(ROUNDED_BOX(2.4, 1.1, 0.25, 0.08), TEXT3D(\\\"SALE\\\", 0.62, 0.6))\"}\n"
+ },
+ "sha256sum notes.txt": {
+  "exit": 0,
+  "stdout": "0b33f6c207fb6c0a525b1077d92ef9e1065437ad289033be53b95252e193810e  notes.txt\n"
+ },
+ "gzip -c notes.txt > n.gz && gunzip -c n.gz | sha256sum": {
+  "exit": 0,
+  "stdout": "0b33f6c207fb6c0a525b1077d92ef9e1065437ad289033be53b95252e193810e  -\n"
+ },
+ "base64 clips.json | head -1": {
+  "exit": 0,
+  "stdout": "eyJjbGlwcyI6W3siaWQiOiJhIiwiZnJvbSI6MCwidG8iOjc3fSx7ImlkIjoiYiIsImZyb20iOjc3\n"
+ },
+ "seq 1 10 | xargs -n 3 echo": {
+  "exit": 0,
+  "stdout": "1 2 3\n4 5 6\n7 8 9\n10\n"
+ },
+ "printf 'a\\nb\\n' > x && printf 'a\\nc\\n' > y && diff x y": {
+  "exit": 1,
+  "stdout": "2c2\n< b\n---\n> c\n"
+ },
+ "sqlite3 db.sqlite \"CREATE TABLE t(n INTEGER); INSERT INTO t VALUES (1),(2),(3); SELECT sum(n) * 2 FROM t;\"": {
+  "exit": 0,
+  "stdout": "12\n"
+ },
+ "js-exec -c 'console.log([3, 1, 2].sort().join(\"-\"), (2 ** 52).toString(16))'": {
+  "exit": 0,
+  "stdout": "1-2-3 10000000000000\n"
+ },
+ "solid 'minus(box(2, 2, 2), cylinder(0.5, 3))' empty triangles": {
+  "exit": 0,
+  "stdout": "empty false\ntriangles 208\n"
+ },
+ "ecs w.json spawn ball x=3 && ecs w.json spawn ball x=9 && ecs w.json query ball 'x > 5'": {
+  "exit": 0,
+  "stdout": "1\n2\n2\n"
+ },
+ "jaq '.clips[1].id' clips.json": {
+  "exit": 0,
+  "stdout": "\"b\"\n"
+ },
+ "for f in notes.txt clips.json; do printf '%s %s\\n' $f $(wc -c < $f); done": {
+  "exit": 0,
+  "stdout": "notes.txt 4316\nclips.json 100\n"
+ },
+ "mkdir -p deep/a/b && touch deep/a/b/c && find deep -type f": {
+  "exit": 0,
+  "stdout": "deep/a/b/c\n"
+ },
+ "rm -r deep && ls deep": {
+  "exit": 2,
+  "stdout": ""
+ }
+}

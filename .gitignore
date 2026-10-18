@@ -1,0 +1,9 @@
+target/
+.DS_Store
+.premerge-git/
+# regenerable frame embeddings from the temporal bench (siglip_frames.py, vjepa_windows.py)
+meaning/bench/temporal/out/*.npz
+__pycache__/
+void/tw/node_modules/
+motion/node_modules/
+media/golden/

@@ -1,0 +1,15 @@
+🍺  /opt/homebrew/Cellar/nasm/3.02: 12 files, 3.1MB
+aarch64-apple-darwin [soft]:     Finished `release` profile [optimized] target(s) in 22.07s 
+aarch64-apple-darwin [soft,av1]:     Finished `release` profile [optimized] target(s) in 10.07s 
+aarch64-apple-darwin [soft,av1,apple]:     Finished `release` profile [optimized] target(s) in 0.52s 
+aarch64-apple-ios [soft]:     Finished `release` profile [optimized] target(s) in 16.66s 
+aarch64-apple-ios [soft,av1]:     Finished `release` profile [optimized] target(s) in 5.49s 
+aarch64-apple-ios [soft,av1,apple]:     Finished `release` profile [optimized] target(s) in 0.27s 
+x86_64-unknown-linux-gnu [soft]:     Finished `release` profile [optimized] target(s) in 12.60s 
+x86_64-unknown-linux-gnu [soft,av1]:     Finished `release` profile [optimized] target(s) in 1m 26s 
+x86_64-unknown-linux-gnu [soft,av1,apple]:     Finished `release` profile [optimized] target(s) in 0.24s 
+aarch64-linux-android [soft]:     Finished `release` profile [optimized] target(s) in 8.51s 
+aarch64-linux-android [soft,av1]:     Finished `release` profile [optimized] target(s) in 5.57s 
+aarch64-linux-android [soft,av1,apple]:     Finished `release` profile [optimized] target(s) in 0.22s 
+
+[exited with code 0]

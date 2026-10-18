@@ -1,0 +1,4 @@
+edit {fps: 30, width: 1080, height: 1920, frames: 60}
+camera cam {bg: #101418, x: 0, y: 0, z: 6, look_x: 0, look_y: 0, look_z: 0, fov: 50, ambient: 400}
+light sun0 {lux: 8000, dir_x: -2, dir_y: -3, dir_z: -4}
+mesh mesh0 {shape: "minus(rounded_box(2.4, 1.1, 0.25, 0.08), text3d(\"SALE\", 0.62, 0.6))", color: #e11d48, rough: 0.4, metal: 0, rot_y: {0: -0.5, 59: 0.5} linear}

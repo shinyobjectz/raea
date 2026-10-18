@@ -2,8 +2,7 @@
 Feature: @raea/motion, the behaviour of its API
   The spec the SDK is built from (clean-room: see motion/README.md). Written by the spec writer from public docs of
   React-video libraries and from the maths; builders work from this file and the conformance suite, nothing else.
-  Frames are integers from 0; a composition's frame t is time t / fps seconds. The order of rules follows the measured
-  surface (spec/surface.md).
+  Frames are integers from 0; a composition's frame t is time t / fps seconds.
 
   Rule: A composition is a component rendered once per frame
     Scenario: Declaring and registering
@@ -12,8 +11,7 @@ Feature: @raea/motion, the behaviour of its API
         durationInFrames are positive integers and fps a positive number, or registering fails with a message naming
         the composition and the field
       And `registerRoot(Root)` names the root component the renderer starts from; calling it twice is an error
-      And a root that declares no Composition (M3 writes this in 4 of 50 compositions: the content registered
-        directly) is itself one composition: id "main", 30 fps, 1080x1920, durationInFrames the latest end among its
+      And a root that declares no Composition (the content registered directly) is itself one composition: id "main", 30 fps, 1080x1920, durationInFrames the latest end among its
         top-level Sequences with a finite duration, else 300
       And finding the Compositions never runs a component that uses hooks: where expanding one would, the walk stops
         there and treats it as content (the SDK's own clock-reading components and any whose source shows a hook call
@@ -145,7 +143,7 @@ Feature: @raea/motion, the behaviour of its API
     Scenario: Media imported as modules (a renderer requirement)
       Then `import take from "./media/take01.mp4"` (and .mov, .m4v, .mp3, .wav, .m4a, .png, .jpg, .webp, .gif) gives a
         URL string in the form staticFile returns, resolved from the importing file's folder, usable anywhere a src
-        is; the renderer's bundle step does this (M3 wrote it in 1 of 50 compositions)
+        is; the renderer's bundle step does this
       And a missing file fails the build, naming the import line
     Scenario: Img and staticFile
       Then `<Img src>` draws an image, and the frame is not rendered until it has loaded (a failed load fails the
@@ -241,7 +239,7 @@ Feature: @raea/motion, the behaviour of its API
         this frame already computed, as data-source-time in seconds, so the renderer needn't redo the timing), and
         Composition and registerRoot record what was registered so a renderer can list compositions
     Scenario: The test clock
-      Then the main entry (@raea/motion) imports nothing that can't run inside the engine's V8 (no server renderer, no
+      Then the main entry (@raea/motion) imports nothing that can't run inside the engine's JavaScriptCore (no server renderer, no
         Node APIs); `renderFrame` lives in the test entry, @raea/motion/test (src/test.tsx)
       And `renderFrame(node, {frame, fps, width, height, durationInFrames, words?, perception?, input?})` renders a tree at one frame
         without a window and returns what's visible, so the conformance suite can test timing without pixels; `words`
@@ -257,7 +255,7 @@ Feature: @raea/motion, the behaviour of its API
     Scenario: The call
       Then `native(name, args)` sends `args` as JSON to the engine's call `name` and returns its answer parsed (undefined
         for an empty answer); a call the engine refuses throws an Error carrying the engine's message
-      And `hasNative()` says whether the engine is present: true inside raea's V8 (raea-motion render, run and test, the
+      And `hasNative()` says whether the engine is present: true inside raea's JavaScriptCore runtime (raea-motion render, run and test, the
         apps, the iPhone), false under plain bun, where `native` throws "<name> needs the raea engine ..."
       And `print(...parts)` writes one line (strings as they are, anything else as JSON) to the run's output inside the
         engine, and to the console under plain bun
@@ -378,7 +376,7 @@ Feature: @raea/motion, the behaviour of its API
         encodes with sound to MP4 natively, nothing passing through JavaScript, and returns {frames, width, height, fps,
         kbps, bytes}
     Scenario: The proof
-      Then the same conversions done through mediabunny, through rrl ffmpeg and through real ffmpeg give the same
+      Then the same conversions done through mediabunny, through rdb ffmpeg and through real ffmpeg give the same
         answers (motion/tools/media-vs-ffmpeg.sh): frame counts, sizes, SSIM 1.0 for remuxes, audio correlation
         above 0.999
     Scenario: AAC out, captions in, and what the hardware encodes
@@ -393,5 +391,5 @@ Feature: @raea/motion, the behaviour of its API
       And `hardwareEncodes()` lists the video codecs this machine encodes in hardware (VideoToolbox's list); the
         encoder offers H.264 where it's there, and AV1 or VP9 only where a chip encodes them
     Scenario: Helpers
-      Then `toBase64(bytes)` and `fromBase64(text)` convert bytes and standard base64 both ways (bare V8 has no btoa),
+      Then `toBase64(bytes)` and `fromBase64(text)` convert bytes and standard base64 both ways (a bare JavaScript engine has no btoa),
         padding included, and round-trip any bytes

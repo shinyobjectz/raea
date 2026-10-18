@@ -1,6 +1,6 @@
 Feature: The hook's brief
   What the hook must do, checked against the live edit. The edit itself is the SQL tables; this brief never changes
-  them. The retired rrl checked edits against it (deleted 2026-10-17); the scenarios remain as the brief.
+  them.
 
   Background:
     When the edit is playing

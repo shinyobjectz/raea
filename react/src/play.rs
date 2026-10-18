@@ -3,7 +3,9 @@
 //! When it ends (the window closes, or --seconds pass) it reports what it measured: frames stepped and presented, frame
 //! times (p50, p99, worst), frames missed against the display, and resident memory over the run.
 //!
-//!   raea-motion play EDIT.tsx [--size WxH] [--seconds S] [--autoplay] [--no-vsync] [--json OUT]
+//!   raea-motion play EDIT.tsx [--size WxH] [--seconds S|end] [--autoplay] [--no-vsync] [--json OUT]
+//!
+//! --seconds end plays to the composition's last frame (its frames and fps as it opened, however its length is written).
 //!
 //! --autoplay holds ArrowLeft and ArrowRight in turn (a run nobody plays); --no-vsync presents as fast as frames come,
 //! to measure what a frame costs past the display's rate; --offscreen runs with no window (nothing shown, the same
@@ -363,6 +365,18 @@ fn offscreen(mut run: Run, json: Option<String>, flat_out: bool, snaps: Vec<(f64
     }
     // --scrub N: N seeks to frames spread over the timeline in a shuffled order, each stepped and presented: what a
     // scrub costs (the decoder's restart included); the report is that alone
+    // --seek F OUT.png (repeatable): straight to frame F (a baked timeline's jump: its keyframe, then the frames after),
+    // the page snapshotted, then the next; the report is that alone. render equals play holds for a seek too
+    // (bench/timelines/check.sh compares these with renders)
+    let seeks: Vec<(i64, String)> = std::env::args().collect::<Vec<_>>().windows(3).filter(|w| w[0] == "--seek").filter_map(|w| Some((w[1].parse().ok()?, w[2].clone()))).collect();
+    if !seeks.is_empty() {
+        for (f, out) in &seeks {
+            live.step(*f, &[], None)?;
+            live.save_snapshot(std::path::Path::new(out))?;
+            eprintln!("seek to {f} -> {out}");
+        }
+        return Ok(format!("SEEKED  {} frames", seeks.len()));
+    }
     if let Some(n) = std::env::args().skip_while(|a| a != "--scrub").nth(1).and_then(|v| v.parse::<usize>().ok()) {
         let total = live.frames.max(1);
         let mut order: Vec<i64> = (0..n as i64).map(|k| k * total / n.max(1) as i64).collect();
@@ -394,7 +408,10 @@ fn offscreen(mut run: Run, json: Option<String>, flat_out: bool, snaps: Vec<(f64
         return Ok(format!("SCRUBBED  {}", serde_json::to_string_pretty(&serde_json::json!({"seeks": v.len(), "first_frame_ms": first_ms, "scrub_ms": {"p50": pct(0.5), "p99": pct(0.99), "max": pct(1.0)}, "slowest": worst, "rss_mb": rss_kb() / 1024})).unwrap()));
     }
     let fps = live.fps;
-    let seconds = run.seconds.unwrap_or(10.0);
+    // --seconds end: to the last frame, as the composition says its length (a gate's guess from the source missed a
+    // computed durationInFrames, and played a baked edit 1.3 s past its end)
+    let to_end = std::env::args().skip_while(|a| a != "--seconds").nth(1).as_deref() == Some("end");
+    let seconds = if to_end { live.frames as f64 / fps.max(1.0) } else { run.seconds.unwrap_or(10.0) };
     // the per-frame lists sized for the whole run and their pages touched now: grown as it went, they were the
     // harness's own memory growing in the RSS it judges (36,000 frames x 7 lists x 8 bytes in a 5-minute run at 120 fps)
     let cap = (seconds * fps.max(1.0) * 1.05) as usize + 64;

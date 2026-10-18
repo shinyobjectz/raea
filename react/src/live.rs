@@ -178,9 +178,22 @@ impl Live {
             live.app.world().resource::<crate::ReplayFeed>().feed(b.clone());
         }
         live.app.update();
+        // 3D: its rows (the scene_program a 3D render uses) and rdb's live engine opened now, so the first frame draws
+        // its scene under the page as the render does (it came from a thread a few frames late, and only with --3d)
+        if baked.has_3d {
+            if let Some(prog) = crate::motion::scene_program(&live.js, &dir)? {
+                live.scene = Some(rdb::engine::Engine::new_live(&prog, &rdb::inserted_of(&prog), &dir).map_err(|e| format!("the 3D didn't open: {e}"))?);
+            }
+        }
         live.baked = Some(baked);
         // the first frames' clips opened while the page gets ready
         live.prefetch_ahead(-1);
+        // and frame 0 made ready before the clock starts, as a player loads before it plays: its commits applied, its
+        // videos in place (the prefetched decoders taken), the mixer opened and its sounds loading, none started. The
+        // first frame waited ~195 ms for these (a 4K clip's open, the device and the first sound's load)
+        live.replay(0);
+        crate::motion::place_videos(live.app.world_mut(), &live.dir, &mut live.videos)?;
+        live.warm_sound();
         Ok(live)
     }
 
@@ -209,6 +222,7 @@ impl Live {
                 // what's fed so far applied, then what's under the root removed (frames re-stepped after an edit come
                 // with a tree of their own: bake_incremental)
                 self.app.update();
+                self.videos.forget_shown();
                 let world = self.app.world();
                 let root = world.resource::<crate::ReactEntities>().by_id.get(&crate::ROOT_ID).copied();
                 let ops: Vec<Value> = root.and_then(|r| world.get::<Children>(r)).map(|c| c.iter().filter_map(|e| world.get::<crate::ReactNode>(e)).map(|n| json!({"op": "remove", "parent": crate::ROOT_ID, "child": n.0})).collect()).unwrap_or_default();
@@ -418,6 +432,36 @@ impl Live {
     }
 
     /// The frame's sounds to the mixer (opened the first time there are any).
+    /// The mixer opened and the current frame's sound sources loading, nothing started (open_baked's frame 0).
+    fn warm_sound(&mut self) {
+        let world = self.app.world_mut();
+        let mut q = world.query::<(&crate::ReactKind, Option<&crate::ReactProps>, Option<&crate::ReactNode>)>();
+        let items: Vec<(String, serde_json::Map<String, Value>, Option<u64>)> = q.iter(world).filter(|(k, _, _)| k.0 == "audio" || k.0 == "video").map(|(k, p, n)| (k.0.clone(), p.map(|p| p.0.clone()).unwrap_or_default(), n.map(|n| n.0))).collect();
+        let sounds = crate::audio::sounds_of(&items, &self.dir, crate::motion::media_path, &mut self.made);
+        if sounds.is_empty() {
+            return;
+        }
+        if self.mixer.is_none() && !self.mixer_failed {
+            match crate::audio::Mixer::open() {
+                Ok(mut m) => {
+                    if let Some((gain, ceiling)) = self.game_gain {
+                        m.master(gain, ceiling);
+                    }
+                    self.mixer = Some(m)
+                }
+                Err(e) => {
+                    eprintln!("raea live: no sound: {e}");
+                    self.mixer_failed = true;
+                }
+            }
+        }
+        if let Some(m) = self.mixer.as_mut() {
+            for s in &sounds {
+                m.preload(&s.file);
+            }
+        }
+    }
+
     fn sound(&mut self, f: i64) {
         if let Some(rx) = &self.master {
             match rx.try_recv() {
@@ -446,6 +490,10 @@ impl Live {
                 crate::audio::sounds_of(&items, &self.dir, crate::motion::media_path, &mut self.made)
             }
         };
+        // a baked timeline past its last frame holds that frame's picture, not its sound: the held <Video> said the same
+        // source time every frame and the mixer put its voice back each one (the 80 ms "drift" past a 4K edit's end).
+        // Played unbaked, the composition past its end shows no <Video> either, so both fall silent there.
+        let sounds = if self.baked.as_ref().is_some_and(|b| f >= b.frames) { Vec::new() } else { sounds };
         if std::env::var_os("RAEA_SOUND_TRACE").is_some() && f % 30 == 0 {
             eprintln!("raea live: frame {f} sounds {:?}", sounds.iter().map(|s| (s.key.clone(), s.file.file_name().map(|n| n.to_string_lossy().into_owned()), (s.at * 100.0).round() / 100.0, s.volume)).collect::<Vec<_>>());
         }
@@ -494,6 +542,15 @@ impl Live {
 
     /// The page as it stands, read back as premultiplied RGBA (the playtest's --snapshot): what the stage shows.
     pub fn snapshot(&mut self) -> R<(u32, u32, Vec<u8>)> {
+        // with a 3D scene: the page painted over this frame's scene on the GPU and read back, as presented and rendered
+        if self.scene.is_some() {
+            let under = self.prepare()?;
+            let buf = raea::quads::page_buffer(self.w, self.h)?;
+            let mut m = self.app.world_mut().non_send_resource_mut::<DomMirror>();
+            m.dom.paint_buffer(true, under, &buf)?;
+            drop(m);
+            return Ok((self.w, self.h, raea::quads::read_buffer(&buf)?));
+        }
         let mut m = self.app.world_mut().non_send_resource_mut::<DomMirror>();
         if m.fonts_dirty {
             let _ = m.dom.load_fonts();

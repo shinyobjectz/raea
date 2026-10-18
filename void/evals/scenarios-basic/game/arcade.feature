@@ -1,6 +1,6 @@
 @medium:game
-Feature: Games, as scenes today
-  rrl has no input rows or game state yet (void/evals/gaps), so these ask for a game's scene and its motion, played
+Feature: Games as scenes
+  These ask for a game's scene and its motion, played
   by rules over time.
 
   @level:hard

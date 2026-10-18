@@ -15,7 +15,7 @@
 
 ## Rules that keep a render equal to its play
 
-The router's seven, plus:
+The router's eight, plus:
 
 - Parts are matched across frames by `name`, else kind and shape in tree order: name what comes and goes.
 - The first camera, and the first frame's Bloom, Fog and ToneMapping, are the piece's.

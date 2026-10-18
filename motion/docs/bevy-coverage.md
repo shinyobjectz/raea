@@ -1,4 +1,4 @@
-# Bevy through @raea/motion: what's reachable (2026-10-18)
+# Bevy through @raea/motion: what's reachable
 
 raea draws 3D with Bevy **0.19.1** (`rdb/Cargo.toml`: `bevy = "=0.19.1"` with `3d_bevy_render`, `ui_bevy_render`,
 `png`, `tonemapping_luts`, `ktx2`; `engine/Cargo.toml` uses `bevy_ecs 0.19.1`). Agents never write Rust: they write
@@ -18,7 +18,7 @@ The path, end to end:
 
 ## Summary
 
-59 features: **27 covered, 11 partial, 21 missing**. Three of the covered ones (2D text, UI, audio) are covered by the page and raea's mixer rather than by Bevy. This work moved 12 rows to covered: visibility, transforms, hierarchy, the perspective camera, point and spot lights, the standard material, bloom, tonemapping, fog, glTF models and their clips.
+59 features: **27 covered, 11 partial, 21 missing**. Three of the covered ones (2D text, UI, audio) are covered by the page and raea's mixer rather than by Bevy.
 
 The top gaps, in the order a game or ad agent would hit them:
 
@@ -95,7 +95,7 @@ missing features: the SDK component or hook, the rows and columns, and the rdb s
 |---|---|---|---|---|
 | Sprites | partial | 2D is the page (HTML/CSS through Blitz); `<ImagePlane>` puts a picture in 3D | `panel` | sprite sheets: `ImagePlane frame={n} grid={[cols, rows]}` → UV rect columns |
 | Text in 2D | covered (by the page) | HTML text, brand fonts, captions; not `Text2d` | page | |
-| Text in 3D | partial | `Text3D` (extruded solid letters) | `mesh.shape = text3d(...)` | flat text on a card: a DOM subtree painted to a `panel` (engine/docs/bevy.feature B4) exposed as `<Html3D>` |
+| Text in 3D | partial | `Text3D` (extruded solid letters) | `mesh.shape = text3d(...)` | flat text on a card: a DOM subtree painted to a `panel` exposed as `<Html3D>` |
 | 2D meshes and materials | missing | use the page (SVG, CSS) | | not needed while the page draws 2D |
 | UI (bevy_ui) | covered (by the page) | CSS flex and grid, not bevy_ui | page | |
 
@@ -183,12 +183,11 @@ export declare function stepBodies(bodies: Body[], dt: number, gravity?: Vec3): 
 ## Checks
 
 - `motion/bench/bevy/check.sh`: every fixture (`lights`, `materials`, `model`, `planes`) rendered and played baked
-  with its 3D on a layer; on 2026-10-18 all four at SSIM 1.000 at frames 0, 30 and 59.
-- `react/bench/timelines/check.sh` (titles: 1.000), `engine/bench/parity.sh` (93 exact, 75 ok, 2 fail, as before),
-  rdb's tests (41 pass), `motion/tools/golden.sh` 3D cases 04-06 against their frozen references (all pass),
+  with its 3D on a layer, each at SSIM 1.000 at frames 0, 30 and 59.
+- `react/bench/timelines/check.sh` (titles: 1.000), rdb's tests (41 pass), `motion/tools/golden.sh` 3D cases 04-06 against their frozen references (all pass),
   `bun test conformance` (126 pass).
 
-## Existing Bevy knowledge packs (surveyed 2026-10-18)
+## Existing Bevy knowledge packs
 
 What the skills library (`void/prompts/craft/bevy/`, mirrored in `skills/raea-bevy/`) took from each. Nothing was
 copied from a pack without a permissive license; the library is written for our SDK, so most packs informed its

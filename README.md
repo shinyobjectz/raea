@@ -96,25 +96,27 @@ behind generated music and speech yourself.
 
 | Folder | What |
 |---|---|
-| [`engine/`](engine) | The core crate (`raea`): HTML and DOM rendering (Blitz, Stylo, Vello), compositing, fonts, the GPU |
-| [`react/`](react) | `raea-motion`: runs `@raea/motion` compositions in Bevy; render, play, run, test; the iPhone bindings |
+| [`engine/`](engine) | The core crate (`raea`): HTML and CSS rendering without a browser (Blitz, Stylo, Vello), the compositor, fonts, a C API |
+| [`react/`](react) | `raea-motion`: runs `@raea/motion` compositions in Bevy; render, play, run, test; the iPhone build |
 | [`motion/`](motion) | `@raea/motion`, the TypeScript SDK: its spec, conformance suite and source |
-| [`rdb/`](rdb) | Loading and rendering an edit, its assets and generated sound; previz before render |
+| [`rdb/`](rdb) | An edit as typed tables on Bevy's World, and the Bevy renderer that draws it |
 | [`kgpu/`](kgpu) | K on the GPU: a small array language compiled to WGSL, bit-exact with its interpreter |
-| [`media/`](media) | Decode and encode behind one seam: VideoToolbox, AV1, a muxer |
-| [`perception/`](perception) | Reading footage the way an editor does: faces, speech, shots, motion |
-| [`meaning/`](meaning) | Frame embeddings and hyperdimensional computing over them |
-| [`void/`](void) | void, the Mac app: the terminal, the stage, the agent, its MCP server |
-| [`agent/`](agent) | The agent runtime and its multi-provider model layer |
-| [`native/`](native), [`modules/`](modules) | The JavaScript engine's native calls and module loader |
-| [`score/`](score), [`brief/`](brief) | A brief split into beats, and the notation an edit is planned in |
-| [`browser/`](browser), [`shell/`](shell), [`data/`](data), [`cli/`](cli) | The agent's browser, shell, project record and part library |
-| [`sandbox/`](sandbox), [`ios-probe/`](ios-probe), [`gputrace/`](gputrace) | The iPhone sandbox and probe, GPU telemetry |
-| [`tabular/`](tabular) | Tabular models over what perception and embeddings measured |
+| [`media/`](media) | Decode and encode behind one seam: VideoToolbox, software codecs, AV1, a muxer |
+| [`perception/`](perception) | Reading footage the way an editor does: shots, faces, text, speech, motion |
+| [`meaning/`](meaning) | Frame embeddings (SigLIP 2) as columns, searched with K kernels |
+| [`void/`](void) | void, the Mac app: the window, the stage, the agent, voice, its MCP server, evals |
+| [`agent/`](agent) | The agent loop, its multi-provider model layer, a Gherkin parser, traces |
+| [`native/`](native), [`modules/`](modules) | The native-call layer on JavaScriptCore, and the in-process TypeScript loader |
+| [`shell/`](shell), [`cli/`](cli), [`browser/`](browser) | The agent's shell, its `raea` command, and its browser |
+| [`data/`](data) | A project's record, and a brief's facts and checks, as data |
+| [`brief/`](brief), [`score/`](score) | The `.brief` plan format, and its compiler to a composition |
+| [`sandbox/`](sandbox) | A WASI sandbox for command-line tools on the iPhone (experimental) |
+| [`gputrace/`](gputrace), [`tools/`](tools) | GPU telemetry; the JIT-signing linker wrapper |
 | [`skills/`](skills) | Agent skills for working in raea |
 | [`docs/`](docs) | Cross-cutting docs and [settings](docs/settings.md) |
 
-Most folders carry a `.feature` file: the spec for that part, written as behaviour, with what was measured.
+Each folder has a README saying what it is and what it depends on. Behaviour specs written in Gherkin (`.feature`)
+sit beside the code they specify.
 
 ## Licence
 

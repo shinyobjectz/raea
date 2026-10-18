@@ -34,11 +34,13 @@ function checkVec(owner: string, name: string, v: unknown): void {
   }
 }
 
+/** A geometry's sizes. three.js puts segment counts after them (`[r, h, 32]`); those are accepted and dropped, since
+ * the engine tessellates on its own. */
 function checkArgs(owner: string, args: unknown, count: number): number[] {
-  if (!Array.isArray(args) || args.length !== count || !args.every((n) => typeof n === "number" && Number.isFinite(n))) {
+  if (!Array.isArray(args) || args.length < count || !args.every((n) => typeof n === "number" && Number.isFinite(n))) {
     throw new TypeError(`${owner}: args must be ${count} finite number${count === 1 ? "" : "s"}, got ${JSON.stringify(args)}`);
   }
-  return args;
+  return args.slice(0, count);
 }
 
 /** The 3D scene's root; everything 3D goes inside it. */
@@ -60,7 +62,7 @@ const GEOMETRY_SHAPES = new Map<unknown, (args: unknown) => string>();
 function geometry<P extends { args?: number[] }>(name: string, defaults: number[], shape: (a: number[]) => string) {
   const toShape = (args: unknown) => shape(checkArgs(name, args ?? defaults, defaults.length));
   const Component = (props: P) => {
-    const args = props.args ?? defaults;
+    const args = checkArgs(name, props.args ?? defaults, defaults.length);
     toShape(args);
     return node3d(name, { ...props, args });
   };

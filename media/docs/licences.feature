@@ -1,7 +1,6 @@
 Feature: What the media plane may ship, per backend
   raea-media's backends, what each links, under which licence, and which codec patents apply. Checked against
-  `cargo metadata` on 2026-10-13 (no GPL or AGPL crate anywhere in the dependency graph; the scan is in
-  bench/licences.txt). This is an engineering record, not legal advice: a release that ships H.264 or AAC encoders in
+  `cargo metadata` (no GPL or AGPL crate anywhere in the dependency graph). This is an engineering record, not legal advice: a release that ships H.264 or AAC encoders in
   our own binaries goes past legal review first.
 
   Background:

@@ -16,6 +16,9 @@ for g in $GAMES; do
   [ "$g" = pong ] && keys="ArrowUp,ArrowDown,,ArrowUp"
   snaps=""
   for s in $SECS; do snaps="$snaps --snapshot $s $OUT/$g-play-$s.png"; done
+  # last run's snapshots go first: a frame the play doesn't reach (it falls behind under load) must fail as unreached,
+  # not be compared from the run before
+  find "$OUT" -maxdepth 1 -name "$g-play-*.png" -delete
   w=$(python3 -c "import re,sys;t=open('bench/games/$g/edit.tsx').read();cw=re.search(r'const (?:CW|VW) = (\d+)',t);print(cw.group(1) if cw else 1920)")
   h=$(python3 -c "import re,sys;t=open('bench/games/$g/edit.tsx').read();ch=re.search(r'const (?:CH|VH) = (\d+)',t);print(ch.group(1) if ch else 1080)")
   RAEA_INPUT_KEYS="$keys" RAEA_AUDIO_MUTE=1 target/release/raea-motion play "bench/games/$g/edit.tsx" --input --offscreen --size ${w}x${h} \
@@ -24,6 +27,7 @@ for g in $GAMES; do
   worst=1
   for s in $SECS; do
     f=$(python3 -c "print(round($s * $fps))")
+    if [ ! -f "$OUT/$g-play-$s.png" ]; then line="$line $f:unreached"; worst=0; continue; fi
     RAEA_READBACK=rgba target/release/raea-motion render "bench/games/$g/edit.tsx" --frame "$f" --input "$OUT/$g-input.json" -o "$OUT/$g-render-$s.png" > "$OUT/$g-render.log" 2>&1 \
       || { echo "$g: the render of frame $f failed (see $OUT/$g-render.log)"; status=1; continue 2; }
     v=$(ffmpeg -i "$OUT/$g-play-$s.png" -i "$OUT/$g-render-$s.png" -lavfi ssim -f null - 2>&1 | grep -o 'All:[0-9.]*' | cut -d: -f2)

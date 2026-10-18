@@ -54,10 +54,18 @@ function isPlainData(v: unknown, depth = 0): boolean {
   return false;
 }
 
-/** Equal initial states share a cache: primitives by value, plain data by its JSON, anything else by identity. */
+/** Equal initial states share a cache: primitives by value, plain data by its JSON, anything else by identity. An
+ * object's key is worked out once (states are values, never changed in place): every useGameState and useGameEvents
+ * call made it again each frame, a JSON of the whole initial state each. */
+const initialKeys = new WeakMap<object, unknown>();
 function initialKey(initial: unknown): unknown {
   if (initial === null || typeof initial !== "object") return initial;
-  return isPlainData(initial) ? `json:${JSON.stringify(initial)}` : initial;
+  let k = initialKeys.get(initial);
+  if (k === undefined) {
+    k = isPlainData(initial) ? `json:${JSON.stringify(initial)}` : initial;
+    initialKeys.set(initial, k);
+  }
+  return k;
 }
 
 function foldFor<S>(step: Step<S>, initial: S, origin: number): Fold {

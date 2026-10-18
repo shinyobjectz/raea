@@ -36,7 +36,8 @@ the topic files here are links to those.
 4. Name parts that come and go (`<Mesh name="...">`); parts are matched by name, else kind and shape in tree order.
 5. A part's shape is fixed; animate position, rotation, scale, colour, opacity, glow, roughness, metalness.
 6. One camera (the first), one set of effects (the first frame's).
-7. Render and look: `raea-motion render EDIT.tsx --frame N -o F.png`.
+7. Import every component you use from `@raea/motion/3d` (hooks, `Sequence`, `staticFile` from `@raea/motion`).
+8. Render and look: `raea-motion render EDIT.tsx --frame N -o F.png`.
 
 ## Checks in the raea repo
 

@@ -1,9 +1,0 @@
-22 snippets applied as 22 moves in Ns, each previewed at frames [0, 14, 45, 90, 140]
-live == file-built: true
-reloaded tables == saved: true
-reloaded frames == live: true
-undo restores the earlier state exactly: 21/21
-undo restores the earlier frames: 20/20
-  (the same on the long-lived engine: 19/20)
-G1 pass test: ok
-exit 0

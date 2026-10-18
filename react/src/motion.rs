@@ -595,6 +595,12 @@ impl VideoFrames {
     #[cfg(not(target_vendor = "apple"))]
     pub(crate) fn prefetch(&mut self, _file: &Path, _at: f64) {}
 
+    /// The page was rebuilt (a baked seek's keyframe): every video element is new, so none shows its texture yet. The
+    /// cache of what each node shows went stale, and a node shown before the seek came back with no picture.
+    pub(crate) fn forget_shown(&mut self) {
+        self.shown.clear();
+    }
+
     /// Whether this process paints videos as textures.
     pub(crate) fn on() -> bool {
         cfg!(target_vendor = "apple") && raea::quads::enabled() && std::env::var("RAEA_VIDEO_TEXTURES").as_deref() != Ok("0")
@@ -1534,7 +1540,15 @@ fn run(args: &[String]) -> R<String> {
     let out = PathBuf::from(flag(args, "-o").ok_or("-o OUT.mp4|OUT.png|DIR|OUT.sql")?);
     let dir = tsx.parent().unwrap().to_path_buf();
     let js = std::env::temp_dir().join(format!("raea-motion-{}.js", std::process::id()));
-    bundle_composition(&tsx, &js, &comp_opts(args)?, None)?;
+    // the edit's words.json and perception.json beside it, as play loads them (a render without the flags lost the
+    // captions its words drive; the corpus found 10 edits so); a flag still wins
+    let mut o = comp_opts(args)?;
+    for (slot, file) in [(&mut o.words, "words.json"), (&mut o.perception, "perception.json")] {
+        if slot.is_none() && dir.join(file).exists() {
+            *slot = Some(json_file(&dir.join(file).display().to_string())?);
+        }
+    }
+    bundle_composition(&tsx, &js, &o, None)?;
     let wanted = match (flag(args, "--frame"), flag(args, "--at")) {
         (Some(f), _) => Some(vec![f.parse().map_err(|_| "--frame takes a frame number")?]),
         (_, Some(at)) => Some(at.split(',').map(|f| f.trim().parse::<i64>().map_err(|_| "--at takes frame numbers".to_string())).collect::<R<_>>()?),
@@ -1866,12 +1880,27 @@ pub(crate) fn settle_frame(app: &mut App, want: Option<i64>, secs: f64) -> R<Opt
 /// page painted into one page buffer on the paint device, and rdb composites it as it is and encodes it (no page
 /// file, no page read back; gate 5 of no-V8). The sound is the frames' sound rows, mixed once the last frame is made.
 #[allow(clippy::too_many_arguments)]
-fn render_fed(app: &mut App, w: u32, h: u32, fps: f64, total: i64, retained: bool, cx: &mut Ctx, out: &Path, work: &Path) -> R<String> {
+fn render_fed(app: &mut App, w: u32, h: u32, fps: f64, total: i64, retained: bool, cx: &mut Ctx, out: &Path, work: &Path, wanted: &[i64]) -> R<String> {
     if !retained {
         return Err(FED_3D.into());
     }
     let page = raea::quads::page_buffer(w, h)?;
     cx.fed = Some(page.clone());
+    // a still of a 3D scene (render --frame N -o F.png): the page painted over the scene's frame on the GPU and read
+    // back as RGB, as the video render and play make it (the page-file still blended the page over the 3D in Bevy:
+    // SSIM 0.958 against the video's frame, 0.995 for play)
+    if out.extension().is_some_and(|x| x.eq_ignore_ascii_case("png")) {
+        for &f in wanted {
+            app.world().resource::<ReactOutbox>().send(json!({"t": "event", "name": "raea-frame", "value": f}));
+            settle(app, Some(f), 20.0)?;
+            cx.now = f;
+            snapshot_retained(app.world_mut(), w, h, cx)?.ok_or(FED_3D)?;
+        }
+        let px = raea::quads::read_buffer(&page)?;
+        cx.fed = None;
+        image::save_buffer(out, &px, w, h, image::ColorType::Rgba8).map_err(|e| format!("{}: {e}", out.display()))?;
+        return Ok(format!("APPLIED  frame {} rendered to {} (the page over its 3D on the GPU)", wanted.last().copied().unwrap_or(0), out.display()));
+    }
     let frames: std::cell::RefCell<Vec<(i64, Frame)>> = std::cell::RefCell::new(Vec::with_capacity(total.max(0) as usize));
     let t0 = std::time::Instant::now();
     let pic = rdb::ir::Program { fps, width: w, height: h, frames: total, ..Default::default() };
@@ -1916,6 +1945,12 @@ pub fn render_bundle(js: &Path, dir: &Path, out: &Path, wanted: Option<Vec<i64>>
     let ext = out.extension().and_then(|e| e.to_str()).unwrap_or("").to_lowercase();
     let fed = wanted.is_none() && matches!(ext.as_str(), "mp4" | "mov" | "txt") && std::env::var("RAEA_MOTION_PAGES").as_deref() != Ok("png")
         && std::env::var("RAEA_MOTION_RETAINED").as_deref() != Ok("0") && rdb::gpuview::paint_device().is_some();
+    // a still of a 3D scene: through the fed path too, so it blends as the video and play do (2D stills already match)
+    if ext == "png" && wanted.as_ref().is_some_and(|w| w.len() == 1) && std::env::var("RAEA_MOTION_3D").as_deref() != Ok("files") && rdb::gpuview::paint_device().is_some() {
+        if let Some(scene) = scene_program(js, dir)? {
+            return render_bundle_with(js, dir, out, wanted, true, Some(scene));
+        }
+    }
     if fed {
         match render_bundle_with(js, dir, out, None, true, None) {
             Err(e) if e == FED_3D => {}
@@ -1981,7 +2016,7 @@ fn render_bundle_with(js: &Path, dir: &Path, out: &Path, wanted: Option<Vec<i64>
         if let Some(p) = scene {
             cx.scene3d = Some(rdb::engine::Engine::new_live(&p, &rdb::inserted_of(&p), dir)?);
         }
-        return render_fed(&mut app, w, h, fps, total, retained, &mut cx, out, &work);
+        return render_fed(&mut app, w, h, fps, total, retained, &mut cx, out, &work, &wanted);
     }
     let mut frames = Vec::new();
     let t0 = std::time::Instant::now();

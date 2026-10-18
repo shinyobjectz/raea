@@ -1,4 +1,4 @@
-# Project management (data/project.feature; the founder, 2026-10-17): a request is a task, a question is answered by
+# Project management: a request is a task, a question is answered by
 # choosing, every render is a version, an object goes back to an earlier version, and a project holds several objects
 # the person switches between. Graded on the project's record (raea status, objects, versions), not on craft: the
 # craft scenarios grade the pieces.

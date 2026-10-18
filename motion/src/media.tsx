@@ -157,6 +157,16 @@ export function Video(props: VideoProps) {
 /** Sound in step with the frame; no picture. A muted or ended Audio is silent. */
 export function Audio(props: AudioProps) {
   const asset = isGeneratedAsset(props.src) ? props.src : null;
+  // a generated sound is as long as it was made (its seconds): once its source time is past that it has ended, and it
+  // leaves the page. A game's cues are Sequences without an end, so every sound it ever played stayed on the page with
+  // its source time moving: a finished pong rendered 115 of them a frame and sent their 115 updates (12 KB)
+  if (asset && !props.loop && props.endAt === undefined && props.trimAfter === undefined) {
+    const { fps } = useClockState("Audio").config;
+    const { frame } = useLocalTime("Audio");
+    const startFrom = props.startFrom ?? props.trimBefore ?? 0;
+    const rate = props.playbackRate ?? 1;
+    if (rate > 0 && (startFrom + Math.max(0, frame) * rate) / fps >= asset.seconds) return null;
+  }
   const attrs = useMediaAttrs("Audio", { ...props, src: asset ? asset.src : (props.src as string) });
   if (attrs["data-ended"]) attrs["data-volume"] = 0;
   if (asset) {

@@ -10,7 +10,8 @@ plays. That holds only if every value comes from the frame (the rules below).
 
 ## Which file to read
 
-Read one or two at a time with `raea craft bevy/NAME`, when the task reaches them.
+Read one or two at a time with `raea craft bevy/NAME`, when the task reaches them. Two or three files cover most
+pieces; then write the file. Each file's example is a complete composition you can start from.
 
 | You are... | Read |
 |---|---|
@@ -48,5 +49,8 @@ and the ECS world (`@raea/motion/ecs`) drawn with `<Entities>`. Everything 3D im
    roughness and metalness; don't change `args` or `shape` frame to frame (that's a new part each frame).
 6. **One camera, one set of effects.** The first camera in the tree is used. Bloom, Fog and ToneMapping take their
    first frame's values.
-7. **Render and look.** Render stills where things happen (`raea still`) and look at them. A 3D frame that renders
+7. **Import what you use.** Every component in the scene (`PointLight`, `Sphere`, `Bloom`...) comes from
+   `@raea/motion/3d` in the import line; a missing one fails the render. `staticFile`, `Sequence`, `spring` and the
+   hooks come from `@raea/motion`.
+8. **Render and look.** Render stills where things happen (`raea still`) and look at them. A 3D frame that renders
    black usually has no light or a camera inside or behind the subject.

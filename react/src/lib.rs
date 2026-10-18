@@ -297,7 +297,11 @@ fn js_thread_jsc(bundle: PathBuf, tx: Sender<Batch>, events: Receiver<String>) {
         error!("raea-react: bundle.js: {e}");
         return;
     }
-    let eden = std::env::var("RAEA_JSC_EDEN").as_deref() == Ok("1");
+    // RAEA_JSC_EDEN=N: a young collection after every Nth event's commit (1: each), at the frame's boundary, where the
+    // JS thread waits for the next frame anyway, so the collections JavaScriptCore would start on allocation, inside a
+    // frame's render, don't come
+    let eden_every: u64 = std::env::var("RAEA_JSC_EDEN").ok().and_then(|v| v.parse().ok()).unwrap_or(0);
+    let mut delivered: u64 = 0;
     let release_every: f64 = std::env::var("RAEA_JSC_RELEASE_S").ok().and_then(|v| v.parse().ok()).unwrap_or(5.0);
     let mut released = Instant::now();
     loop {
@@ -330,10 +334,13 @@ fn js_thread_jsc(bundle: PathBuf, tx: Sender<Batch>, events: Receiver<String>) {
             Some(Ok(_)) => {}
         }
         JS_NS.fetch_add(busy.elapsed().as_nanos() as u64, std::sync::atomic::Ordering::Relaxed);
-        // a young collection after the frame when RAEA_JSC_EDEN=1 (it cost ~0.5 ms a frame and held memory no flatter in
-        // pong), then JavaScriptCore's GC timers, after
-        // the frame's commit is out (Bevy applies and presents it meanwhile)
-        if eden {
+        // a young collection after the frame when RAEA_JSC_EDEN is set (off: each cost ~0.5 ms and held memory no
+        // flatter in pong; every 16th frame left 1 collection of 360 started by allocation inside a frame, where 71
+        // were, at 2.4 ms of the JS thread each), then JavaScriptCore's GC timers, after the frame's commit is out (Bevy
+        // applies and presents it meanwhile): the timers start most collections, on the collector thread, while the
+        // JS thread waits for the next frame
+        delivered += 1;
+        if eden_every > 0 && delivered % eden_every == 0 {
             let t = Instant::now();
             ctx.collect_young();
             EDEN_NS.fetch_add(t.elapsed().as_nanos() as u64, std::sync::atomic::Ordering::Relaxed);
@@ -400,6 +407,12 @@ fn apply_commits(
     let t_apply = Instant::now();
     let _count = ApplyTimer(t_apply);
     let batches: Vec<Batch> = inbox.0.lock().unwrap().try_iter().collect();
+    // props and text of entities spawned in this pass: commands are deferred, so an entity created here doesn't exist
+    // for the queries until the pass ends, and an update to it in a later batch of the same pass was lost. A baked
+    // seek feeds the keyframe (every node created) and the frames after it at once, and its videos came out a frame
+    // behind (they read their source time from these props); the page mirror, applied directly, was right
+    let mut fresh_props: HashMap<Entity, ReactProps> = HashMap::new();
+    let mut fresh_text: HashMap<Entity, ReactText> = HashMap::new();
     for Batch(json) in batches {
         if let Some(t) = tap.as_mut() {
             t.0.push(json.clone());
@@ -435,15 +448,17 @@ fn apply_commits(
                 "create" => {
                     let mut p = ReactProps::default();
                     merge(&mut p.0, &op["props"], None);
-                    let mut e = commands.spawn((ReactNode(id("id").unwrap_or(0)), ReactKind(op["kind"].as_str().unwrap_or("").into()), p));
+                    let e = commands.spawn((ReactNode(id("id").unwrap_or(0)), ReactKind(op["kind"].as_str().unwrap_or("").into()))).id();
+                    fresh_props.insert(e, p);
                     if let Some(t) = op["text"].as_str() {
-                        e.insert(ReactText(t.into()));
+                        fresh_text.insert(e, ReactText(t.into()));
                     }
-                    ents.by_id.insert(id("id").unwrap_or(0), e.id());
+                    ents.by_id.insert(id("id").unwrap_or(0), e);
                 }
                 "createText" | "createTextSpan" => {
                     let kind = if op["op"] == "createText" { "#text" } else { "#span" };
-                    let e = commands.spawn((ReactNode(id("id").unwrap_or(0)), ReactKind(kind.into()), ReactText(op["text"].as_str().unwrap_or("").into()))).id();
+                    let e = commands.spawn((ReactNode(id("id").unwrap_or(0)), ReactKind(kind.into()))).id();
+                    fresh_text.insert(e, ReactText(op["text"].as_str().unwrap_or("").into()));
                     ents.by_id.insert(id("id").unwrap_or(0), e);
                 }
                 "append" => {
@@ -493,7 +508,7 @@ fn apply_commits(
                 }
                 "update" => {
                     if let Some(&e) = id("id").and_then(|i| ents.by_id.get(&i)) {
-                        if let Ok(mut p) = props.get_mut(e) {
+                        let mut apply = |p: &mut ReactProps| {
                             merge(&mut p.0, &op["props"], op.get("unset"));
                             // style keys React dropped (a transform going to nothing), as the DOM mirror does
                             if let (Some(style), Some(gone)) = (p.0.get_mut("style").and_then(|s| s.as_object_mut()), op["styleUnset"].as_array()) {
@@ -501,19 +516,35 @@ fn apply_commits(
                                     style.remove(k);
                                 }
                             }
+                        };
+                        if let Some(p) = fresh_props.get_mut(&e) {
+                            apply(p);
+                        } else if let Ok(mut p) = props.get_mut(e) {
+                            apply(&mut p);
                         }
                     }
                 }
                 "updateText" => {
                     if let Some(&e) = id("id").and_then(|i| ents.by_id.get(&i)) {
-                        if let Ok(mut t) = texts.get_mut(e) {
-                            t.0 = op["text"].as_str().unwrap_or("").into();
+                        let text = op["text"].as_str().unwrap_or("").to_string();
+                        if let Some(t) = fresh_text.get_mut(&e) {
+                            t.0 = text;
+                        } else if let Ok(mut t) = texts.get_mut(e) {
+                            t.0 = text;
                         }
                     }
                 }
                 other => warn!("raea-react: unknown op {other:?}"),
             }
         }
+    }
+    // this pass's new entities get their props and text as the last ops left them (an entity removed again in the same
+    // pass is gone: try_insert skips it)
+    for (e, p) in fresh_props {
+        commands.entity(e).try_insert(p);
+    }
+    for (e, t) in fresh_text {
+        commands.entity(e).try_insert(t);
     }
 }
 

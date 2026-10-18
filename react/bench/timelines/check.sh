@@ -26,10 +26,21 @@ for t in ${*:-titles}; do
     line="$line $f:$s"
     worst=$(python3 -c "print(min($worst, ${s:-0}))")
   done
+  # seeks: the same frames reached by jumping (the keyframe before each, then the frames after it), last frame first so
+  # every jump goes backwards or far, compared with the same renders
+  seeks=""
+  for f in $(echo $frames | tr ' ' '\n' | sort -rn); do seeks="$seeks --seek $f $OUT/$t-seek-$f.png"; done
+  RAEA_AUDIO_MUTE=1 target/release/raea-motion play "$edit" --baked --offscreen $seeks > "$OUT/$t-seek.log" 2>&1 || { echo "$t: the seeks failed (see $OUT/$t-seek.log)"; status=1; continue; }
+  sline=""
+  for f in $frames; do
+    s=$(ffmpeg -v error -i "$OUT/$t-render-$f.png" -i "$OUT/$t-seek-$f.png" -filter_complex "[0]format=rgb24[a];[1]format=rgb24[b];[a][b]ssim=stats_file=-" -f null - 2>&1 | grep -o 'All:[0-9.]*' | tail -1 | cut -d: -f2)
+    sline="$sline $f:$s"
+    worst=$(python3 -c "print(min($worst, ${s:-0}))")
+  done
   bake=$(python3 -c "import json; print(round(json.load(open('$OUT/$t.json')).get('open_ms', 0)))")
   ok=$(python3 -c "print('PASS' if $worst >= 0.999 else 'FAIL')")
   [ "$ok" = PASS ] || status=1
-  echo "$t: $ok  render vs baked play, SSIM by frame:$line (worst $worst); opened and baked in $bake ms"
+  echo "$t: $ok  render vs baked play, SSIM by frame:$line; seeks:$sline (worst $worst); opened and baked in $bake ms"
   # an edit baked from the bake before it (bake_incremental): the fixture's last spring (its cards) retuned in a copy, the copy
   # baked from the original (only the frames where the changed component renders are stepped), played, and compared
   # with renders of the copy; a scrub of the incremental bake (seeks across its re-stepped runs) must play through

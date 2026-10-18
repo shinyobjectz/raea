@@ -70,13 +70,14 @@ function Shifted(props: {
   if (layout === "none" && (style !== undefined || className !== undefined)) {
     throw new Error(`${owner}: style and className need a box, so they can't be used with layout="none"`);
   }
+  // layout "none": the children as they are (a Fragment around them was one more element a frame for each Sequence)
   const inner =
     layout === "absolute-fill" ? (
       <AbsoluteFill style={style} className={className} data-sequence={label}>
         {children}
       </AbsoluteFill>
     ) : (
-      <Fragment>{children}</Fragment>
+      children
     );
   return <LocalTimeContext.Provider value={time}>{inner}</LocalTimeContext.Provider>;
 }
@@ -89,11 +90,9 @@ export function Sequence(props: SequenceProps) {
   const parent = useLocalTime("Sequence");
   const f = parent.frame;
   if (durationInFrames === 0 || f < from || f >= from + durationInFrames) return null;
-  for (const [label, v] of [["width", width], ["height", height]] as const) {
-    if (v !== undefined && (!Number.isInteger(v) || v <= 0)) {
-      throw new RangeError(`Sequence: ${label} must be a positive integer, got ${v}`);
-    }
-  }
+  // (checked without arrays: a game's sound cues are Sequences, hundreds rendered a frame)
+  if (width !== undefined && (!Number.isInteger(width) || width <= 0)) throw new RangeError(`Sequence: width must be a positive integer, got ${width}`);
+  if (height !== undefined && (!Number.isInteger(height) || height <= 0)) throw new RangeError(`Sequence: height must be a positive integer, got ${height}`);
   const time: LocalTime = {
     frame: f - from,
     origin: parent.origin + from,

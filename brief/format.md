@@ -1,17 +1,16 @@
 # .brief
 
-A `.brief` is a plain-text plan for one video, or something several plans share. It reads as Fountain (a screenplay
-form, which M3 writes well and which made better ads than rrl did; score/bench/results.feature) with one reading for
+A `.brief` is a plain-text plan for one video, or something several plans share. It reads as Fountain (a screenplay form) with one reading for
 every line. `raea-brief parse FILE` turns it into the intent graph (JSON); anything it can't read is refused with
-`FILE:line:col` and what it expected. The spec, the goal and the plan are in brief.feature and format.feature.
+`FILE:line:col` and what it expected.
 
 ```
-Title: Milky Jelly: the gel that doesn't strip
+Title: Dew Gel: the gel that doesn't strip
 Format: 9:16, 30 s, tiktok | 1:1, 15 s, instagram
 Uses: client.brief
 Angle: dry skin can use a gel
-$product: Milky Jelly
-$pack: media/milky-jelly.png
+$product: Dew Gel
+$pack: media/dew-gel.png
 
 ! never says "game changer"
 ! nothing covers the face
@@ -77,9 +76,8 @@ Each non-blank line is one element, chosen by how it starts:
 | anything else, under a speaker | a line: words quoted exactly from the take. A line is a cut, so a word changed is a line no take says |
 
 Text that isn't under a speaker and starts with none of these is refused. A shot written as Fountain action
-(`!Action The bracket clicks shut`, or a plain description) is refused with the open beat it should be: in the 110
-scripts the bench wrote in Fountain, `!` stood 157 times before a shot description and `@must { }` held the rules 50
-times, and score's reader dropped both silently. `raea-brief convert` turns them into `~` beats and `!` checks.
+(`!Action The bracket clicks shut`, or a plain description) is refused with the open beat it should be, since a Fountain reader would
+drop it silently. `raea-brief convert` turns them into `~` beats and `!` checks.
 
 ### Notes on a line: `[[ ... ]]`
 

@@ -69,7 +69,7 @@ where the transcript says. Fix the composition and render again.
 
 - Writing guides (pacing, captions, layout, sound, games, 3D): `void/prompts/craft/motion.md` and
   `void/prompts/craft/motion/*.md`.
-- The SDK's behaviour: `motion/spec/motion.feature`; the APIs agents use most: `motion/spec/surface.md`.
+- The SDK's behaviour: `motion/spec/motion.feature`; what 3D reaches: `motion/docs/bevy-coverage.md`.
 - void, the Mac app: talk to it, or let an agent drive it. With void running, add its MCP server:
   `claude mcp add --transport http void http://127.0.0.1:7457/mcp` (tools: state, screenshot, send, act, wait, logs,
   hear, say).

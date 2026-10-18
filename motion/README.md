@@ -31,13 +31,15 @@ raea-motion render title.tsx -o title.mp4
 
 ## Layout
 
-- `spec/motion.feature`: the behavioural spec. `spec/surface.md`: the APIs agents actually reach for, in build order.
+- `spec/motion.feature`: the behavioural spec.
 - `conformance/`: tests written from the spec (`bun test conformance`); `raea-motion test FILE...` runs them on the
   engine's own runtime.
 - `src/`: the SDK. `src/native.ts`, `ecs.ts`, `solid.ts` and `codecs.ts` are the engine modules (`/native`, `/ecs`,
   `/3d`'s `manifold` and `Solid`, `/codecs`). `/codecs` wraps mediabunny (MPL-2.0, unmodified) with the engine's
   coders underneath; Manifold runs natively as manifold-rust (Apache-2.0). Under plain bun, `/ecs` falls back to
   TypeScript tables and the others say they need the engine.
+- `docs/bevy-coverage.md`: which of Bevy's features a composition can reach, and what each missing one needs.
+  `bench/bevy/` holds the 3D fixtures and their render-against-play check.
 - `tools/`: golden-frame checks (`golden.sh`, `golden-av.sh`) and `media-vs-ffmpeg.sh`.
 
 void's agent learns the SDK from `void/prompts/craft/motion.md` and `motion/*.md`, its guide for writing compositions.

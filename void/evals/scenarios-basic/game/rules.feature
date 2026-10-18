@@ -1,6 +1,6 @@
 @medium:game
 Feature: Game scenes played by rules
-  rrl has no input yet, so these are game scenes whose motion comes from rules over time. Nothing draws rect or
+  Game scenes whose motion comes from rules over time, with no player input. Nothing draws rect or
   circle, so shapes are boxes.
 
   @level:hard

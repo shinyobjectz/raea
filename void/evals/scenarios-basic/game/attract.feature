@@ -1,5 +1,5 @@
 @medium:game
-Feature: Game screens rrl can play today
+Feature: Game screens with no input
   Attract loops, scoreboards and game-over screens: motion from rules over time, no input. Shapes are boxes.
 
   @level:easy

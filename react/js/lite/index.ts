@@ -104,10 +104,10 @@ interface Instance {
   hooks: any[];
   effects: (() => void)[];
   cleanups: Map<number, () => void>;
-  /** the component instances under it, by place: `key or index:type` */
-  kids: Map<string, Instance>;
+  /** the component instances under it, by place */
+  kids: Map<Slot, Instance>;
   seen: boolean;
-  id: string;
+  id: Slot | string;
 }
 
 let current: Instance | null = null;
@@ -239,11 +239,64 @@ interface Host {
   value?: string;
   kids: Host[];
   /** the place it was matched by */
-  slot: string;
+  slot: Slot;
 }
 
 /** What a render yields: host elements and texts, in order, under one host parent. */
-type Out = { slot: string; type: string; props: any; text?: string; kids: Out[]; inText: boolean };
+type Out = { slot: Slot; type: string; props: any; text?: string; kids: Out[]; inText: boolean };
+
+// A place in the tree: the path of keys, indices, component names and host boundaries from the root, interned as one
+// object per place, kept from frame to frame. Places were strings built by concatenation each frame ("r/.0:Clock:Pong
+// ..."), ~57 characters, flattened for each Map lookup: of a finished pong's ~490 KB of garbage a frame, those were
+// the largest part. A place is compared by identity; its sub-places are found by a key, an index or a component's
+// name without building anything.
+interface Slot {
+  /** sub-places by an element's key (string) or its index (number) among an array's items */
+  items: Map<string | number, Slot> | null;
+  /** sub-places by component name (a function component rendered here) */
+  named: Map<string, Slot> | null;
+  /** the place of a host element's children */
+  inner: Slot | null;
+  /** the render pass that last reached it; places unreached for PRUNE_EVERY passes are let go */
+  used: number;
+}
+const newSlot = (): Slot => ({ items: null, named: null, inner: null, used: pass });
+let pass = 0;
+const PRUNE_EVERY = 256;
+function item(s: Slot, k: string | number): Slot {
+  const m = s.items ?? (s.items = new Map());
+  let c = m.get(k);
+  if (c === undefined) m.set(k, (c = newSlot()));
+  c.used = pass;
+  return c;
+}
+function named(s: Slot, name: string): Slot {
+  const m = s.named ?? (s.named = new Map());
+  let c = m.get(name);
+  if (c === undefined) m.set(name, (c = newSlot()));
+  c.used = pass;
+  return c;
+}
+function inner(s: Slot): Slot {
+  const c = s.inner ?? (s.inner = newSlot());
+  c.used = pass;
+  return c;
+}
+/** Places no render reached in the last PRUNE_EVERY passes, let go (a game's keyed sprites come and go). */
+function prune(s: Slot, before: number) {
+  for (const m of [s.items, s.named]) {
+    if (!m) continue;
+    for (const [k, c] of m) {
+      if (c.used < before) m.delete(k);
+      else prune(c, before);
+    }
+  }
+  if (s.inner) {
+    if (s.inner.used < before) s.inner = null;
+    else prune(s.inner, before);
+  }
+}
+const ROOT_SLOT: Slot = newSlot();
 
 // Each component rendered this frame, by its code (FNV-1a over the UTF-16 of its source, as Function.prototype.toString
 // gives it; bake.rs hashes the bundle's functions the same way): a baked timeline re-steps, after an edit, only the
@@ -268,10 +321,13 @@ export function takeRendered(): string {
   return s;
 }
 
-function render(node: any, parent: Instance, slot: string, out: Out[], inText: boolean) {
+function render(node: any, parent: Instance, slot: Slot, out: Out[], inText: boolean) {
   if (node === undefined || node === null || typeof node === "boolean") return;
   if (Array.isArray(node)) {
-    node.forEach((c, i) => render(c, parent, `${slot}.${isValidElement(c) && c.key !== null ? "k" + c.key : i}`, out, inText));
+    for (let i = 0; i < node.length; i++) {
+      const c = node[i];
+      render(c, parent, item(slot, isValidElement(c) && c.key !== null ? c.key : i), out, inText);
+    }
     return;
   }
   if (typeof node === "string" || typeof node === "number") {
@@ -296,8 +352,7 @@ function render(node: any, parent: Instance, slot: string, out: Out[], inText: b
   }
   if (typeof t === "function") {
     renderedCodes.add(codeOf(t));
-    const name = t.name || "c";
-    const k = `${slot}:${name}`;
+    const k = named(slot, t.name || "c");
     let inst = parent.kids.get(k);
     if (!inst || inst.fn !== t) {
       if (inst) unmountInstance(inst);
@@ -305,21 +360,27 @@ function render(node: any, parent: Instance, slot: string, out: Out[], inText: b
       parent.kids.set(k, inst);
     }
     inst.seen = true;
-    const saved = [current, hookIndex] as const;
+    const savedCurrent = current;
+    const savedIndex = hookIndex;
     current = inst;
     hookIndex = 0;
     let rendered;
     try {
       rendered = t.prototype && t.prototype.render ? new t(node.props).render() : t(node.props);
     } finally {
-      [current, hookIndex] = saved;
+      current = savedCurrent;
+      hookIndex = savedIndex;
     }
-    for (const kid of inst.kids.values()) kid.seen = false;
+    // (the loops skipped for a leaf: each for-of over a Map makes an iterator, for hundreds of components a frame)
+    const had = inst.kids.size > 0;
+    if (had) for (const kid of inst.kids.values()) kid.seen = false;
     render(rendered, inst, k, out, inText);
-    for (const [kk, kid] of inst.kids) {
-      if (!kid.seen) {
-        unmountInstance(kid);
-        inst.kids.delete(kk);
+    if (had || inst.kids.size > 0) {
+      for (const [kk, kid] of inst.kids) {
+        if (!kid.seen) {
+          unmountInstance(kid);
+          inst.kids.delete(kk);
+        }
       }
     }
     effectsQueue.push(inst);
@@ -330,7 +391,7 @@ function render(node: any, parent: Instance, slot: string, out: Out[], inText: b
     const childText = t === "text";
     const c = node.props.children;
     const inline = t === "text" && (typeof c === "string" || typeof c === "number");
-    if (!inline) render(c, parent, `${slot}/`, kids, inText || childText);
+    if (!inline) render(c, parent, inner(slot), kids, inText || childText);
     out.push({ slot, type: t, props: node.props, kids, inText, text: inline ? String(c) : undefined });
   }
 }
@@ -394,7 +455,23 @@ function patch(h: Host, o: Out) {
 /** A host parent's children matched to what the render yields: same place and type kept (patched), the rest made or
  * removed, and moved where their order changed. */
 function children(parent: number, old: Host[], next: Out[]): Host[] {
-  const bySlot = new Map<string, Host>();
+  // the usual frame: the same places in the same order, each patched where it is (no maps, nothing moves)
+  if (old.length === next.length) {
+    let same = true;
+    for (let i = 0; i < old.length; i++) {
+      const h = old[i];
+      const o = next[i];
+      if (h.slot !== o.slot || h.type !== o.type || !(h.text || h.kind === kindOf(o.type, o.inText))) {
+        same = false;
+        break;
+      }
+    }
+    if (same) {
+      for (let i = 0; i < old.length; i++) patch(old[i], next[i]);
+      return old;
+    }
+  }
+  const bySlot = new Map<Slot, Host>();
   for (const h of old) bySlot.set(h.slot, h);
   const kept = new Set<Host>();
   const out: Host[] = next.map((o) => {
@@ -431,7 +508,7 @@ function children(parent: number, old: Host[], next: Out[]): Host[] {
 
 // ---- the root
 
-const rootInstance: Instance = { fn: null, hooks: [], effects: [], cleanups: new Map(), kids: new Map(), seen: true, id: "root" };
+const rootInstance: Instance = { fn: null, hooks: [], effects: [], cleanups: new Map(), kids: new Map(), seen: true, id: ROOT_SLOT };
 let rootHosts: Host[] = [];
 let rootElement: any = null;
 
@@ -443,8 +520,10 @@ export function renderRoot(element: any): void {
   dirty = false;
   contexts = new Map();
   const out: Out[] = [];
+  pass++;
+  if (pass % PRUNE_EVERY === 0) prune(ROOT_SLOT, pass - PRUNE_EVERY);
   for (const kid of rootInstance.kids.values()) kid.seen = false;
-  render(element, rootInstance, "r", out, false);
+  render(element, rootInstance, ROOT_SLOT, out, false);
   for (const [k, kid] of rootInstance.kids) {
     if (!kid.seen) {
       unmountInstance(kid);
@@ -455,7 +534,10 @@ export function renderRoot(element: any): void {
   flush();
   const queue = effectsQueue.splice(0);
   for (const inst of queue) {
-    const fx = inst.effects.splice(0);
+    // most components set off no effect this frame: nothing taken (splice made an empty array for each, every frame)
+    if (inst.effects.length === 0) continue;
+    const fx = inst.effects;
+    inst.effects = [];
     for (const f of fx) {
       try {
         f();

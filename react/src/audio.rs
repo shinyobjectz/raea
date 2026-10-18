@@ -257,6 +257,11 @@ impl Mixer {
     /// A source's sound, once it's open: opening (its rate from a first short window, its length from the container)
     /// reads the file, ~80 ms cold, so it happens on a thread and the voice starts at the sync after (placed where it
     /// should be by then), not holding the frame.
+    /// `file` loading on a worker now, nothing started: a timeline's first sounds ready before its clock starts.
+    pub fn preload(&mut self, file: &Path) {
+        let _ = self.pcm(file);
+    }
+
     fn pcm(&mut self, file: &Path) -> Option<Arc<Pcm>> {
         if let Some(p) = self.pcm.get(file) {
             return p.clone();

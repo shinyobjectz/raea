@@ -33,6 +33,9 @@ pub struct Baked {
     pub comps: Vec<Vec<u32>>,
     /// the bundle's functions and the code outside them (`code_of`)
     pub code: Code,
+    /// some frame shows 3D (a data-3d element): play opens the scene's rows and draws it under the page, as the
+    /// render does
+    pub has_3d: bool,
 }
 
 /// A batch that clears the page first: what's under the root goes, then the batches after it build the tree again
@@ -127,17 +130,20 @@ pub fn bake(js: &Path) -> R<Baked> {
     let mut keys = vec![(-1, crate::snapshot_ops(app.world()))];
     let mut frame_ops = Vec::with_capacity(frames as usize);
     let mut comps = Vec::with_capacity(frames as usize);
+    let mut has_3d = init.iter().any(|j| j.contains("data-3d"));
     for f in 0..frames {
         // the render's own step: the frame number (not live play's {frame, input}), so the commits are a render's
         app.world().resource::<ReactOutbox>().send(json!({"t": "event", "name": "raea-frame", "value": f}));
         crate::motion::settle_frame(&mut app, Some(f), 20.0)?;
         comps.push(comps_of(app.world_mut()));
-        frame_ops.push(take(&mut app));
+        let ops = take(&mut app);
+        has_3d |= ops.iter().any(|j| j.contains("data-3d"));
+        frame_ops.push(ops);
         if f % KEY == KEY - 1 {
             keys.push((f, crate::snapshot_ops(app.world())));
         }
     }
-    Ok(Baked { conf, fps, frames, w, h, init, frame_ops, keys, comps, code: code_of(js)? })
+    Ok(Baked { conf, fps, frames, w, h, init, frame_ops, keys, comps, code: code_of(js)?, has_3d })
 }
 
 /// `old` baked again for the bundle at `js` (the edit changed), re-stepping only the frames it must: when every function
@@ -187,7 +193,7 @@ pub fn bake_incremental(old: &Baked, js: &Path) -> R<(Baked, i64)> {
     }
     let take = |app: &mut App| std::mem::take(&mut app.world_mut().resource_mut::<CommitTap>().0);
     take(&mut app);
-    let mut b = Baked { conf: old.conf.clone(), fps: old.fps, frames, w: old.w, h: old.h, init: old.init.clone(), frame_ops: old.frame_ops.clone(), keys: old.keys.clone(), comps: old.comps.clone(), code };
+    let mut b = Baked { conf: old.conf.clone(), fps: old.fps, frames, w: old.w, h: old.h, init: old.init.clone(), frame_ops: old.frame_ops.clone(), keys: old.keys.clone(), comps: old.comps.clone(), code, has_3d: old.has_3d };
     let mut stepped = 0;
     let mut f = 0;
     while f < frames {
@@ -215,6 +221,7 @@ pub fn bake_incremental(old: &Baked, js: &Path) -> R<(Baked, i64)> {
             crate::motion::settle_frame(&mut app, Some(g), 20.0)?;
             b.comps[g as usize] = comps_of(app.world_mut());
             let ops = take(&mut app);
+            b.has_3d |= ops.iter().any(|j| j.contains("data-3d"));
             stepped += 1;
             b.frame_ops[g as usize] = if g == a { vec![RESET.to_string(), Value::Array(crate::snapshot_ops(app.world())).to_string()] } else { ops };
             if g % KEY == KEY - 1 && (g < k || k == frames - 1) {

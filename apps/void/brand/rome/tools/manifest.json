@@ -1,0 +1,132 @@
+[
+ {
+  "name": "caesar_bust_fitzwilliam",
+  "zenodo": "21375417",
+  "uid": "16eea6a1895948cdb2f610e72a6d6e9c",
+  "height_m": 0.275,
+  "kind": "bust"
+ },
+ {
+  "name": "caesar_bust_leiden",
+  "zenodo": "10268557",
+  "uid": "bc68d05694af4688ab800461a3f6ef96",
+  "kind": "bust"
+ },
+ {
+  "name": "marcus_aurelius_bust",
+  "zenodo": "21355996",
+  "uid": "dba064e7f177442c9e20f755042bf662",
+  "height_m": 0.312,
+  "kind": "bust"
+ },
+ {
+  "name": "hadrian_statue",
+  "zenodo": "10236679",
+  "uid": "47e5673827be4a2db2907b0894958346",
+  "kind": "statue"
+ },
+ {
+  "name": "nero_head",
+  "zenodo": "10228003",
+  "uid": "ceb1cc5383b94e0581acdf7ad8491865",
+  "kind": "bust"
+ },
+ {
+  "name": "augustus_prima_porta",
+  "smk": "KAS65",
+  "url": "https://api.smk.dk/api/v1/download-3d/dj52w921d_KAS65_small.stl",
+  "height_m": 2.19,
+  "kind": "statue"
+ },
+ {
+  "name": "brutus_capitoline_bust",
+  "smk": "KAS105",
+  "url": "https://api.smk.dk/api/v1/download-3d/df65vd436_KAS105_small.stl",
+  "kind": "bust"
+ },
+ {
+  "name": "antoninus_pius_toga_bust",
+  "smk": "KAS596",
+  "url": "https://api.smk.dk/api/v1/download-3d/vd66w4551_KAS596_small.stl",
+  "height_m": 0.895,
+  "kind": "bust"
+ },
+ {
+  "name": "colosseum",
+  "zenodo": "10357365",
+  "uid": "a416564e36fb450594c45b1bce119188",
+  "kind": "arch"
+ },
+ {
+  "name": "colosseum_ruin",
+  "zenodo": "10355443",
+  "uid": "bf625faa38e94004a21c7c0c6ba69a15",
+  "kind": "arch"
+ },
+ {
+  "name": "pantheon",
+  "zenodo": "10303257",
+  "uid": "074e9fe9154f41169cb2e79f5330e58f",
+  "kind": "arch"
+ },
+ {
+  "name": "triumphal_arch_palmyra",
+  "zenodo": "10350168",
+  "uid": "34cc79141552447f98ef8807875a36c2",
+  "kind": "arch"
+ },
+ {
+  "name": "roman_temple",
+  "zenodo": "10289663",
+  "uid": "f5efe108fb19419ab985ef69d1762839",
+  "kind": "arch"
+ },
+ {
+  "name": "galea_helmet",
+  "zenodo": "10237277",
+  "uid": "608c6fdd20174b7b8c77ac585042664c",
+  "kind": "prop"
+ },
+ {
+  "name": "gladius",
+  "zenodo": "10242901",
+  "uid": "b123c4388a6f4307aff353c165c94f92",
+  "kind": "prop"
+ },
+ {
+  "name": "scutum_shield",
+  "zenodo": "10377870",
+  "uid": "65231491ef3b49ceaacaad037dd453c6",
+  "kind": "prop"
+ },
+ {
+  "name": "caesar_denarius_coin",
+  "zenodo": "10286310",
+  "uid": "baefeb9a40a641a6b6c8276b7e9f7479",
+  "kind": "prop"
+ },
+ {
+  "name": "amphora_dressel_1a",
+  "zenodo": "10339109",
+  "uid": "3cff43a656d24461b5384adbc7010916",
+  "kind": "prop"
+ },
+ {
+  "name": "oil_lamp_lucerna",
+  "zenodo": "10353274",
+  "uid": "10bca46a952c458a88da840146c439dc",
+  "kind": "prop"
+ },
+ {
+  "name": "marcus_aurelius_equestrian",
+  "zenodo": "10365135",
+  "uid": "ce97ca797b0a4be9894fe2d9af10a717",
+  "kind": "statue"
+ },
+ {
+  "name": "legionary_statue",
+  "zenodo": "10334678",
+  "uid": "6d53f59e378b45abadec9d0ea8fa547e",
+  "kind": "statue"
+ }
+]

@@ -1,0 +1,3 @@
+Material Icon Theme 5.39.0 by Philipp Kief (PKief/vscode-material-icon-theme), MIT (LICENSE), from npm
+material-icon-theme-5.39.0.tgz: icons/ and dist/material-icons.json as published, unchanged. apps/void/src/shell_ui.rs
+maps a file or folder to its icon as the theme's manifest says (names, then extensions, then language ids).

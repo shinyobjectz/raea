@@ -6,5 +6,5 @@ Documentation that spans more than one folder.
   music and speech, checks), and where they go.
 
 Each folder's own README describes that part of the code. Behaviour specs written in Gherkin sit beside the code they
-specify, for example [`shell/shell.feature`](../shell/shell.feature) and
-[`motion/spec/motion.feature`](../motion/spec/motion.feature).
+specify, for example [`sdk/shell/shell.feature`](../sdk/shell/shell.feature) and
+[`sdk/motion/spec/motion.feature`](../sdk/motion/spec/motion.feature).

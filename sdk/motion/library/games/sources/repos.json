@@ -1,0 +1,2258 @@
+{
+ "1person280/Cute-of-Duty": {
+  "licence": "NOASSERTION",
+  "description": "\u4e00\u6b3eRust\u548cBevy\u5f15\u64ce\u5f00\u53d1\u7684\u6218\u672f\u64a4\u79bb\u5c04\u51fb\u6e38\u620f\uff08Cute Of Duty/\u840c\u7cfb\u53ec\u5524\uff09\u3002\u6838\u5fc3\u73a9\u6cd5\u7ed3\u5408\u4e86\u5143\u7d20\u4e92\u65a5\u751f\u6001\u4e0e\u53cd\u62a4\u822a\u7ecf\u6d4e\u67b6\u6784\u3002",
+  "stars": 1,
+  "pushed": "2026-10-14",
+  "topics": [
+   "3d-game",
+   "bevy",
+   "fps",
+   "game",
+   "gamedev",
+   "multiplayer",
+   "open-source",
+   "pixel-art",
+   "rust",
+   "tactical-shooter",
+   "voxel"
+  ],
+  "archived": false,
+  "bevy": null,
+  "missing": false
+ },
+ "2bndy5/bevy-52-card-pickup": {
+  "licence": "MIT",
+  "description": "A classic/simple card game implemented in 3D using the bevy game engine",
+  "stars": 1,
+  "pushed": "2026-10-15",
+  "topics": [],
+  "archived": false,
+  "bevy": "0.20.0",
+  "missing": false
+ },
+ "8bit-pudding/bevy-tetris": {
+  "licence": "unknown",
+  "description": "",
+  "stars": null,
+  "pushed": "",
+  "topics": [],
+  "archived": null,
+  "bevy": null,
+  "missing": true
+ },
+ "AmionSky/bevy_obj": {
+  "licence": "Apache-2.0",
+  "description": "Wavefront OBJ mesh asset loader plugin for the Bevy engine.",
+  "stars": 85,
+  "pushed": "2026-06-19",
+  "topics": [],
+  "archived": false,
+  "bevy": null,
+  "missing": false
+ },
+ "BlackPhlox/bevy_config_cam": {
+  "licence": "NOASSERTION",
+  "description": "A Swiss Army knife of a camera plugin that allows for easy setup and configuration of a wide variety of types of moveable cameras and player cameras for a scene.",
+  "stars": 189,
+  "pushed": "2023-09-17",
+  "topics": [
+   "bevy",
+   "camera",
+   "cameracontroller",
+   "plugin"
+  ],
+  "archived": false,
+  "bevy": null,
+  "missing": false
+ },
+ "BlackPhlox/bevy_dolly": {
+  "licence": "Apache-2.0",
+  "description": "h3r2tic's dolly abstraction layer for the bevy game framework",
+  "stars": 166,
+  "pushed": "2025-05-01",
+  "topics": [
+   "bevy",
+   "camera",
+   "rust"
+  ],
+  "archived": false,
+  "bevy": null,
+  "missing": false
+ },
+ "BlackPhlox/bevy_midi": {
+  "licence": "Apache-2.0",
+  "description": "Send and receive MIDI data to and from bevy using DAWS or MIDI Controllers",
+  "stars": 78,
+  "pushed": "2026-02-15",
+  "topics": [
+   "bevy",
+   "midi",
+   "plugin"
+  ],
+  "archived": false,
+  "bevy": null,
+  "missing": false
+ },
+ "BlackPhlox/bevy_osc": {
+  "licence": "NOASSERTION",
+  "description": "Send and receive OSC data to and from bevy and other programs or controllers",
+  "stars": 11,
+  "pushed": "2024-07-28",
+  "topics": [
+   "bevy",
+   "osc",
+   "plugin"
+  ],
+  "archived": false,
+  "bevy": null,
+  "missing": false
+ },
+ "BorisBoutillier/Kataster": {
+  "licence": "NOASSERTION",
+  "description": "A beginner-friendly single screen space shooter developed in Rust with 'bevy'",
+  "stars": 230,
+  "pushed": "2025-10-22",
+  "topics": [
+   "avian2d",
+   "bevy",
+   "bevy-engine",
+   "game",
+   "rust",
+   "rust-lang"
+  ],
+  "archived": false,
+  "bevy": "0.17",
+  "missing": false
+ },
+ "CiderSlime/bevy_noise_map": {
+  "licence": "unknown",
+  "description": "Generating random 2d maps for bevy using noise crate",
+  "stars": 49,
+  "pushed": "2023-11-08",
+  "topics": [
+   "bevy",
+   "bevy-engine",
+   "perlin-terrain"
+  ],
+  "archived": false,
+  "bevy": null,
+  "missing": false
+ },
+ "CiderSlime/dungeon-quest": {
+  "licence": "MPL-2.0",
+  "description": "",
+  "stars": 34,
+  "pushed": "2023-11-20",
+  "topics": [
+   "bevy",
+   "bevy-game"
+  ],
+  "archived": false,
+  "bevy": "0.12.0",
+  "missing": false
+ },
+ "DarkLichCode/bevy_demo_2048": {
+  "licence": "Apache-2.0",
+  "description": "Game 2048 by rust-bevy",
+  "stars": 12,
+  "pushed": "2023-02-28",
+  "topics": [],
+  "archived": false,
+  "bevy": "0.9",
+  "missing": false
+ },
+ "DigitalExtinction/Game": {
+  "licence": "AGPL-3.0",
+  "description": "A 3D RTS game implemented in Rust.",
+  "stars": 393,
+  "pushed": "2024-09-03",
+  "topics": [
+   "3d",
+   "3d-game",
+   "bevy",
+   "bevy-engine",
+   "game",
+   "game-development",
+   "gamedev",
+   "games",
+   "linux-gaming",
+   "real-time-strategy",
+   "rts",
+   "rts-game",
+   "rust"
+  ],
+  "archived": true,
+  "bevy": null,
+  "missing": false
+ },
+ "DrLuke/bevy_rosc": {
+  "licence": "NOASSERTION",
+  "description": "Adds rosc to bevy engine",
+  "stars": 9,
+  "pushed": "2025-06-14",
+  "topics": [],
+  "archived": false,
+  "bevy": null,
+  "missing": false
+ },
+ "DraftedDev/bevier": {
+  "licence": "MIT",
+  "description": "A Bevy Project Generator.",
+  "stars": 4,
+  "pushed": "2024-01-16",
+  "topics": [
+   "bevy",
+   "generator",
+   "templates"
+  ],
+  "archived": false,
+  "bevy": null,
+  "missing": false
+ },
+ "DragonFoxCollective/bevy-pretty-nice-input": {
+  "licence": "Apache-2.0",
+  "description": "[MOVED] An action- and component-based input crate for Bevy",
+  "stars": 2,
+  "pushed": "2026-06-04",
+  "topics": [],
+  "archived": true,
+  "bevy": null,
+  "missing": false
+ },
+ "ElliotB256/bevy_combat": {
+  "licence": "MIT",
+  "description": "A sci-fi battle simulation implemented in the bevy engine.",
+  "stars": 78,
+  "pushed": "2024-03-16",
+  "topics": [
+   "bevy",
+   "ecs",
+   "scifi",
+   "space"
+  ],
+  "archived": false,
+  "bevy": "0.13",
+  "missing": false
+ },
+ "ForesightMiningSoftwareCorporation/bevy-aabb-instancing": {
+  "licence": "Apache-2.0",
+  "description": "Fast AABB rendering plugin for Bevy Engine.",
+  "stars": 107,
+  "pushed": "2024-04-10",
+  "topics": [],
+  "archived": false,
+  "bevy": null,
+  "missing": false
+ },
+ "ForesightMiningSoftwareCorporation/bevy_transform_gizmo": {
+  "licence": "Apache-2.0",
+  "description": "A 3d gizmo for transforming entities in Bevy.",
+  "stars": 181,
+  "pushed": "2025-05-16",
+  "topics": [
+   "bevy",
+   "gizmo"
+  ],
+  "archived": false,
+  "bevy": null,
+  "missing": false
+ },
+ "Game4all/bevy_vox_mesh": {
+  "licence": "MIT",
+  "description": "[UNMAINTAINED] A bevy engine plugin for loading magica voxel files directly in bevy as usable meshes.",
+  "stars": 35,
+  "pushed": "2026-05-16",
+  "topics": [
+   "asset-loader",
+   "bevy",
+   "bevy-engine",
+   "magicavoxel",
+   "voxel"
+  ],
+  "archived": true,
+  "bevy": null,
+  "missing": false
+ },
+ "Jazarro/bevy_ineffable": {
+  "licence": "Apache-2.0",
+  "description": "A simple-to-use input manager for the Bevy game engine that empowers players and makes accessibility easy. ",
+  "stars": 23,
+  "pushed": "2025-04-25",
+  "topics": [
+   "accessibility",
+   "bevy",
+   "game-development",
+   "input",
+   "open-source",
+   "rust"
+  ],
+  "archived": false,
+  "bevy": null,
+  "missing": false
+ },
+ "Jezorko/bevy_customizable_camera_controllers": {
+  "licence": "Apache-2.0",
+  "description": "Based on bevy_awesome_debug_camera but made more customizable",
+  "stars": 0,
+  "pushed": "2026-03-29",
+  "topics": [],
+  "archived": false,
+  "bevy": null,
+  "missing": false
+ },
+ "JhnW/AnotherRustBevySnakeGame": {
+  "licence": "MIT",
+  "description": "Implementation of the game \"Snake\" in Rust with the help of Bevy engine. Most likely, no one needs it.",
+  "stars": 2,
+  "pushed": "2022-05-13",
+  "topics": [],
+  "archived": false,
+  "bevy": "0.7",
+  "missing": false
+ },
+ "JohnPeel/flock-rs": {
+  "licence": "MIT",
+  "description": "Steering behavior flocking example in Bevy",
+  "stars": 29,
+  "pushed": "2021-01-01",
+  "topics": [],
+  "archived": false,
+  "bevy": "0.4",
+  "missing": false
+ },
+ "Jondolf/avian": {
+  "licence": "Apache-2.0",
+  "description": "ECS-driven 2D and 3D physics engine for the Bevy game engine.",
+  "stars": 3242,
+  "pushed": "2026-10-10",
+  "topics": [
+   "2d",
+   "3d",
+   "bevy",
+   "game-development",
+   "gamedev",
+   "physics",
+   "physics-engine",
+   "rust",
+   "simulation"
+  ],
+  "archived": false,
+  "bevy": null,
+  "missing": false
+ },
+ "Kicshikxo/Pico-TD": {
+  "licence": "WTFPL",
+  "description": "Tower Defence \u0438\u0433\u0440\u0430 \u0432 \u043f\u0438\u043a\u0441\u0435\u043b\u044c\u043d\u043e\u0439 \u0441\u0442\u0438\u043b\u0438\u0441\u0442\u0438\u043a\u0435 \u043d\u0430 Bevy",
+  "stars": 27,
+  "pushed": "2026-04-28",
+  "topics": [
+   "bevy",
+   "i18n",
+   "pico",
+   "rust",
+   "tower-defense",
+   "wtfpl"
+  ],
+  "archived": false,
+  "bevy": "0.18.1",
+  "missing": false
+ },
+ "LiamGallagher737/bevy_flappy_bird": {
+  "licence": "unknown",
+  "description": "This is the final project for my Bevy Flappy Bird tutorial",
+  "stars": 16,
+  "pushed": "2024-04-15",
+  "topics": [
+   "bevy",
+   "flappy-bird",
+   "game",
+   "rust"
+  ],
+  "archived": false,
+  "bevy": "0.13",
+  "missing": false
+ },
+ "LucaRickler/bevy-simple-state-machine": {
+  "licence": "NOASSERTION",
+  "description": "Rudimentary animation state machine system for Bevy Engine",
+  "stars": 25,
+  "pushed": "2024-02-17",
+  "topics": [
+   "bevy-plugin",
+   "rust"
+  ],
+  "archived": false,
+  "bevy": null,
+  "missing": false
+ },
+ "LunaticDancer/dodge_ball": {
+  "licence": "MIT",
+  "description": "A simple arcade bullet hell game made in Bevy",
+  "stars": 7,
+  "pushed": "2025-12-12",
+  "topics": [],
+  "archived": false,
+  "bevy": "0.17.2",
+  "missing": false
+ },
+ "ManevilleF/bevy_silk": {
+  "licence": "MIT",
+  "description": "Cloth engine for Bevy",
+  "stars": 117,
+  "pushed": "2026-01-28",
+  "topics": [],
+  "archived": false,
+  "bevy": null,
+  "missing": false
+ },
+ "MiniaczQ/bevy-design-patterns": {
+  "licence": "MIT",
+  "description": "",
+  "stars": 48,
+  "pushed": "2025-01-03",
+  "topics": [],
+  "archived": true,
+  "bevy": null,
+  "missing": false
+ },
+ "MisterSzled/infini-pong_bevy": {
+  "licence": "CC0-1.0",
+  "description": "Bevy demo project for 0.15.0",
+  "stars": 3,
+  "pushed": "2024-12-05",
+  "topics": [],
+  "archived": false,
+  "bevy": "0.15.0",
+  "missing": false
+ },
+ "MitchellMarinoDev/bong": {
+  "licence": "unknown",
+  "description": "A full bevy game showcasing bevy-pigeon and carrier-pigeon.",
+  "stars": 2,
+  "pushed": "2022-05-13",
+  "topics": [],
+  "archived": false,
+  "bevy": "0.7.0",
+  "missing": false
+ },
+ "NightsWatchGames/battle-city": {
+  "licence": "MIT",
+  "description": "Classical battle-city game made with bevy engine.",
+  "stars": 110,
+  "pushed": "2024-12-25",
+  "topics": [
+   "battle-city",
+   "bevy",
+   "game",
+   "rust"
+  ],
+  "archived": false,
+  "bevy": null,
+  "missing": false
+ },
+ "NightsWatchGames/jump-jump": {
+  "licence": "MIT",
+  "description": "3D wechat jump-jump game made with bevy engine.",
+  "stars": 65,
+  "pushed": "2024-12-24",
+  "topics": [
+   "bevy-engine",
+   "gamedev",
+   "jump-game",
+   "rust-lang"
+  ],
+  "archived": false,
+  "bevy": "0.15",
+  "missing": false
+ },
+ "NightsWatchGames/rubiks-cube": {
+  "licence": "MIT",
+  "description": "Rubik's cube made with bevy engine.",
+  "stars": 45,
+  "pushed": "2024-12-24",
+  "topics": [
+   "bevy",
+   "game",
+   "rubiks-cube",
+   "rust"
+  ],
+  "archived": false,
+  "bevy": "0.15",
+  "missing": false
+ },
+ "NightsWatchGames/screen-ball": {
+  "licence": "MIT",
+  "description": "Work and play ball game made with bevy engine.",
+  "stars": 31,
+  "pushed": "2024-12-23",
+  "topics": [
+   "bevy",
+   "bevy-engine",
+   "game",
+   "rust"
+  ],
+  "archived": false,
+  "bevy": "0.15",
+  "missing": false
+ },
+ "NightsWatchGames/tetris": {
+  "licence": "MIT",
+  "description": "Classical tetris game made with bevy engine.",
+  "stars": 114,
+  "pushed": "2025-08-06",
+  "topics": [
+   "bevy",
+   "game",
+   "rust",
+   "tetris"
+  ],
+  "archived": false,
+  "bevy": null,
+  "missing": false
+ },
+ "NiklasEi/bevy_game_template": {
+  "licence": "CC0-1.0",
+  "description": "Template for a Bevy game including CI/CD for web, Windows, Linux, macOS, iOS and Android",
+  "stars": 1152,
+  "pushed": "2026-10-10",
+  "topics": [
+   "bevy",
+   "bevy-engine",
+   "game-development",
+   "hacktoberfest",
+   "mobile-game",
+   "rust",
+   "template-project",
+   "web-game"
+  ],
+  "archived": false,
+  "bevy": null,
+  "missing": false
+ },
+ "NiklasEi/game_oicana": {
+  "licence": "unknown",
+  "description": "Tower defence game with some puzzling",
+  "stars": 62,
+  "pushed": "2024-12-22",
+  "topics": [
+   "game",
+   "itchio",
+   "puzzle",
+   "tower-defense"
+  ],
+  "archived": false,
+  "bevy": "0.11",
+  "missing": false
+ },
+ "Noxmore/bevy_trenchbroom": {
+  "licence": "Apache-2.0",
+  "description": "TrenchBroom integration, .map, and .bsp loading for Bevy",
+  "stars": 159,
+  "pushed": "2026-08-13",
+  "topics": [
+   "3d",
+   "bevy",
+   "bevy-plugin",
+   "game-development",
+   "gamedev",
+   "mapping-tools",
+   "quake",
+   "rust"
+  ],
+  "archived": false,
+  "bevy": null,
+  "missing": false
+ },
+ "PhaestusFox/bevy_sprite_animation": {
+  "licence": "Apache-2.0",
+  "description": "A simple 2d sprite animation plugin for the bevy game engine",
+  "stars": 82,
+  "pushed": "2023-07-25",
+  "topics": [
+   "bevy",
+   "bevy-engine",
+   "bevy-plugin"
+  ],
+  "archived": false,
+  "bevy": null,
+  "missing": false
+ },
+ "Plonq/bevy_panorbit_camera": {
+  "licence": "Apache-2.0",
+  "description": "A simple pan and orbit camera for the Bevy game engine",
+  "stars": 297,
+  "pushed": "2026-09-05",
+  "topics": [],
+  "archived": false,
+  "bevy": null,
+  "missing": false
+ },
+ "Plonq/bevy_rts_camera": {
+  "licence": "Apache-2.0",
+  "description": "RTS-style camera controls plugin for Bevy Engine",
+  "stars": 100,
+  "pushed": "2026-10-14",
+  "topics": [],
+  "archived": false,
+  "bevy": null,
+  "missing": false
+ },
+ "PoHsuanLai/bevy_fontmesh": {
+  "licence": "Apache-2.0",
+  "description": "",
+  "stars": 19,
+  "pushed": "2026-10-09",
+  "topics": [],
+  "archived": false,
+  "bevy": null,
+  "missing": false
+ },
+ "PraxTube/ace-of-the-heavens": {
+  "licence": "MIT",
+  "description": "Fast paced online 1vs1 action game in an arcade-like, 2D top-down style",
+  "stars": 14,
+  "pushed": "2024-01-17",
+  "topics": [
+   "arcade-game",
+   "game",
+   "game-development",
+   "multiplayer-game",
+   "p2p",
+   "pixel-art"
+  ],
+  "archived": false,
+  "bevy": "0.11.2",
+  "missing": false
+ },
+ "PraxTube/idle-garden": {
+  "licence": "unknown",
+  "description": "Cozy 2D top-down idle gardening game",
+  "stars": 1,
+  "pushed": "2025-10-11",
+  "topics": [
+   "2d",
+   "cozy",
+   "game",
+   "top-down-game"
+  ],
+  "archived": false,
+  "bevy": "0.16.1",
+  "missing": false
+ },
+ "PraxTube/insta-kill": {
+  "licence": "MIT",
+  "description": "Fast paced arcade like 2D game where everything dies in one hit",
+  "stars": 43,
+  "pushed": "2024-06-13",
+  "topics": [
+   "arcade-game",
+   "fast-paced-game",
+   "game",
+   "game-2d",
+   "pixel-art",
+   "top-down-game"
+  ],
+  "archived": false,
+  "bevy": "0.12.1",
+  "missing": false
+ },
+ "PraxTube/lost-oppai": {
+  "licence": "MIT",
+  "description": "Game with procedural world gen and branching NPC dialogue",
+  "stars": 14,
+  "pushed": "2025-08-17",
+  "topics": [
+   "cozy",
+   "game",
+   "game-2d",
+   "pixel-art",
+   "top-down-game"
+  ],
+  "archived": false,
+  "bevy": "0.14.2",
+  "missing": false
+ },
+ "PraxTube/magus-parvus": {
+  "licence": "MIT",
+  "description": "A cozy little 2D top down mage game",
+  "stars": 76,
+  "pushed": "2025-09-16",
+  "topics": [
+   "cozy",
+   "game",
+   "game-2d",
+   "pixel-art",
+   "top-down-game"
+  ],
+  "archived": false,
+  "bevy": "0.16",
+  "missing": false
+ },
+ "PraxTube/tsumi": {
+  "licence": "MIT",
+  "description": "Short narrative-driven 2D game about combining/crafting emotions",
+  "stars": 12,
+  "pushed": "2024-07-31",
+  "topics": [
+   "bevy",
+   "bevy-game",
+   "dialogue-systems",
+   "game",
+   "narrative-game",
+   "pixel-art",
+   "puzzle-game",
+   "top-down-game"
+  ],
+  "archived": false,
+  "bevy": "0.14.0",
+  "missing": false
+ },
+ "RuelYasa/bevy_auto_scaling": {
+  "licence": "unknown",
+  "description": "",
+  "stars": 8,
+  "pushed": "2025-11-08",
+  "topics": [],
+  "archived": false,
+  "bevy": null,
+  "missing": false
+ },
+ "RustyStriker/bevy_physimple": {
+  "licence": "MIT",
+  "description": "A physics lib for the bevy game engine based on physme ",
+  "stars": 29,
+  "pushed": "2022-08-31",
+  "topics": [],
+  "archived": false,
+  "bevy": null,
+  "missing": false
+ },
+ "Samuel-Bowden/drone-agility-challenge": {
+  "licence": "Apache-2.0",
+  "description": "Get the drone from the red to the green podium without colliding into anything else!",
+  "stars": 3,
+  "pushed": "2024-06-06",
+  "topics": [],
+  "archived": false,
+  "bevy": "0.10.1",
+  "missing": false
+ },
+ "Seldom-SE/seldom_state": {
+  "licence": "Apache-2.0",
+  "description": "Component-based state machine plugin for Bevy. Useful for AI, player state, and other entities that occupy different states.",
+  "stars": 320,
+  "pushed": "2026-04-02",
+  "topics": [
+   "ai",
+   "bevy",
+   "bevy-engine",
+   "bevy-plugin",
+   "rust",
+   "state-machine"
+  ],
+  "archived": false,
+  "bevy": null,
+  "missing": false
+ },
+ "SergioRibera/virtual_joystick": {
+  "licence": "Apache-2.0",
+  "description": "Bevy virtual Joystick for mobile games (Works with mouse on desktop)",
+  "stars": 72,
+  "pushed": "2026-10-15",
+  "topics": [
+   "bevy",
+   "bevy-engine",
+   "bevy-plugin",
+   "bevy-ui",
+   "hacktoberfest",
+   "rust",
+   "ui",
+   "ui-components"
+  ],
+  "archived": false,
+  "bevy": null,
+  "missing": false
+ },
+ "ShenMian/sokoban-rs": {
+  "licence": "Apache-2.0",
+  "description": "A sokoban with solver.",
+  "stars": 83,
+  "pushed": "2026-10-16",
+  "topics": [
+   "bevy",
+   "bevy-game",
+   "game",
+   "sokoban",
+   "sokoban-solver"
+  ],
+  "archived": false,
+  "bevy": "0.20",
+  "missing": false
+ },
+ "SrTemplates/Bevy": {
+  "licence": "Apache-2.0",
+  "description": "Bevy complete template using Cargo Generate",
+  "stars": 48,
+  "pushed": "2025-10-21",
+  "topics": [
+   "bevy",
+   "bevy-engine",
+   "cargo-generate",
+   "hacktoberfest",
+   "rust",
+   "template",
+   "template-project"
+  ],
+  "archived": false,
+  "bevy": null,
+  "missing": false
+ },
+ "SuperiorJT/bevy_pong": {
+  "licence": "unknown",
+  "description": "Simple pong game made in Bevy Engine",
+  "stars": 7,
+  "pushed": "2021-02-11",
+  "topics": [],
+  "archived": false,
+  "bevy": "0.3.0",
+  "missing": false
+ },
+ "TanTanDev/flappy_bevy": {
+  "licence": "NOASSERTION",
+  "description": "",
+  "stars": 90,
+  "pushed": "2021-09-16",
+  "topics": [],
+  "archived": false,
+  "bevy": null,
+  "missing": false
+ },
+ "Tezza48/Bevy-WoW": {
+  "licence": "unknown",
+  "description": "Playing around with bevy engine.",
+  "stars": 7,
+  "pushed": "2021-10-09",
+  "topics": [],
+  "archived": false,
+  "bevy": null,
+  "missing": false
+ },
+ "TheBevyFlock/bevy_new_2d": {
+  "licence": "MIT",
+  "description": "This template is a great way to get started on a new 2D Bevy game!",
+  "stars": 490,
+  "pushed": "2026-08-06",
+  "topics": [
+   "bevy",
+   "gamedev",
+   "template"
+  ],
+  "archived": false,
+  "bevy": null,
+  "missing": false
+ },
+ "TheNeikos/bevy_squares": {
+  "licence": "unknown",
+  "description": "",
+  "stars": 12,
+  "pushed": "2020-09-27",
+  "topics": [],
+  "archived": false,
+  "bevy": null,
+  "missing": false
+ },
+ "TheRealTeamFReSh/Cheaters-Never-Win": {
+  "licence": "unknown",
+  "description": "Repository for the bevy jam #1 You can try the game here: https://therealteamfresh.github.io/Bevy-Jam-1/",
+  "stars": 12,
+  "pushed": "2022-03-23",
+  "topics": [],
+  "archived": false,
+  "bevy": "0.6.0",
+  "missing": false
+ },
+ "TheRealTeamFReSh/MurderUserDungeon": {
+  "licence": "NOASSERTION",
+  "description": "A game made for the Rusty Jam https://itch.io/jam/rusty-jam",
+  "stars": 78,
+  "pushed": "2022-07-16",
+  "topics": [
+   "bevy",
+   "game",
+   "rust"
+  ],
+  "archived": false,
+  "bevy": "0.6.0",
+  "missing": false
+ },
+ "WhoisDavid/bevy-nbody": {
+  "licence": "unknown",
+  "description": "Experiments with Bevy and n-body problems",
+  "stars": 38,
+  "pushed": "2021-07-02",
+  "topics": [],
+  "archived": false,
+  "bevy": "0.5.0",
+  "missing": false
+ },
+ "aevyrie/bevy_mod_picking": {
+  "licence": "Apache-2.0",
+  "description": "Picking and pointer events for Bevy",
+  "stars": 838,
+  "pushed": "2025-03-04",
+  "topics": [
+   "bevy",
+   "cursor",
+   "pick-intersections",
+   "raycasting"
+  ],
+  "archived": true,
+  "bevy": null,
+  "missing": false
+ },
+ "aevyrie/bevy_mod_raycast": {
+  "licence": "MIT",
+  "description": "A little mesh raycasting plugin for Bevy",
+  "stars": 339,
+  "pushed": "2025-03-13",
+  "topics": [
+   "bevy",
+   "game-development",
+   "raycasting"
+  ],
+  "archived": true,
+  "bevy": null,
+  "missing": false
+ },
+ "aleksa2808/ascii-bomb-ecs": {
+  "licence": "NOASSERTION",
+  "description": "Bomberman inspired game made in the Bevy engine",
+  "stars": 13,
+  "pushed": "2026-01-25",
+  "topics": [
+   "2d",
+   "bevy",
+   "ecs",
+   "game",
+   "gamedev",
+   "rust",
+   "wasm"
+  ],
+  "archived": false,
+  "bevy": "0.11",
+  "missing": false
+ },
+ "alphastrata/shadplay": {
+  "licence": "MIT",
+  "description": "Real-time wgsl visualisation tooling for educating oneself in the art of shader programming",
+  "stars": 719,
+  "pushed": "2026-10-10",
+  "topics": [],
+  "archived": false,
+  "bevy": null,
+  "missing": false
+ },
+ "aojiaoxiaolinlin/bevy_flash": {
+  "licence": "Apache-2.0",
+  "description": "A Bevy plugin for Flash Animation",
+  "stars": 54,
+  "pushed": "2026-10-13",
+  "topics": [],
+  "archived": false,
+  "bevy": null,
+  "missing": false
+ },
+ "atahabaki/bevy_input_mapper": {
+  "licence": "MIT",
+  "description": "Input Mapper for Bevy Game Engine",
+  "stars": 4,
+  "pushed": "2023-10-11",
+  "topics": [],
+  "archived": false,
+  "bevy": null,
+  "missing": false
+ },
+ "benfrankel/pyri_new_jam": {
+  "licence": "0BSD",
+  "description": "A Bevy template for game jams",
+  "stars": 16,
+  "pushed": "2025-06-13",
+  "topics": [
+   "bevy",
+   "game-development",
+   "template"
+  ],
+  "archived": false,
+  "bevy": null,
+  "missing": false
+ },
+ "bevious/bevy_actify": {
+  "licence": "Apache-2.0",
+  "description": "An input action plugin for Bevy",
+  "stars": 8,
+  "pushed": "2026-01-19",
+  "topics": [
+   "bevy",
+   "bevy-plugin",
+   "input",
+   "input-handling"
+  ],
+  "archived": false,
+  "bevy": null,
+  "missing": false
+ },
+ "bevyengine/bevy": {
+  "licence": "Apache-2.0",
+  "description": "A refreshingly simple data-driven game engine built in Rust",
+  "stars": 49109,
+  "pushed": "2026-10-16",
+  "topics": [
+   "bevy",
+   "game-development",
+   "game-engine",
+   "gamedev",
+   "open-source",
+   "rust"
+  ],
+  "archived": false,
+  "bevy": null,
+  "missing": false
+ },
+ "bevyengine/bevy_github_ci_template": {
+  "licence": "Apache-2.0",
+  "description": "",
+  "stars": 262,
+  "pushed": "2026-02-05",
+  "topics": [],
+  "archived": false,
+  "bevy": null,
+  "missing": false
+ },
+ "biomechanics-foundation/bevy_c3d": {
+  "licence": "Apache-2.0",
+  "description": "A .c3d motion capture asset loader plugin for the Bevy engine",
+  "stars": 10,
+  "pushed": "2024-11-25",
+  "topics": [
+   "bevy",
+   "bevy-engine",
+   "bevy-plugin",
+   "biomechanics",
+   "c3d"
+  ],
+  "archived": false,
+  "bevy": null,
+  "missing": false
+ },
+ "boleque/blockout": {
+  "licence": "MIT",
+  "description": "",
+  "stars": 1,
+  "pushed": "2026-08-22",
+  "topics": [],
+  "archived": false,
+  "bevy": "0.19.0",
+  "missing": false
+ },
+ "bonsairobo/bevy_rider": {
+  "licence": "unknown",
+  "description": "Classic Line Rider implemented with the Bevy engine and Rapier 2D.",
+  "stars": 16,
+  "pushed": "2021-08-13",
+  "topics": [],
+  "archived": false,
+  "bevy": "0.5",
+  "missing": false
+ },
+ "bonsairobo/projectris": {
+  "licence": "unknown",
+  "description": "Shadow Tetris.",
+  "stars": 8,
+  "pushed": "2025-04-07",
+  "topics": [],
+  "archived": false,
+  "bevy": "0.15",
+  "missing": false
+ },
+ "bonsairobo/smooth-bevy-cameras": {
+  "licence": "MIT",
+  "description": "Bevy camera controllers with buttery, exponential smoothing.",
+  "stars": 315,
+  "pushed": "2026-02-02",
+  "topics": [],
+  "archived": false,
+  "bevy": null,
+  "missing": false
+ },
+ "carp3/rusty-bird": {
+  "licence": "unknown",
+  "description": "A Flappy Bird clone",
+  "stars": 18,
+  "pushed": "2025-07-27",
+  "topics": [
+   "bevy",
+   "flappy-bird",
+   "rust"
+  ],
+  "archived": false,
+  "bevy": "0.13.2",
+  "missing": false
+ },
+ "cart/build_a_better_buddy": {
+  "licence": "NOASSERTION",
+  "description": "Bevy Jam #1: Build A Better Buddy",
+  "stars": 28,
+  "pushed": "2022-03-10",
+  "topics": [],
+  "archived": false,
+  "bevy": "0.6",
+  "missing": false
+ },
+ "claudijo/pirate-sea-jam": {
+  "licence": "NOASSERTION",
+  "description": "Jam-sized pirate game written in Rust / Bevy",
+  "stars": 35,
+  "pushed": "2024-07-04",
+  "topics": [],
+  "archived": false,
+  "bevy": "0.13.2",
+  "missing": false
+ },
+ "corbamico/bevy-tetris": {
+  "licence": "GPL-3.0",
+  "description": "clone tetris by using rust and bevy",
+  "stars": 54,
+  "pushed": "2026-07-07",
+  "topics": [
+   "bevy",
+   "rust",
+   "tetris"
+  ],
+  "archived": false,
+  "bevy": "0.19",
+  "missing": false
+ },
+ "cryscan/bevy-hikari": {
+  "licence": "NOASSERTION",
+  "description": "A Realtime Path Tracer for Bevy.",
+  "stars": 382,
+  "pushed": "2023-05-05",
+  "topics": [],
+  "archived": false,
+  "bevy": null,
+  "missing": false
+ },
+ "cryscan/summer-jam": {
+  "licence": "Apache-2.0",
+  "description": "Pong but has gravity.",
+  "stars": 34,
+  "pushed": "2023-02-12",
+  "topics": [
+   "bevy-engine",
+   "game",
+   "rust",
+   "wasm"
+  ],
+  "archived": false,
+  "bevy": "0.9",
+  "missing": false
+ },
+ "cvhariharan/smoke-rs": {
+  "licence": "unknown",
+  "description": "A simple smoke simulation in Rust using Bevy in under 100 lines of code.",
+  "stars": 12,
+  "pushed": "2021-08-08",
+  "topics": [
+   "bevy",
+   "rust"
+  ],
+  "archived": false,
+  "bevy": "0.5.0",
+  "missing": false
+ },
+ "d-bucur/bevy_touch_camera": {
+  "licence": "Apache-2.0",
+  "description": "Touch camera for Bevy that supports drag and pinch to zoom",
+  "stars": 13,
+  "pushed": "2024-02-21",
+  "topics": [
+   "bevy",
+   "bevy-plugin",
+   "rust"
+  ],
+  "archived": false,
+  "bevy": null,
+  "missing": false
+ },
+ "davidB/ld47_keep_inside": {
+  "licence": "CC0-1.0",
+  "description": "My game for Ludum Dare 47",
+  "stars": 6,
+  "pushed": "2020-12-21",
+  "topics": [],
+  "archived": false,
+  "bevy": "0.2.1",
+  "missing": false
+ },
+ "dimforge/bevy_rapier": {
+  "licence": "unknown",
+  "description": "Official Rapier plugin for the Bevy game engine (MOVED to the rapier monerepo).",
+  "stars": 1584,
+  "pushed": "2026-09-24",
+  "topics": [],
+  "archived": true,
+  "bevy": null,
+  "missing": false
+ },
+ "djeedai/libracity": {
+  "licence": "NOASSERTION",
+  "description": "LibraCity - City planning on a needle! LibraCity is a puzzle game where you build a city at equilibrium on a needle. To succeed, take advantage of the various weights of the buildings, and place them all while ensuring the city remains stable.",
+  "stars": 25,
+  "pushed": "2023-09-02",
+  "topics": [
+   "bevy",
+   "bevy-engine",
+   "game",
+   "gamedev",
+   "puzzle-game",
+   "rust",
+   "rust-lang"
+  ],
+  "archived": false,
+  "bevy": "0.7",
+  "missing": false
+ },
+ "djeedai/super-kaizen-overloaded": {
+  "licence": "NOASSERTION",
+  "description": "\u2604 Super Kaizen Overloaded \u2604 is a shoot'em up written in \ud83e\udd80 Rust with the \ud83d\udd4a Bevy game engine.",
+  "stars": 4,
+  "pushed": "2024-07-09",
+  "topics": [],
+  "archived": false,
+  "bevy": "0.7",
+  "missing": false
+ },
+ "dmitriy-shmilo/sio2": {
+  "licence": "unknown",
+  "description": "A simple powder toy clone written in Rust with bevy.",
+  "stars": 33,
+  "pushed": "2022-01-03",
+  "topics": [
+   "bevy"
+  ],
+  "archived": false,
+  "bevy": "0.3.0",
+  "missing": false
+ },
+ "dsgallups/bevy_gltf_animation": {
+  "licence": "Apache-2.0",
+  "description": "",
+  "stars": 14,
+  "pushed": "2025-10-19",
+  "topics": [],
+  "archived": false,
+  "bevy": null,
+  "missing": false
+ },
+ "erasin/bevy_vox": {
+  "licence": "MIT",
+  "description": " Load MagicaVoxel Vox file for bevy engine.",
+  "stars": 50,
+  "pushed": "2026-02-24",
+  "topics": [
+   "bevy",
+   "bevy-plugin"
+  ],
+  "archived": false,
+  "bevy": null,
+  "missing": false
+ },
+ "fishfight/punchy": {
+  "licence": "NOASSERTION",
+  "description": "A 2.5D side-scroller beatemup, made in Bevy",
+  "stars": 313,
+  "pushed": "2024-06-06",
+  "topics": [
+   "bevy",
+   "fish-game",
+   "game",
+   "game-engine",
+   "multiplayer",
+   "rust",
+   "wasm",
+   "web"
+  ],
+  "archived": false,
+  "bevy": null,
+  "missing": false
+ },
+ "fluffysquirrels/one-click-ninja": {
+  "licence": "MIT",
+  "description": "A game for the game jam \"1-Button Jam 2021\"",
+  "stars": 6,
+  "pushed": "2022-01-01",
+  "topics": [
+   "bevy",
+   "game",
+   "gamejam",
+   "rust"
+  ],
+  "archived": false,
+  "bevy": "0.5.0",
+  "missing": false
+ },
+ "fogarecious/bevy_tutorial": {
+  "licence": "unknown",
+  "description": "A simple tutorial for the Bevy engine",
+  "stars": 135,
+  "pushed": "2025-04-07",
+  "topics": [
+   "bevy",
+   "rust",
+   "tutorial"
+  ],
+  "archived": false,
+  "bevy": null,
+  "missing": false
+ },
+ "foxzool/bevy_serialport": {
+  "licence": "Apache-2.0",
+  "description": "Async serial port plugin for Bevy game engine with enhanced error handling and convenience APIs",
+  "stars": 9,
+  "pushed": "2026-10-09",
+  "topics": [
+   "bevy",
+   "bevy-plugin",
+   "serialport"
+  ],
+  "archived": false,
+  "bevy": null,
+  "missing": false
+ },
+ "foxzool/jigsaw_puzzle": {
+  "licence": "Apache-2.0",
+  "description": "jigsaw puzzle game made by bevy ",
+  "stars": 16,
+  "pushed": "2025-11-04",
+  "topics": [],
+  "archived": false,
+  "bevy": "0.17.0",
+  "missing": false
+ },
+ "foxzool/nyt_sudoku": {
+  "licence": "Apache-2.0",
+  "description": "A sudoku puzzle game made by Bevy game engine",
+  "stars": 13,
+  "pushed": "2025-05-09",
+  "topics": [
+   "bevy",
+   "rust",
+   "sudoku-game"
+  ],
+  "archived": false,
+  "bevy": "0.16",
+  "missing": false
+ },
+ "gbPagano/cellular-automata": {
+  "licence": "MIT",
+  "description": "3D Celullar Automata using the Bevy engine",
+  "stars": 23,
+  "pushed": "2024-09-06",
+  "topics": [
+   "3d",
+   "bevy",
+   "cellular-automata",
+   "rust"
+  ],
+  "archived": false,
+  "bevy": "0.14.1",
+  "missing": false
+ },
+ "gorkemcnr/pixel-attack": {
+  "licence": "MIT",
+  "description": "Parallax effect based Spacecraft shooting game written in Rust and Bevy Gaming Engine",
+  "stars": 18,
+  "pushed": "2023-01-24",
+  "topics": [],
+  "archived": false,
+  "bevy": "0.9.1",
+  "missing": false
+ },
+ "greysquirr3l/bevy-archie": {
+  "licence": "Apache-2.0",
+  "description": "A comprehensive game controller support module for Bevy",
+  "stars": 13,
+  "pushed": "2026-09-21",
+  "topics": [
+   "bevy",
+   "bevy-plugin",
+   "controller",
+   "game-development",
+   "gamedev",
+   "gamepad",
+   "input",
+   "rust"
+  ],
+  "archived": false,
+  "bevy": null,
+  "missing": false
+ },
+ "hacknus/bevy_voxel_plot": {
+  "licence": "Apache-2.0",
+  "description": "Simple crate to efficiently create a voxel plot (with opacity) in bevy/rust.",
+  "stars": 7,
+  "pushed": "2026-06-29",
+  "topics": [],
+  "archived": false,
+  "bevy": null,
+  "missing": false
+ },
+ "hideakitai/bevy_serial": {
+  "licence": "NOASSERTION",
+  "description": "Serial Port Communication Plugin for Bevy",
+  "stars": 12,
+  "pushed": "2026-10-18",
+  "topics": [],
+  "archived": false,
+  "bevy": null,
+  "missing": false
+ },
+ "hihaheho/hug": {
+  "licence": "unknown",
+  "description": "\ud83e\udec2",
+  "stars": 16,
+  "pushed": "2025-02-16",
+  "topics": [],
+  "archived": false,
+  "bevy": "0.5",
+  "missing": false
+ },
+ "iMplode-nZ/bevy-orbit-controls": {
+  "licence": "ISC",
+  "description": "Use https://github.com/bonsairobo/smooth-bevy-cameras instead, this is unmaintained.",
+  "stars": 12,
+  "pushed": "2021-10-16",
+  "topics": [],
+  "archived": false,
+  "bevy": null,
+  "missing": false
+ },
+ "inFngNam/dungeon-quest": {
+  "licence": "MPL-2.0",
+  "description": "",
+  "stars": 14,
+  "pushed": "2023-08-10",
+  "topics": [],
+  "archived": false,
+  "bevy": "0.7.0",
+  "missing": false
+ },
+ "indiv0/colonize": {
+  "licence": "GPL-3.0",
+  "description": "A Dwarf Fortress/Rimworld-like game written in Rust",
+  "stars": 389,
+  "pushed": "2023-01-20",
+  "topics": [
+   "dwarf-fortress",
+   "game",
+   "piston",
+   "rimworld",
+   "rust"
+  ],
+  "archived": false,
+  "bevy": "0.4.0",
+  "missing": false
+ },
+ "insrcd/labrynth-game": {
+  "licence": "Apache-2.0",
+  "description": "",
+  "stars": 37,
+  "pushed": "2022-06-21",
+  "topics": [],
+  "archived": false,
+  "bevy": null,
+  "missing": false
+ },
+ "jabuwu/bevy_spine": {
+  "licence": "NOASSERTION",
+  "description": "A Bevy plugin for Spine",
+  "stars": 131,
+  "pushed": "2026-06-29",
+  "topics": [],
+  "archived": false,
+  "bevy": null,
+  "missing": false
+ },
+ "janhohenheim/avian_pickup": {
+  "licence": "Apache-2.0",
+  "description": "A plugin for implementing picking up dynamic rigid bodies in Avian physics for the Bevy engine. Modeled after Half Life 2's gravity gun.",
+  "stars": 51,
+  "pushed": "2026-08-06",
+  "topics": [
+   "avian",
+   "bevy",
+   "half-life-2",
+   "physics"
+  ],
+  "archived": false,
+  "bevy": null,
+  "missing": false
+ },
+ "janhohenheim/bevy_fix_cursor_unlock_web": {
+  "licence": "Apache-2.0",
+  "description": "A tiny plugin that fixes Bevy not reporting when the cursor is unlocked on web",
+  "stars": 6,
+  "pushed": "2026-08-05",
+  "topics": [],
+  "archived": false,
+  "bevy": null,
+  "missing": false
+ },
+ "janhohenheim/bevy_wind_waker_shader": {
+  "licence": "Apache-2.0",
+  "description": "A toon shader that looks like the one used for characters in The Legend of Zelda: The Wind Waker",
+  "stars": 94,
+  "pushed": "2026-01-29",
+  "topics": [
+   "bevy",
+   "game-development",
+   "rust",
+   "zelda"
+  ],
+  "archived": false,
+  "bevy": null,
+  "missing": false
+ },
+ "janhohenheim/foxtrot": {
+  "licence": "MIT",
+  "description": "A 3D reference project and tech demo for the Bevy Engine",
+  "stars": 872,
+  "pushed": "2026-02-23",
+  "topics": [
+   "3d",
+   "bevy",
+   "game-development",
+   "gamedev",
+   "rust",
+   "template"
+  ],
+  "archived": false,
+  "bevy": null,
+  "missing": false
+ },
+ "jasonjmcghee/bevy_trackpad_haptic": {
+  "licence": "MIT",
+  "description": "A bevy plugin for triggering trackpad haptic feedback on a mac",
+  "stars": 5,
+  "pushed": "2024-06-02",
+  "topics": [
+   "accessibility",
+   "bevy",
+   "haptic",
+   "haptic-feedback",
+   "haptics",
+   "mac",
+   "macos",
+   "rust",
+   "trackpad"
+  ],
+  "archived": false,
+  "bevy": null,
+  "missing": false
+ },
+ "jayhwkns/bevy_enhanced_camera": {
+  "licence": "MIT",
+  "description": "Minimal camera controller plugin for Bevy that natively uses bevy_enhanced_input",
+  "stars": 10,
+  "pushed": "2026-06-22",
+  "topics": [
+   "bevy",
+   "bevy-plugin",
+   "game-development"
+  ],
+  "archived": false,
+  "bevy": null,
+  "missing": false
+ },
+ "jiangheng90-opensource/bevy_gltf_draco": {
+  "licence": "Apache-2.0",
+  "description": "draco decoder plugin for bevy",
+  "stars": 6,
+  "pushed": "2026-10-04",
+  "topics": [],
+  "archived": false,
+  "bevy": null,
+  "missing": false
+ },
+ "klownie/bevy_sdf_klown": {
+  "licence": "MIT",
+  "description": "Another hybrid sdf engine for bevy",
+  "stars": 37,
+  "pushed": "2026-07-02",
+  "topics": [],
+  "archived": false,
+  "bevy": null,
+  "missing": false
+ },
+ "komadori/bevy_mod_outline": {
+  "licence": "Apache-2.0",
+  "description": "",
+  "stars": 207,
+  "pushed": "2026-07-09",
+  "topics": [],
+  "archived": false,
+  "bevy": null,
+  "missing": false
+ },
+ "kurbos/bevy-shell-template": {
+  "licence": "Apache-2.0",
+  "description": "An opinionated, monolithic template for Bevy with cross-platform CI/CD, native + WASM launchers, and managed cross-platform deployment.",
+  "stars": 231,
+  "pushed": "2023-05-22",
+  "topics": [],
+  "archived": true,
+  "bevy": null,
+  "missing": false
+ },
+ "langp11/bevy-tetris-0.6": {
+  "licence": "MIT",
+  "description": "A partial Tetris clone written as an introductory tutorial fo Bevy 0.6",
+  "stars": 3,
+  "pushed": "2022-04-18",
+  "topics": [],
+  "archived": false,
+  "bevy": "0.7",
+  "missing": false
+ },
+ "laundmo/bevy_global_input": {
+  "licence": "unknown",
+  "description": "",
+  "stars": 8,
+  "pushed": "2023-07-16",
+  "topics": [],
+  "archived": false,
+  "bevy": null,
+  "missing": false
+ },
+ "liangyongrui/dodge-the-creeps-bevy": {
+  "licence": "CC0-1.0",
+  "description": "",
+  "stars": 1,
+  "pushed": "2022-08-24",
+  "topics": [],
+  "archived": false,
+  "bevy": "0.8",
+  "missing": false
+ },
+ "lightsoutgames/bevy_input_actionmap": {
+  "licence": "MIT",
+  "description": "",
+  "stars": 26,
+  "pushed": "2024-04-15",
+  "topics": [],
+  "archived": false,
+  "bevy": null,
+  "missing": false
+ },
+ "merwaaan/bevy_spritesheet_animation": {
+  "licence": "MIT",
+  "description": "A Bevy plugin for easily animating 2D and 3D sprites",
+  "stars": 124,
+  "pushed": "2026-09-27",
+  "topics": [],
+  "archived": false,
+  "bevy": null,
+  "missing": false
+ },
+ "miskibin/warbell": {
+  "licence": "NOASSERTION",
+  "description": "Action-RPG: a Bevy 0.19 / Rust  game \u2014 town-building, night sieges, upgrades, bloodline succession",
+  "stars": 91,
+  "pushed": "2026-10-18",
+  "topics": [
+   "game",
+   "indiegame",
+   "low-poly",
+   "warbell"
+  ],
+  "archived": false,
+  "bevy": "0.20.0",
+  "missing": false
+ },
+ "mockersf/kmanb": {
+  "licence": "MIT",
+  "description": "Ludum Dare 47 - Jam",
+  "stars": 12,
+  "pushed": "2022-12-19",
+  "topics": [
+   "bevy",
+   "ludum-dare-47"
+  ],
+  "archived": false,
+  "bevy": "0.3.0",
+  "missing": false
+ },
+ "mrk-its/bevy-robbo": {
+  "licence": "GPL-2.0",
+  "description": "Port of mrk-its/rust-robbo to bevy",
+  "stars": 37,
+  "pushed": "2021-02-16",
+  "topics": [
+   "bevy",
+   "esc",
+   "game",
+   "rust"
+  ],
+  "archived": false,
+  "bevy": "0.4.0",
+  "missing": false
+ },
+ "mtKeller/snake_bevy": {
+  "licence": "MIT",
+  "description": "",
+  "stars": 9,
+  "pushed": "2021-08-23",
+  "topics": [],
+  "archived": false,
+  "bevy": "0.3.0",
+  "missing": false
+ },
+ "nicolashahn/bevy-space-invaders": {
+  "licence": "unknown",
+  "description": "learning bevy by implementing space invaders",
+  "stars": 4,
+  "pushed": "2021-02-07",
+  "topics": [],
+  "archived": false,
+  "bevy": "0.4",
+  "missing": false
+ },
+ "nilclass/bevy_stl": {
+  "licence": "MIT",
+  "description": "STL loader for bevy, based on stl_io",
+  "stars": 41,
+  "pushed": "2026-01-16",
+  "topics": [],
+  "archived": false,
+  "bevy": null,
+  "missing": false
+ },
+ "olekspickle/bevy_new_3d_rpg": {
+  "licence": "unknown",
+  "description": "Solid bevy game template for 3d RPG/shooter games",
+  "stars": 98,
+  "pushed": "2026-10-03",
+  "topics": [
+   "3d",
+   "demo",
+   "game-development",
+   "gamedev",
+   "rpg",
+   "rust",
+   "template",
+   "third-person",
+   "top-down"
+  ],
+  "archived": false,
+  "bevy": null,
+  "missing": false
+ },
+ "ostwilkens/arugio": {
+  "licence": "MIT",
+  "description": "a bevy multiplayer browser game example",
+  "stars": 66,
+  "pushed": "2023-04-14",
+  "topics": [],
+  "archived": false,
+  "bevy": null,
+  "missing": false
+ },
+ "pjankiewicz/nbody": {
+  "licence": "Apache-2.0",
+  "description": "",
+  "stars": 50,
+  "pushed": "2023-10-07",
+  "topics": [],
+  "archived": false,
+  "bevy": null,
+  "missing": false
+ },
+ "ramirezmike/not_snake_game": {
+  "licence": "Apache-2.0",
+  "description": "A snake-inspired game made in Rust using the Bevy game engine.",
+  "stars": 93,
+  "pushed": "2022-07-23",
+  "topics": [
+   "bevy",
+   "game",
+   "gamedev",
+   "rust",
+   "rust-lang"
+  ],
+  "archived": false,
+  "bevy": "0.7.0",
+  "missing": false
+ },
+ "ramirezmike/quien_es_el_mechaburro": {
+  "licence": "NOASSERTION",
+  "description": "A game made in one week for the Bevy engine's first game jam",
+  "stars": 31,
+  "pushed": "2023-09-25",
+  "topics": [],
+  "archived": false,
+  "bevy": "0.11.2",
+  "missing": false
+ },
+ "rhapsodyn/bevy-game-of-life": {
+  "licence": "MIT",
+  "description": "",
+  "stars": 4,
+  "pushed": "2023-11-08",
+  "topics": [],
+  "archived": false,
+  "bevy": "0.11.2",
+  "missing": false
+ },
+ "ropewalker/bevy_sokoban": {
+  "licence": "MIT",
+  "description": "",
+  "stars": 22,
+  "pushed": "2022-11-05",
+  "topics": [],
+  "archived": false,
+  "bevy": "0.8.1",
+  "missing": false
+ },
+ "rparrett/combine-racers": {
+  "licence": "NOASSERTION",
+  "description": "A 2.5d trick-racing game for Bevy Jam 2",
+  "stars": 16,
+  "pushed": "2024-08-18",
+  "topics": [
+   "bevy",
+   "browser-game",
+   "game",
+   "rust",
+   "web-game",
+   "webgl",
+   "webgl2"
+  ],
+  "archived": false,
+  "bevy": "0.14",
+  "missing": false
+ },
+  "licence": "unknown",
+  "description": "A puzzle game reminiscent of old school printed circuit board design software",
+  "stars": 54,
+  "pushed": "2025-10-14",
+  "topics": [
+   "bevy",
+   "browser-game",
+   "rust",
+   "web-game",
+   "webgl",
+   "webgl2"
+  ],
+  "archived": false,
+  "bevy": "0.17",
+  "missing": false
+ },
+ "rparrett/taipo": {
+  "licence": "NOASSERTION",
+  "description": "A Typing Tower Defense Game for learning Japanese",
+  "stars": 90,
+  "pushed": "2025-05-30",
+  "topics": [
+   "bevy",
+   "browser-game",
+   "game",
+   "rust",
+   "web-game",
+   "webgl",
+   "webgl2"
+  ],
+  "archived": false,
+  "bevy": "0.16",
+  "missing": false
+ },
+ "rparrett/typey_birb": {
+  "licence": "NOASSERTION",
+  "description": "A Flappy Bird Typing game for Bevy Jam #1",
+  "stars": 16,
+  "pushed": "2025-10-06",
+  "topics": [
+   "bevy",
+   "browser-game",
+   "game",
+   "rust",
+   "web-game",
+   "webgl2"
+  ],
+  "archived": false,
+  "bevy": "0.17",
+  "missing": false
+ },
+ "rsaihe/zenith": {
+  "licence": "MIT",
+  "description": "A space-themed shoot 'em up game.",
+  "stars": 23,
+  "pushed": "2021-05-06",
+  "topics": [
+   "bevy",
+   "bevy-engine",
+   "bullet-hell",
+   "rust",
+   "rust-game",
+   "rust-gamedev",
+   "rust-lang",
+   "shoot-em-up"
+  ],
+  "archived": true,
+  "bevy": null,
+  "missing": false
+ },
+ "sadpython/bevy_advanced_input": {
+  "licence": "MIT",
+  "description": "Just yet another input plugin for bevy engine",
+  "stars": 25,
+  "pushed": "2022-01-31",
+  "topics": [],
+  "archived": false,
+  "bevy": null,
+  "missing": false
+ },
+ "sburris0/bevy_flycam": {
+  "licence": "ISC",
+  "description": "Basic first-person fly camera for the Bevy game engine",
+  "stars": 220,
+  "pushed": "2026-07-17",
+  "topics": [
+   "3d",
+   "bevy",
+   "bevy-engine",
+   "firstperson"
+  ],
+  "archived": false,
+  "bevy": null,
+  "missing": false
+ },
+ "seabassjh/bevy-kajiya": {
+  "licence": "Apache-2.0",
+  "description": "A plugin to use the kajiya renderer with bevy ",
+  "stars": 124,
+  "pushed": "2022-10-03",
+  "topics": [],
+  "archived": false,
+  "bevy": null,
+  "missing": false
+ },
+ "shanecelis/keyseq": {
+  "licence": "Apache-2.0",
+  "description": "Specify key chords using `Ctrl-A` short-hand",
+  "stars": 4,
+  "pushed": "2026-10-13",
+  "topics": [],
+  "archived": false,
+  "bevy": null,
+  "missing": false
+ },
+ "shnewto/limbo_pass": {
+  "licence": "MIT",
+  "description": "a little game, limbo on a mountain pass",
+  "stars": 17,
+  "pushed": "2025-12-09",
+  "topics": [
+   "3d",
+   "bevy",
+   "blender",
+   "collision-detection",
+   "game-development",
+   "rapier3d",
+   "rust"
+  ],
+  "archived": false,
+  "bevy": null,
+  "missing": false
+ },
+ "sim-the-bean/physme": {
+  "licence": "MIT",
+  "description": "A physics engined based on my ldjam-47 entry",
+  "stars": 32,
+  "pushed": "2021-04-25",
+  "topics": [],
+  "archived": true,
+  "bevy": null,
+  "missing": false
+ },
+ "simensgreen/bevy_manim": {
+  "licence": "MIT",
+  "description": "bevy plugin for drawing and animation",
+  "stars": 27,
+  "pushed": "2021-06-21",
+  "topics": [
+   "animation",
+   "bevy",
+   "drawing"
+  ],
+  "archived": true,
+  "bevy": null,
+  "missing": false
+ },
+ "splashdust/bevy_voxel_world": {
+  "licence": "Apache-2.0",
+  "description": "Easy to use voxel world for Bevy",
+  "stars": 348,
+  "pushed": "2026-10-14",
+  "topics": [],
+  "archived": false,
+  "bevy": null,
+  "missing": false
+ },
+ "stevenlovegrove/killer-critters": {
+  "licence": "unknown",
+  "description": "Mega-bomberman inspired animal escapades",
+  "stars": 8,
+  "pushed": "2024-10-31",
+  "topics": [],
+  "archived": false,
+  "bevy": null,
+  "missing": false
+ },
+ "szunami/taileater": {
+  "licence": "Apache-2.0",
+  "description": "A puzzle game where you eat your own tail to win!",
+  "stars": 38,
+  "pushed": "2023-03-13",
+  "topics": [
+   "2d-game",
+   "bevy",
+   "bevy-engine",
+   "game",
+   "pixel-art",
+   "puzzle-game",
+   "rust",
+   "rustlang"
+  ],
+  "archived": false,
+  "bevy": "0.5",
+  "missing": false
+ },
+ "tbillington/bevy_toon_shader": {
+  "licence": "Apache-2.0",
+  "description": "Toon Shader for the bevy game engine",
+  "stars": 128,
+  "pushed": "2024-10-05",
+  "topics": [
+   "3d-graphics",
+   "asset",
+   "bevy",
+   "game-assets",
+   "game-development",
+   "graphics",
+   "rust",
+   "shader"
+  ],
+  "archived": false,
+  "bevy": null,
+  "missing": false
+ },
+ "team-plover/warlocks-gambit": {
+  "licence": "NOASSERTION",
+  "description": "The Bevy Jam 1 Team Plover game submission",
+  "stars": 27,
+  "pushed": "2022-08-31",
+  "topics": [],
+  "archived": false,
+  "bevy": "0.8",
+  "missing": false
+ },
+ "tehlers/diplopod": {
+  "licence": "MIT",
+  "description": "A reimplementation of the classic snake clone 'Tausendfu\u00df' from the Colour Genie EG2000",
+  "stars": 12,
+  "pushed": "2026-10-10",
+  "topics": [
+   "bevy",
+   "bevy-game",
+   "game",
+   "snake",
+   "snake-game"
+  ],
+  "archived": false,
+  "bevy": "0.20.0",
+  "missing": false
+ },
+ "thallada/bevy-nbody": {
+  "licence": "unknown",
+  "description": "N-body simulation using bevy and bigbang crates",
+  "stars": 24,
+  "pushed": "2020-10-31",
+  "topics": [
+   "2d",
+   "bevy",
+   "nbody",
+   "nbody-simulation"
+  ],
+  "archived": false,
+  "bevy": "0.1",
+  "missing": false
+ },
+ "thetawavegame/thetawave": {
+  "licence": "MIT",
+  "description": "A physics based, space shooter game made with Rust and the Bevy engine.",
+  "stars": 183,
+  "pushed": "2024-12-20",
+  "topics": [
+   "2d",
+   "bevy",
+   "game",
+   "physics",
+   "rapier",
+   "spaceshooter"
+  ],
+  "archived": false,
+  "bevy": null,
+  "missing": false
+ },
+ "thmxv/bevy_blendy_cameras": {
+  "licence": "Apache-2.0",
+  "description": "Bevy cameras for Pan/Orbit/Zoom and Fly movements, set viewpoint and frame entities",
+  "stars": 18,
+  "pushed": "2026-01-05",
+  "topics": [],
+  "archived": false,
+  "bevy": null,
+  "missing": false
+ },
+ "timboldt/miner": {
+  "licence": "Apache-2.0",
+  "description": "Rewrite of an old game of mine, in Rust.",
+  "stars": 5,
+  "pushed": "2024-08-15",
+  "topics": [
+   "bevy-engine",
+   "game",
+   "rust"
+  ],
+  "archived": false,
+  "bevy": "0.6",
+  "missing": false
+ },
+ "topheman/bevy-rust-wasm-experiments": {
+  "licence": "MIT",
+  "description": "\ud83e\udd80 A small video game developed in Rust with Bevy framework targeting both desktop and WebAssembly (browser)",
+  "stars": 47,
+  "pushed": "2026-03-06",
+  "topics": [
+   "bevy",
+   "rust",
+   "wasm",
+   "webassembly"
+  ],
+  "archived": false,
+  "bevy": "0.18.1",
+  "missing": false
+ },
+ "torsteingrindvik/bevy-vfx-bag": {
+  "licence": "Apache-2.0",
+  "description": "",
+  "stars": 156,
+  "pushed": "2023-08-01",
+  "topics": [],
+  "archived": false,
+  "bevy": null,
+  "missing": false
+ },
+ "uggla/rock_run": {
+  "licence": "Apache-2.0",
+  "description": "A 2D old-school platformer",
+  "stars": 41,
+  "pushed": "2026-06-21",
+  "topics": [
+   "2d",
+   "bevy",
+   "platformer",
+   "prehistoric",
+   "rust"
+  ],
+  "archived": false,
+  "bevy": "0.16.1",
+  "missing": false
+ },
+ "vivaan-yadav/rpg": {
+  "licence": "MIT",
+  "description": "Simple procedural generated world with top down character",
+  "stars": 6,
+  "pushed": "2026-07-20",
+  "topics": [],
+  "archived": false,
+  "bevy": null,
+  "missing": false
+ },
+ "wiryls/cube-collection": {
+  "licence": "LGPL-3.0",
+  "description": "A puzzle game powered by Rust and Bevy.",
+  "stars": 25,
+  "pushed": "2026-10-16",
+  "topics": [
+   "bevy",
+   "game",
+   "puzzle-game",
+   "rust"
+  ],
+  "archived": false,
+  "bevy": null,
+  "missing": false
+ },
+ "yopox/LD49": {
+  "licence": "CC0-1.0",
+  "description": "Unbalanced Brawl: autochess made for the LD49.",
+  "stars": 40,
+  "pushed": "2021-10-12",
+  "topics": [
+   "bevy",
+   "ld49",
+   "rust"
+  ],
+  "archived": false,
+  "bevy": "0.5.0",
+  "missing": false
+ },
+ "yopox/LD51": {
+  "licence": "CC0-1.0",
+  "description": "miam: cooking game made for the Ludum Dare 51.",
+  "stars": 8,
+  "pushed": "2022-10-05",
+  "topics": [
+   "bevy",
+   "bevy-engine",
+   "ludum-dare",
+   "ludum-dare-51",
+   "rust"
+  ],
+  "archived": false,
+  "bevy": "0.8",
+  "missing": false
+ },
+ "yuanyan3060/bevy_slugtext": {
+  "licence": "MIT",
+  "description": "",
+  "stars": 18,
+  "pushed": "2026-07-12",
+  "topics": [],
+  "archived": false,
+  "bevy": null,
+  "missing": false
+ },
+ "yunfengzh/monolith": {
+  "licence": "Apache-2.0",
+  "description": "",
+  "stars": 1,
+  "pushed": "2026-09-22",
+  "topics": [],
+  "archived": false,
+  "bevy": null,
+  "missing": false
+ }
+}

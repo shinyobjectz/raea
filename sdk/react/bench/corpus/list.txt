@@ -1,0 +1,53 @@
+# The corpus run.sh runs: one edit per line, repo-relative, or ~/... for void's eval spaces (untracked agent output that
+# lives only on this Mac; run.sh prints SKIP where it's missing). Footage is never committed: the s2sdk edits read
+# score/bench/out/s2sdk/*/media -> apps/void/evals/fixtures/real/media -> engine/media/real (links into ~/.raea-void/media,
+# ~/Downloads and eval runs), and void's spaces read their own media/ folders.
+
+# fixtures in git
+sdk/react/bench/timelines/titles/edit.tsx
+sdk/react/bench/games/pong/edit.tsx
+sdk/react/bench/games/platformer/edit.tsx
+sdk/react/bench/games/tones/edit.tsx
+sdk/motion/conformance/golden/01-card-fade/edit.tsx
+sdk/motion/conformance/golden/02-sequence-timing/edit.tsx
+sdk/motion/conformance/golden/03-video-take/edit.tsx
+sdk/motion/conformance/golden/04-mesh-sign/edit.tsx
+sdk/motion/conformance/golden/05-world-solid/edit.tsx
+sdk/motion/conformance/golden/06-world-entities/edit.tsx
+# synthetic: a 16:9 deck, a 3D product shot with DOM over it
+sdk/react/bench/corpus/fixtures/deck/edit.tsx
+sdk/react/bench/corpus/fixtures/box3d/edit.tsx
+
+# ad edits on real footage with captions and parts (score's SDK backend from agent-written briefs; export const config)
+ai/score/bench/out/s2sdk/c8_brief_full/client-a/edit.tsx
+ai/score/bench/out/s2sdk/c8_brief_full/client-a/edit.tsx
+ai/score/bench/out/s2sdk/c8_brief_full/client-b/edit.tsx
+ai/score/bench/out/s2sdk/c8_brief_full/client-e/edit.tsx
+ai/score/bench/out/s2sdk/c8_brief_full/client-e/edit.tsx
+ai/score/bench/out/s2sdk/c8_brief_full/client-1/edit.tsx
+ai/score/bench/out/s2sdk/c8_brief_full/client-2/edit.tsx
+ai/score/bench/out/s2sdk/c8_brief_full/client-c/edit.tsx
+ai/score/bench/out/s2sdk/c8_brief_full/client-d/edit.tsx
+ai/score/bench/out/s2sdk/i7_ink_loop/client-3/edit.tsx
+ai/score/bench/out/s2sdk/c3_xsheet/client-b.9x16/edit.tsx
+
+# void agents' own TSX (eval spaces): ads with FaceFrame/ScreenFit parts, captions, slides, an app promo
+~/.raea-void/evals/runs/20261017-ts-nemotron/app--a-15-second-arock-promo/spaces/eval/edit.tsx
+~/.raea-void/evals/runs/20261017-ts-nemotron/app--a-30-second-jetflow-explainer/spaces/eval/edit.tsx
+~/.raea-void/evals/runs/20261017-ts-nemotron/ugc--client-a/spaces/eval/edit.tsx
+~/.raea-void/evals/runs/20261017-ts-nemotron/ugc--best-delivery-across-takes/spaces/eval/edit.tsx
+~/.raea-void/evals/runs/20261017-ts-nemotron/ugc--every-agency-is-a-state-machine/spaces/eval/edit.tsx
+~/.raea-void/evals/runs/20261017-ts-nemotron/ugc--automate-vs-simulate-as-a-designed-moment/spaces/eval/edit.tsx
+~/.raea-void/evals/runs/20261017-ts-smoke/ugc--client-a/spaces/eval/edit.tsx
+~/.raea-void/evals/runs/20261017-project/project--a-ugc-ad-that-needs-the-person-s-call/spaces/eval/edit.tsx
+~/.raea-void/evals/runs/20261017-project-glm2/project--a-ugc-ad-that-needs-the-person-s-call/spaces/eval/edit.tsx
+~/.raea-void/evals/runs/20261017-project-glm3/project--a-ugc-ad-that-needs-the-person-s-call/spaces/eval/edit.tsx
+~/.raea-void/evals/runs/20261017-project-glm3/project--an-ad-and-a-game-in-one-project-switching-between-them/spaces/eval/edit.tsx
+
+# void agents' games (and scripted matches)
+~/.raea-void/evals/runs/20261017-project/project--pong-a-change-and-back-to-the-first-version/spaces/pong/edit.tsx
+~/.raea-void/evals/runs/20261017-project-glm/project--an-ad-and-a-game-in-one-project-switching-between-them/spaces/pong/edit.tsx
+~/.raea-void/evals/runs/20261017-project-glm2/project--an-ad-and-a-game-in-one-project-switching-between-them/spaces/pong/edit.tsx
+~/.raea-void/evals/runs/20261017-project-glm3/project--an-ad-and-a-game-in-one-project-switching-between-them/spaces/pong/edit.tsx
+~/.raea-void/evals/runs/20261017-project-glm/project--pong-a-change-and-back-to-the-first-version/spaces/pong/edit.tsx
+~/.raea-void/evals/runs/20261017-project-glm3/project--pong-a-change-and-back-to-the-first-version/spaces/pong/edit.tsx

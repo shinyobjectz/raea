@@ -1,0 +1,48 @@
+[package]
+name = "raea-perception"
+version = "0.1.0"
+edition = "2024"
+license = "FSL-1.1-ALv2"
+publish = false
+description = "raea's perception in Rust: footage read the way an editor reads it (perception.feature). Ported from Perception.swift, which stays the reference until each part is checked equal to it."
+
+[dependencies]
+ocrs = { version = "0.13.1", optional = true }
+rten = { version = "0.26", optional = true }   # the version ocrs 0.13 builds on
+rten-tensor = { version = "0.26", optional = true }
+# frames come from the media plane (VideoToolbox on Apple, ffmpeg or the software decoders elsewhere)
+raea-media = { path = "../../engine/media", default-features = false, features = ["apple"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sha2 = "0.10"
+# TransNetV2 (MIT) through its ONNX export, the same ort pin and prebuilt runtime as ugc-embed
+ort = { version = "=2.0.0-rc.13", features = ["coreml"] }
+# DeepFilterNet3 (MIT/Apache-2.0): the authors' own Rust library with its model built in, run by tract (pure Rust);
+# behind `denoise` so the default build stays lean
+deep_filter = { git = "https://github.com/Rikorose/DeepFilterNet", tag = "v0.5.6", default-features = false, features = ["tract", "default-model"], optional = true }
+ndarray = { version = "0.15", optional = true }
+
+[features]
+denoise = ["dep:deep_filter", "dep:ndarray"]
+# portable OCR (goal: perception off Apple Vision, one feature at a time): ocrs on RTen, MIT/Apache, models fetched on
+# first use; `read-text --backend ocrs`. Off by default until it matches Vision on our renders
+ocr-portable = ["dep:ocrs", "dep:rten"]
+# portable faces: YuNet (OpenCV Zoo, MIT) on RTen, its ONNX model fetched on first use; `faces --backend yunet`.
+# Matches Vision on eval renders (2026-10-17: face present 98.9%, speaker-out-of-frame 99.2%): the Linux runner's faces
+face-portable = ["dep:rten", "dep:rten-tensor"]
+# the Vision trait on open models (src/portable.rs): faces, person mask, saliency, room, text lines
+vision-portable = ["face-portable", "ocr-portable"]
+
+[target.'cfg(target_vendor = "apple")'.dependencies]
+objc2 = "0.6"
+objc2-foundation = { version = "0.3", features = ["NSString", "NSURL", "NSError", "NSDictionary", "NSArray", "NSValue"] }
+objc2-core-ml = { version = "0.3", features = ["MLModel", "MLModelConfiguration", "MLFeatureProvider", "MLDictionaryFeatureProvider", "MLFeatureValue", "MLMultiArray", "MLModel_MLModelCompilation", "MLModelDescription", "MLFeatureDescription", "MLModelMetadataKeys", "objc2-core-video"] }
+objc2-core-video = { version = "0.3", features = ["CVPixelBuffer", "CVImageBuffer", "CVBuffer", "CVReturn"] }
+objc2-core-foundation = "0.3"
+objc2-core-graphics = { version = "0.3", features = ["CGImage", "CGColorSpace", "CGDataProvider"] }
+objc2-vision = { version = "0.3", features = ["VNRequestHandler", "VNRequest", "VNDetectFaceRectanglesRequest", "VNGeneratePersonSegmentationRequest", "VNRecognizeTextRequest", "VNDetectRectanglesRequest", "VNClassifyImageRequest", "VNDetectHumanRectanglesRequest", "VNGenerateAttentionBasedSaliencyImageRequest", "VNCalculateImageAestheticsScoresRequest", "VNGenerateImageFeaturePrintRequest", "VNGenerateOpticalFlowRequest", "VNTargetedImageRequest", "VNObservation", "VNTypes", "VNStatefulRequest", "objc2-core-video", "objc2-core-image", "objc2-core-graphics"] }
+image = { version = "0.25", default-features = false, features = ["png", "jpeg"] }
+
+[[example]]
+name = "vision_parity"
+required-features = ["vision-portable"]

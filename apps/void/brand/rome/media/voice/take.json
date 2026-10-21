@@ -1,0 +1,16 @@
+{
+ "sig": "06b4aef91f1222b1",
+ "voice": "80e34d5e0b2b4577a486f3a77e357261",
+ "model": "drama-3-preview",
+ "settings": {
+  "temperature": 0.3,
+  "top_p": 0.7,
+  "chunk_length": 300,
+  "condition_on_previous_chunks": true,
+  "normalize": true,
+  "prosody": {
+   "speed": 0.9
+  }
+ },
+ "seconds": 239.308
+}

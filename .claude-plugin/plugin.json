@@ -5,6 +5,7 @@
   "author": { "name": "Shane Murphy", "url": "https://raea.io" },
   "homepage": "https://raea.io",
   "repository": "https://github.com/shinyobjectz/raea",
-  "license": "FSL-1.1-ALv2",
+  "license": "Apache-2.0",
+  "skills": ["./sdk/skills/"],
   "keywords": ["video", "motion-graphics", "game-development", "rendering", "bevy", "react", "mcp"]
 }

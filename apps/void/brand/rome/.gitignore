@@ -1,0 +1,8 @@
+# Rebuilt by the tools, so kept out of git: Poly Haven skies, textures and props (tools/polyhaven.py), the fire, air
+# and sand footage (tools/fire.py, air.py, sand.py), and the render cache of generated sound (assets/: SAO foley and
+# TokenSynth notes, made again on first render).
+media/tex/
+media/sky/
+media/props/
+media/mixed/
+assets/

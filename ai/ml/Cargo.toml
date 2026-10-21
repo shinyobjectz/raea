@@ -1,0 +1,26 @@
+[package]
+name = "raea-ml"
+version = "0.1.0"
+edition = "2024"
+publish = false
+description = "raea's ONNX Runtime facility: models loaded once per process, run on tensors from Rust or from a composition's TypeScript (@raea/motion/ml), and Pocket TTS streamed on top of it (@raea/motion/speech)"
+license = "FSL-1.1-ALv2"
+
+[features]
+default = ["tts"]
+# Pocket TTS (Kyutai, on ort) and the speech service games and renders use: needs the tokenizer
+tts = ["dep:tokenizers"]
+# Core ML as an execution provider (display-only results: not bit-exact across runs or machines)
+coreml = ["ort/coreml"]
+
+[dependencies]
+# the same ort pin and prebuilt runtime as void's voice, raea/meaning/embed and raea/perception
+ort = { version = "=2.0.0-rc.13", features = ["half"] }
+half = "2"
+anyhow = "1"
+serde_json = "1"
+# models fetched once from Hugging Face into the model cache (models.rs)
+ureq = "2"
+tokenizers = { version = "0.23", default-features = false, features = ["onig"], optional = true }
+
+[dev-dependencies]

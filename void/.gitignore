@@ -1,6 +1,0 @@
-target/
-native/target/
-evals/scenarios-drive*/
-evals/fixtures-drive/
-evals/scenarios-drive-pick/
-evals/results/*drive*

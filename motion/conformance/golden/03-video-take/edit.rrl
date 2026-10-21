@@ -1,6 +1,0 @@
-edit {fps: 30, width: 1080, height: 1920, frames: 60}
-camera cam {bg: #000000}
-use "../../../../media/fixtures/take-h264.mp4" as take
-clip a {src: take, src_in: 2, from: 0, to: 60}
-title t {text: "REAL TAKE", x: 0, y: 300, w: 1080, size: 120, weight: 800, font: "Inter", color: #ffffff, align: center, line: 1}
-audio bed {src: "../../../../media/fixtures/music-bed.m4a", from: 0, to: 60, gain: -6}

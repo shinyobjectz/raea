@@ -1,0 +1,89 @@
+[package]
+name = "raea-react"
+version = "0.1.0"
+edition = "2024"
+description = "React on jitless V8 inside Bevy: React's commits become Bevy entities (engine/html/docs/bevy.feature, B2-B3)"
+license = "FSL-1.1-ALv2"
+
+[features]
+# Bevy plugins (raea-bevy-plugins): physics, GPU particles, tweens; raea-bevy-sdk generates their TypeScript
+bevy-plugins = ["dep:raea-bevy-plugins"]
+avian = ["bevy-plugins", "raea-bevy-plugins/avian"]
+hanabi = ["bevy-plugins", "raea-bevy-plugins/hanabi"]
+tweening = ["bevy-plugins", "raea-bevy-plugins/tweening"]
+default = ["sandbox", "browser", "seedling", "h264", "av1", "scripts", "modules", "network", "ml"]
+# ONNX models and Pocket TTS speech for compositions (raea-ml: @raea/motion/ml and /speech)
+ml = ["dep:raea-ml"]
+# the soft backend's H.264 (openh264): raea-motion keeps it; the game player goes without and decodes video through
+# AVFoundation (lightspeed R7)
+h264 = ["rdb/h264", "raea-media/h264"]
+# rdb's AV1 media backend: raea-motion keeps it; the game player (--no-default-features) goes without (lightspeed R7)
+av1 = ["rdb/av1"]
+# an HTML composition's <script>s (the engine's blitz-v8-script) and the TypeScript toolchain in process (raea-modules:
+# swc and deno_ast, for js-exec, the module seam and the incremental bake's function spans): raea-motion keeps both;
+# the game player (--no-default-features) goes without (lightspeed R7)
+scripts = ["raea/scripts", "rdb/scripts"]
+modules = ["dep:raea-modules", "raea-native/modules"]
+# the network (the engine's http(s) assets, the shell's net.*: ureq + rustls): raea-motion keeps it; the game player
+# goes without and reads the fonts its export packaged (game.rs FONTS)
+network = ["raea/network", "rdb/network", "raea-native/net"]
+# bevy_seedling on the one mixer core (raea-seedling): a game's <Seedling> samples (@raea/motion/seedling)
+seedling = ["dep:raea-seedling"]
+sandbox = ["dep:wsx"]
+# agent-browser in process (Chrome over CDP) as browser.* calls; the Mac's, not the iPhone's
+browser = ["dep:raea-browser"]
+# the exported game's player (src/bin/raea-game.rs, sdk/react/docs/game-export.md): built only when asked for
+#   cargo build --release --bin raea-game --no-default-features --features game
+game = []
+
+[[bin]]
+name = "raea-game"
+path = "src/bin/raea-game.rs"
+required-features = ["game"]
+
+[dependencies]
+# the one native-call layer (registry, generated types, the V8 binding and web shims)
+raea-native = { path = "../../engine/native", default-features = false }
+# the bundle's functions by span (bake.rs: an edit re-bakes only the frames where a changed component renders)
+raea-modules = { path = "../../engine/modules", optional = true }
+# raea-bundle's library (bundle/: Rolldown) loaded at run time for RAEA_BUNDLER=rolldown (docs/vite-in-raea.md A1-A3).
+# Never a Cargo dependency: Rolldown's crates turn on serde_json's preserve_order and arbitrary_precision, and features
+# unify across a binary (f60e0b7: every JSON map an IndexMap, every number its text, pong's apply 87 -> 159 allocations)
+libloading = "0.8"
+# the agent's sandbox (WASI tools on Wasmtime/Pulley) as wsx.* native calls
+wsx = { path = "../../engine/sandbox/wsx", optional = true }
+raea-browser = { path = "../../engine/browser", optional = true }
+# the same Bevy and feature set as rdb, so the two share one build
+bevy = { version = "=0.19.1", default-features = false, features = ["std", "default_app", "default_font", "multi_threaded", "3d_bevy_render", "ui_bevy_render", "png", "tonemapping_luts", "ktx2", "zstd_rust"] }
+serde_json = { version = "1", features = ["raw_value"] }
+serde = { version = "1", features = ["derive"] }
+# the engine: raea::dom, the Blitz document React's entities are mirrored into (bevy.feature B3)
+raea = { path = "../../engine/html", default-features = false }
+
+# the painted pages as PNG assets
+image = { version = "0.25", default-features = false, features = ["png", "hdr"] }
+# raea-motion: <Video>/<Audio> decoded natively at their source times (the platform's decoders, Symphonia)
+raea-media = { path = "../../engine/media", default-features = false, features = ["soft-audio", "apple"] }
+# @raea/motion's native calls: Manifold solids (rdb::shape) and the scene's rows; with rdb's native feature (the page
+# engine, media and GPU kernels it renders with), which its default features also bring but the game player's don't
+rdb = { path = "../../engine/rdb", default-features = false, features = ["native"] }
+# the animation substrate (a frame-pure fork of Animato): motion's <Animate> declarations sampled from the frame clock
+raea-animate = { path = "../../engine/animate", features = ["bevy"] }
+# Bevy plugins compiled into the engine, each behind a feature (sdk/motion/docs/bevy-plugins.md); none by default
+raea-bevy-plugins = { path = "../../engine/bevy-plugins", optional = true }
+manifold-rust = "0.16.0"
+regex = "1"
+base64 = "0.22"
+# rigid bodies for compositions (motion/physics.rs): baked in process, the same bits every run (Apache-2.0)
+rapier3d = { version = "0.36", features = ["enhanced-determinism"] }
+sha2 = "0.10"
+# a page's identity in a render (motion.rs store_page): xxHash3, many GB/s
+twox-hash = { version = "2", default-features = false, features = ["xxhash3_64"] }
+# raea-motion play: a window of its own for the live stage (src/play.rs)
+winit = "=0.30.13"
+# the output device warmed before the mixer opens it (live.rs warm_audio), the same cpal void uses
+cpal = "0.15"
+# the one mixer core: a Firewheel graph live and as the render's bounce (sdk/react/docs/audio-stack.md)
+raea-mixer = { path = "../../engine/mixer" }
+raea-seedling = { path = "../../engine/seedling", optional = true }
+raea-ml = { path = "../../ai/ml", optional = true, features = ["coreml"] }

@@ -1,0 +1,90 @@
+[package]
+name = "raea"
+version = "0.1.0"
+edition = "2024"
+license = "FSL-1.1-ALv2"
+description = "raea: HTML/CSS/GSAP compositions rendered to video without a browser (Blitz + Stylo + Vello, GSAP timelines evaluated by animato)"
+
+[[bin]]
+name = "raea"
+path = "src/main.rs"
+
+# The renderer as a library: the CLI (src/main.rs) and the C API (src/ffi.rs, include/raea.h).
+# rlib only: an app links it through an umbrella staticlib (or scripts/build-xcframework.sh, which runs
+# `cargo rustc --crate-type staticlib` so the archive doesn't carry every dependency's bitcode).
+[lib]
+name = "raea"
+path = "src/lib.rs"
+crate-type = ["rlib"]
+
+[features]
+default = ["network", "skia", "ffmpeg", "webgl", "scripts"]
+# an HTML composition's <script>s on blitz-v8-script (script.rs); without it a stand-in runs nothing (an exported
+# game's player: lightspeed R7)
+scripts = ["dep:blitz-v8-script"]
+# http(s) assets (Google Fonts, CDN images) via ureq + rustls; without it only file:, data: and
+# the on-disk cache load
+network = ["dep:ureq"]
+# the Skia raster backend (`backend: "skia"`, and `auto` with backdrop-filter); vello_cpu is always built
+skia = ["dep:anyrender_skia", "dep:skia-safe", "anyrender_vello_cpu/skia-text"]
+# Skia frames on Metal (Ganesh), opt-in at run time with RAEA_SKIA_GPU=1 (docs/gpu.feature): an experiment
+skia-gpu = ["skia", "anyrender_skia/metal"]
+# shell out to ffmpeg to decode <video> into the frame cache (the CLI also encodes with it);
+# without it <video> frames come from `videoFrames` / the C API frame provider
+ffmpeg = []
+# WebGL through ANGLE + SwiftShader, loaded at runtime from vendor/angle (src/webgl.rs)
+webgl = ["dep:khronos-egl", "dep:glow"]
+
+[dependencies]
+blitz-dom = { version = "=0.3.0-beta.3", default-features = false, features = ["svg", "woff", "system-fonts", "text-transform-icu"] }
+blitz-html = { version = "=0.3.0-beta.3", default-features = false }
+blitz-paint = { version = "=0.3.0-beta.3", default-features = false, features = ["svg"] }
+blitz-traits = { version = "=0.3.0-beta.3", default-features = false }
+# composition scripts on V8, jitless (vendor/blitz-v8-script; the one JS engine, docs/js.feature; Intl is V8's own)
+blitz-v8-script = { path = "vendor/blitz-v8-script", optional = true }
+# the flight recorder (raea_native::trace) and its GPU telemetry (raea-gputrace): errors, stalls, latency by subsystem
+raea-native = { path = "../native", default-features = false }
+raea-gputrace = { path = "../gputrace" }
+anyrender = "0.14.0"
+anyrender_vello_cpu = { version = "0.18.0", features = ["filters"] }
+# Skia raster backend (parity mode): Chrome rasterizes with Skia; vendored with Chrome-parity text settings
+anyrender_skia = { version = "0.12.0", path = "vendor/anyrender_skia", optional = true }
+peniko = "0.6"
+animato = { version = "1.7.2", default-features = false, features = ["std", "tween"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+# The World: rows are entities, props components, time/bindings/layout/paint systems (src/world.rs)
+bevy_ecs = { version = "=0.19.1", default-features = false, features = ["std"] }
+url = "2"
+image = { version = "0.25", default-features = false, features = ["png", "jpeg", "webp", "gif"] }
+csscolorparser = "0.7"
+data-url = "0.3"
+ureq = { version = "2", optional = true }
+bytes = "1"
+style = { version = "0.22.0", package = "stylo" }
+euclid = "0.22"
+usvg = "0.48.1"
+simplecss = "0.2.2"
+skrifa = "0.44"
+# GPU paint (src/quads): instanced quads on one wgpu device, the version rdb and react build
+wgpu = "=29.0.4"
+bytemuck = { version = "1", features = ["derive"] }
+pollster = "0.4"
+
+vello_cpu = { version = "0.3.0", default-features = false, features = ["png", "text", "u8_pipeline", "std"] }
+base64 = "0.22"
+# <canvas> 2D replay (src/canvas.rs): the same Skia build anyrender_skia uses; WOFF2 fonts for canvas text
+skia-safe = { version = "0.153.3", optional = true }
+wuff = "0.2"
+# canvas text shaping (kerning, ligatures), the shaper parley uses
+harfrust = "0.12"
+khronos-egl = { version = "6", features = ["dynamic"], optional = true }
+glow = { version = "0.16", optional = true }
+
+# video frames as textures on the paint device (src/quads/video.rs): a decoder's CVPixelBuffer wrapped, not copied
+[target.'cfg(target_vendor = "apple")'.dependencies]
+objc2-core-foundation = "0.3"
+objc2-core-video = { version = "0.3", features = ["objc2-metal"] }
+objc2-metal = { version = "0.3", default-features = false, features = ["std", "MTLTexture", "MTLPixelFormat", "MTLDevice", "MTLResource", "MTLAllocation"] }
+# a stage over a CAMetalLayer of its own (stage_layer: the harness presenting as void does, with no window)
+objc2 = "0.6"

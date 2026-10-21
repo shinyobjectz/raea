@@ -1,0 +1,28 @@
+[package]
+name = "raea-browser"
+version = "0.1.0"
+edition = "2024"
+license = "FSL-1.1-ALv2"
+description = "agent-browser's words as raea's browser.* native calls: Chrome over CDP (agent-browser in process) and raea's own Blitz backend"
+
+[lib]
+name = "raea_browser"
+
+[features]
+default = ["chrome"]
+# agent-browser in process, Chrome over CDP (the Mac's); without it every command goes to the Blitz backend
+chrome = ["dep:agent-browser", "dep:tokio"]
+
+[dependencies]
+agent-browser = { path = "vendor/agent-browser/cli", optional = true }
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "time", "sync"], optional = true }
+raea-native = { path = "../native" }
+raea = { path = "../html", default-features = false, features = ["network", "scripts"] }
+blitz-v8-script = { path = "../html/vendor/blitz-v8-script" }
+blitz-dom = { path = "../html/vendor/blitz-dom" }
+blitz-traits = { version = "=0.3.0-beta.3", default-features = false }
+blitz-html = { version = "=0.3.0-beta.3", default-features = false }
+keyboard-types = "0.7"
+image = { version = "0.25", default-features = false, features = ["png"] }
+url = "2"
+serde_json = "1"

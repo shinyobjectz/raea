@@ -1,0 +1,12 @@
+/* a CSS module: its class names are its own; composes; a color written in newer syntax */
+.box {
+  position: absolute;
+  top: 0;
+  width: 200px;
+  height: 200px;
+}
+.right {
+  composes: box;
+  left: 200px;
+  background: color-mix(in srgb, rgb(0, 0, 255) 100%, white);
+}

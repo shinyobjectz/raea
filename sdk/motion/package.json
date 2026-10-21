@@ -1,0 +1,40 @@
+{
+  "name": "@raea/motion",
+  "license": "FSL-1.1-ALv2",
+  "private": true,
+  "version": "0.3.0",
+  "description": "raea's TypeScript SDK for video, motion and games: a familiar API for React video, rendered by Bevy",
+  "type": "module",
+  "main": "src/index.tsx",
+  "exports": {
+    ".": "./src/index.tsx",
+    "./test": "./src/test.tsx",
+    "./3d": "./src/3d.tsx",
+    "./scene": "./src/scene.tsx",
+    "./room": "./src/room.tsx",
+    "./daylight": "./src/daylight.tsx",
+    "./ecs": "./src/ecs.ts",
+    "./native": "./src/native.ts",
+    "./codecs": "./src/codecs.ts",
+    "./playtest": "./src/playtest.ts",
+    "./games": "./src/games.ts",
+    "./machine": "./src/machine.ts",
+    "./music": "./src/music.tsx",
+    "./tone": "./src/tone.tsx",
+    "./seedling": "./src/seedling.tsx",
+    "./ml": "./src/ml.ts",
+    "./speech": "./src/speech.tsx"
+  },
+  "scripts": {
+    "test": "bun test conformance",
+    "guard": "tools/no-foreign-sdk.sh"
+  },
+  "dependencies": {
+    "mediabunny": "1.61.0",
+    "react": "19.2.0",
+    "react-dom": "19.2.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.0"
+  }
+}

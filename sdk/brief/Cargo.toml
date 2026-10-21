@@ -1,0 +1,24 @@
+[package]
+name = "raea-brief"
+version = "0.1.0"
+edition = "2021"
+license = "FSL-1.1-ALv2"
+publish = false
+description = "The .brief format (format.md): parsed into the intent graph, formatted, converted from score scripts, compiled; and Track F1, a brief split into beats"
+
+[dependencies]
+reqwest = { version = "0.12", default-features = false, features = ["blocking", "json", "rustls-tls"] }
+serde_json = "1"
+regex = "1"
+bladeink = "2.1.0"
+bladeink-compiler = "2.1.0"
+# @raea/data's TypeScript tools (props.ts, check.ts) run in process on JavaScriptCore with Node's core (js::run_node), no bun
+raea-native = { path = "../../engine/native", default-features = false, features = ["modules"] }
+
+[lib]
+name = "raea_brief"
+path = "src/format.rs"
+
+[[bin]]
+name = "raea-brief"
+path = "src/bin/raea-brief.rs"

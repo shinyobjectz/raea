@@ -1,0 +1,78 @@
+[package]
+name = "rdb"
+version = "0.1.0"
+edition = "2024"
+license = "FSL-1.1-ALv2"
+publish = false
+description = "raea's authoring language: plain SQL (DuckDB dialect) compiled to Bevy systems (docs/relational-plan.feature)"
+
+[[bin]]
+name = "rdb"
+path = "src/main.rs"
+required-features = ["native"]
+
+[dependencies]
+sqlparser = { version = "=0.63.0", features = ["visitor"] }
+sha2 = "0.10"
+# experimental_pbr_pcss: soft shadows (a light's softShadow in @raea/motion/3d; engine/scene3d.rs light)
+bevy = { version = "=0.19.1", default-features = false, features = ["std", "default_app", "default_font", "multi_threaded", "3d_bevy_render", "ui_bevy_render", "png", "jpeg", "tonemapping_luts", "ktx2", "zstd_rust", "smaa_luts", "experimental_pbr_pcss"] }
+image = { version = "0.25", default-features = false, features = ["png", "jpeg", "hdr"] }
+# a page decoded straight into the overlay premultiplies as vello does (gpuview.rs page_image)
+vello_common = { version = "0.3.0", optional = true }
+# 3D shapes as values (docs/media.feature M2): CSG in pure Rust (a port of Manifold 3.5, Apache-2.0), glyph outlines for text3d
+manifold-rust = "0.16.0"
+skrifa = "0.44"
+serde_json = { version = "1", features = ["float_roundtrip"] }
+# reflected values from JSON (engine/plugins.rs: TypedReflectDeserializer is a DeserializeSeed); already in the tree
+serde = "1"
+regex = "1"
+# which font families are on this machine (fonts.rs): the renderer's own fontique
+fontique = { path = "../html/vendor/fontique" }
+# raea's rows and systems (Blitz 2D), running inside this Bevy World
+raea = { path = "../html", default-features = false, optional = true }
+# the media plane: clips decode and the render encodes through a MediaBackend (soft everywhere, apple on Apple)
+# K on the GPU: the render path's kernels (kernels/*.k) compile to WGSL here and run in Bevy's render schedule
+raea-kgpu = { path = "../kgpu", optional = true }
+# its passes' errors, stalls and latency in the run's trace, as rdb's (raea-gputrace)
+raea-gputrace = { path = "../gputrace", optional = true }
+# the same wgpu Bevy uses (the NV12 pass records on its device)
+wgpu = "=29.0.4"
+bytemuck = "1"
+raea-media = { path = "../media", default-features = false, features = ["soft-audio", "apple"], optional = true }
+# a texture given as a data:image/svg+xml URL, drawn on the CPU (the versions the [patch] below points at blitz's)
+anyrender = { version = "0.14.0", optional = true }
+anyrender_svg = { version = "0.15.0", optional = true }
+anyrender_vello_cpu = { version = "0.18.0", optional = true }
+kurbo = { version = "0.13.1", optional = true }
+base64 = "0.22"
+# mesh sequences' frames (meshseq.rs): zstd, the decoder Bevy's ktx2 already links
+ruzstd = "0.8"
+# the one mixer core: an SQL edit's sound bounced as live play mixes it (sdk/react/docs/audio-stack.md)
+raea-mixer = { path = "../mixer", optional = true }
+
+# RAEA_ZEROCOPY (Apple): VideoToolbox's decoded buffers wrapped as Metal textures inside wgpu, no copy
+[target.'cfg(target_vendor = "apple")'.dependencies]
+objc2-core-foundation = { version = "0.3", optional = true }
+objc2-core-video = { version = "0.3", features = ["objc2-metal"], optional = true }
+objc2-metal = { version = "0.3", default-features = false, features = ["std", "MTLTexture", "MTLPixelFormat", "MTLDevice", "MTLResource", "MTLAllocation"], optional = true }
+
+[features]
+# native: everything that only exists to render, encode or analyse on the machine itself (the page engine, media,
+# mixer, GPU kernels and their traces, SVG on the CPU, VideoToolbox's zero copy); without it rdb is the relational core
+# and the 3D engine, which is what a browser build needs (docs/web-export.md, milestone 1)
+native = ["dep:raea", "dep:raea-media", "dep:raea-mixer", "dep:raea-kgpu", "dep:raea-gputrace", "dep:vello_common", "dep:anyrender", "dep:anyrender_svg", "dep:anyrender_vello_cpu", "dep:kurbo", "dep:objc2-core-foundation", "dep:objc2-core-video", "dep:objc2-metal"]
+# web: the 3D engine on WebGPU in a browser (wasm32-unknown-unknown, without native)
+web = ["bevy/webgpu"]
+# AV1 (dav1d decode, rav1e encode) as a media backend: on by default; an exported game's player goes without it
+# (lightspeed R7: about 1 MB of code no game uses)
+default = ["native", "h264", "av1", "scripts", "network"]
+# the soft backend's H.264 (openh264): mezzanines, rdb export's GOPs, portable video decode; an exported game's
+# player goes without it and decodes video on the platform (lightspeed R7)
+h264 = ["native", "raea-media/h264"]
+av1 = ["native", "raea-media/av1"]
+# an HTML composition's <script>s (the engine's blitz-v8-script)
+scripts = ["native", "raea/scripts"]
+# http(s) assets (Google Fonts, CDN images) through the engine's ureq + rustls
+network = ["native", "raea/network"]
+# per-system spans as a chrome trace (RUST_LOG=info, trace-*.json in the working directory)
+trace = ["bevy/trace", "bevy/trace_chrome"]

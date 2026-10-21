@@ -1,0 +1,12 @@
+{
+  "name": "@raea/cli",
+  "license": "FSL-1.1-ALv2",
+  "private": true,
+  "description": "raea: the agent's one command for editing video as a React + TypeScript project, inside @raea/shell",
+  "type": "module",
+  "main": "src/index.ts",
+  "scripts": {
+    "pack": "bun tools/pack.ts",
+    "test": "bun test conformance"
+  }
+}

@@ -1,0 +1,92 @@
+/* brand kit: "night hall" table tennis (provisional, no brand named).
+   The play space is the picture: the table owns the frame, paint is ivory,
+   the player's rubber is the only accent. */
+:root {
+  /* palette */
+  --brand-background: #0d4234;   /* the table, the ground */
+  --brand-surface: #093127;      /* scrim, dimmed table, cards */
+  --brand-text: #f4ead6;         /* ivory paint: lines, ball, score */
+  --brand-ink: #06221b;          /* shadows, the opponent's rubber */
+  --brand-accent: #d8452e;       /* the player's rubber */
+  --brand-on-accent: #f4ead6;
+  --brand-on-surface: #f4ead6;
+  --brand-color-1: #0d4234;      /* table green */
+  --brand-color-2: #d8452e;      /* rubber red */
+  --brand-color-3: #9fd3bd;      /* pale mint: support, edges, labels */
+
+  /* faces: one condensed gym-scoreboard voice */
+  --brand-font-heading: "Arial Narrow", "Liberation Sans Narrow", "Helvetica Neue Condensed", "Helvetica Neue", Helvetica, sans-serif;
+  --brand-font: "Arial Narrow", "Liberation Sans Narrow", "Helvetica Neue", Helvetica, Arial, sans-serif;
+
+  /* type scale (1080-wide frame) */
+  --brand-h1-size: 132px;
+  --brand-h1-weight: 700;
+  --brand-h1-line: 1;
+  --brand-h1-tracking: 0.01em;
+  --brand-h2-size: 88px;
+  --brand-h2-weight: 700;
+  --brand-h2-line: 1;
+  --brand-h2-tracking: 0.02em;
+  --brand-h3-size: 60px;
+  --brand-h3-weight: 700;
+  --brand-h3-line: 1.1;
+  --brand-h3-tracking: 0.14em;
+  --brand-p-size: 44px;
+  --brand-p-weight: 400;
+  --brand-p-line: 1.35;
+  --brand-p-tracking: 0.02em;
+
+  /* space, shadow, corners */
+  --brand-space-xs: 12px;
+  --brand-space-sm: 24px;
+  --brand-space-md: 40px;
+  --brand-space-lg: 72px;
+  --brand-space-xl: 120px;
+  --brand-shadow-sm: 0 4px 10px rgba(3, 20, 15, 0.35);
+  --brand-shadow-md: 0 10px 26px rgba(3, 20, 15, 0.4);
+  --brand-shadow-lg: 0 26px 60px rgba(3, 20, 15, 0.5);
+  --brand-shadow-xl: 0 40px 90px rgba(3, 20, 15, 0.55);
+  --brand-radius: 22px;
+}
+
+.brand-h1, .brand-h2, .brand-h3 {
+  font-family: var(--brand-font-heading);
+  text-transform: uppercase;
+  margin: 0;
+}
+.brand-h1 {
+  font-size: var(--brand-h1-size);
+  font-weight: var(--brand-h1-weight);
+  line-height: var(--brand-h1-line);
+  letter-spacing: var(--brand-h1-tracking);
+}
+.brand-h2 {
+  font-size: var(--brand-h2-size);
+  font-weight: var(--brand-h2-weight);
+  line-height: var(--brand-h2-line);
+  letter-spacing: var(--brand-h2-tracking);
+}
+.brand-h3 {
+  font-size: var(--brand-h3-size);
+  font-weight: var(--brand-h3-weight);
+  line-height: var(--brand-h3-line);
+  letter-spacing: var(--brand-h3-tracking);
+}
+.brand-text {
+  font-family: var(--brand-font);
+  font-size: var(--brand-p-size);
+  font-weight: var(--brand-p-weight);
+  line-height: var(--brand-p-line);
+  letter-spacing: var(--brand-p-tracking);
+}
+.brand-card {
+  background: var(--brand-surface);
+  color: var(--brand-on-surface);
+  border-radius: var(--brand-radius);
+  box-shadow: var(--brand-shadow-md);
+}
+.brand-button {
+  background: var(--brand-accent);
+  color: var(--brand-on-accent);
+  border-radius: var(--brand-radius);
+}

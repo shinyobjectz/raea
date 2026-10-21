@@ -1,9 +1,0 @@
-{
-  "name": "@raea/shell",
-  "private": true,
-  "description": "The agent's shell: just-bash (Apache-2.0) on raea's V8, with a raea filesystem and raea's commands as native calls",
-  "type": "module",
-  "dependencies": {
-    "just-bash": "3.6.0"
-  }
-}

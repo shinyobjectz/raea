@@ -1,0 +1,159 @@
+# raea's one Cargo workspace: every crate below builds against one Cargo.lock into one target/ (`cargo build
+# --workspace --release`). Excluded: the two iOS crates (their own targets and profiles), the sandbox's tools (wasm
+# builds with their own size profile) and the GPU raster bench (wgpu 30, against the stack's patched 29). Patches and profiles live here because cargo reads them only at the root.
+[workspace]
+resolver = "2"
+members = [
+    "ai/agent/crates/pi-agent",
+    "ai/agent/crates/pi-ai",
+    "ai/agent/crates/raea-spec",
+    "ai/agent/otel",
+    "ai/meaning",
+    "ai/meaning/embed",
+    "ai/ml",
+    "ai/perception",
+    "apps/void",
+    "engine/animate",
+    "engine/bevy-plugins",
+    "engine/browser",
+    "engine/bundle",
+    "engine/gputrace",
+    "engine/html",
+    "engine/kgpu",
+    "engine/media",
+    "engine/mixer",
+    "engine/modules",
+    "engine/native",
+    "engine/rdb",
+    "engine/seedling",
+    "sdk/brief",
+    "sdk/react",
+]
+exclude = [
+    "sdk/react/ios",
+    "ai/meaning/ios-hdc",
+    "engine/sandbox/rtools",
+    "engine/sandbox/wsx",
+    "engine/html/bench/gpu/raster",
+]
+
+# ai/agent's crates (pi-ai, pi-agent, raea-spec) inherit these
+[workspace.package]
+version = "1.2.0"
+edition = "2021"
+rust-version = "1.80"
+license = "MIT"
+repository = "https://github.com/earendil-works/pi"
+authors = ["Pi Rust Port Contributors"]
+
+[workspace.dependencies]
+tokio = { version = "1.40", features = ["rt-multi-thread", "macros", "sync", "time", "fs", "io-util", "net"] }
+tokio-util = { version = "0.7", features = ["rt"] }
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls", "stream"] }
+eventsource-stream = "0.2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+async-trait = "0.1"
+futures = "0.3"
+thiserror = "1"
+anyhow = "1"
+tracing = "0.1"
+chrono = { version = "0.4", default-features = false, features = ["clock", "serde"] }
+async-stream = "0.3"
+bytes = "1"
+url = "2"
+uuid = { version = "1", features = ["v4"] }
+glob = "0.3"
+ignore = "0.4"
+shell-words = "1"
+
+[profile.release]
+debug = "line-tables-only"
+
+# `cargo build --profile profiling`: release plus line tables, so samply sees inlined frames
+[profile.profiling]
+inherits = "release"
+debug = "line-tables-only"
+
+# what ships (tools/release.sh): release with thin LTO, as the engine's own release profile had it
+[profile.dist]
+inherits = "release"
+lto = "thin"
+codegen-units = 16
+
+# the exported game's player, smaller (sdk/react/docs/game-export.md): fat LTO, one codegen unit, panic=abort, no symbols
+# (73.9 MB against 127.7 stripped from release), in target/game
+#   cargo build --profile game --bin raea-game --no-default-features --features game
+[profile.game]
+inherits = "release"
+lto = "fat"
+codegen-units = 1
+panic = "abort"
+strip = "symbols"
+# the symbols the stripped player lacks, kept beside it as raea-game.dSYM (never shipped; export-game files it under
+# ~/Library/Caches/raea/dsym by UUID for atos against panic.txt and crash.txt)
+debug = "line-tables-only"
+# crates the player only runs while it loads (SQL, image, SVG and audio decoders, the MP4 demuxer, CSG), built for size;
+# frame work keeps opt-level 3 (opt-level s for the whole player cost +20-22% frame work: lightspeed R7)
+[profile.game.package.sqlparser]
+opt-level = "z"
+[profile.game.package.zune-jpeg]
+opt-level = "z"
+[profile.game.package.png]
+opt-level = "z"
+[profile.game.package.image-webp]
+opt-level = "z"
+[profile.game.package.usvg]
+opt-level = "z"
+[profile.game.package.symphonia-core]
+opt-level = "z"
+[profile.game.package.symphonia-format-isomp4]
+opt-level = "z"
+[profile.game.package.symphonia-codec-aac]
+opt-level = "z"
+[profile.game.package.symphonia-bundle-mp3]
+opt-level = "z"
+[profile.game.package.symphonia-bundle-flac]
+opt-level = "z"
+[profile.game.package.manifold-rust]
+opt-level = "z"
+[profile.game.package.re_mp4]
+opt-level = "z"
+[profile.game.package.muxide]
+opt-level = "z"
+[profile.game.package.fdeflate]
+opt-level = "z"
+[profile.game.package.miniz_oxide]
+opt-level = "z"
+split-debuginfo = "packed"
+
+[patch.crates-io]
+# the engine's vendored Blitz (text-shadow painting; the composition format's clip-local CSS animation clock), rebased onto blitz
+# 0.3.0-beta.3, the release dioxus-native 0.8 pins (see the headers of their Cargo.tomls)
+blitz-paint = { path = "engine/html/vendor/blitz-paint" }
+blitz-dom = { path = "engine/html/vendor/blitz-dom" }
+# stylo_taffy without container-type containing blocks
+stylo_taffy = { path = "engine/html/vendor/stylo_taffy" }
+# `filter: url(#id)` parses in Servo builds
+stylo = { path = "engine/html/vendor/stylo" }
+# Vello's CPU rasterizer with render-speed fixes that keep its output bit-identical
+vello_common = { path = "engine/html/vendor/vello_common" }
+vello_cpu = { path = "engine/html/vendor/vello_cpu" }
+# clips as clip paths instead of isolated layers
+anyrender_vello_cpu = { path = "engine/html/vendor/anyrender_vello_cpu" }
+# filter graphs with SVG's per-axis parameters, subregions and colour spaces; usvg filters rendered
+anyrender = { path = "engine/html/vendor/anyrender" }
+anyrender_svg = { path = "engine/html/vendor/anyrender_svg" }
+# wgpu-core with Metal's drawable acquire out of the device's fence lock (engine/html/vendor/wgpu-core/src/present.rs)
+wgpu-core = { path = "engine/html/vendor/wgpu-core" }
+# the MP4 muxer, vendored
+muxide = { path = "engine/media/vendor/muxide" }
+# bevy_seedling 0.8.0 without its cpal 0.18 paths (changes marked "raea:")
+bevy_seedling = { path = "engine/seedling/vendor/bevy_seedling" }
+dioxus-native = { path = "apps/void/vendor/dioxus-native" }
+
+[patch."https://github.com/linebender/parley"]
+# parley's engine with Blink's macOS vertical font metrics; line boxes at LayoutUnit precision
+parley_engine = { path = "engine/html/vendor/parley_engine" }
+fontique = { path = "engine/html/vendor/fontique" }
+parley = { path = "engine/html/vendor/parley" }

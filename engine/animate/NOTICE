@@ -1,0 +1,30 @@
+raea-animate is a fork of Animato.
+
+  Animato 1.7.1 (crates.io: animato, animato-core, animato-tween, animato-timeline, animato-spring,
+  animato-path, animato-color, animato-bevy)
+  Copyright (c) 2026 Aarambh Dev Hub
+  https://github.com/AarambhDevHub/animato
+  Licensed under MIT OR Apache-2.0 (LICENSE-MIT, LICENSE-APACHE in this folder are upstream's).
+
+Forked 2026-10-18 from the 1.7.1 crates as published on crates.io. raea-animate is distributed under the same
+terms, MIT OR Apache-2.0.
+
+What came from Animato, and how it changed:
+  - easing.rs: animato-core's Easing (every named curve, CubicBezier, Steps, RoughEase, SlowMo, Wiggle,
+    CustomBounce, ExpoScale), in f64. The cubic Bezier solver is @raea/motion's (Newton, then bisection), so a curve
+    named here gives the numbers Easing.bezier gives in TypeScript. Added: parsing from text, reverse(), spring().
+  - interpolate.rs: animato-core's Interpolate, in f64 (f64, f32, arrays, Color).
+  - track.rs, tween.rs: animato-tween's KeyframeTrack, Tween and Loop, made stateless: value_at(t) only, no
+    update(dt), no elapsed state, so a seek and a play-through give the same value.
+  - timeline.rs: animato-timeline's Timeline, Sequence, AnimationGroup (parallel), stagger and animato-tween's
+    StaggerPattern (grid with its origins, center-out, edges-in, seeded random), as a schedule of spans that is
+    sampled at a time, never stepped.
+  - spring.rs: animato-spring's SpringConfig and its presets. The semi-implicit Euler integrator is replaced by the
+    damped oscillator's closed form (under-, critically and over-damped), the same maths as @raea/motion's spring().
+  - path.rs: animato-path's quadratic and cubic Bezier curves, Catmull-Rom spline and arc-length table, in f64.
+  - color.rs: animato-color's Oklab, Oklch and Lab interpolation, written out directly (no palette dependency).
+  - bevy.rs: animato-bevy's plugin shape, driven by raea's frame clock instead of bevy_time.
+
+Dropped: animato-driver (wall clocks, scroll and the update loop), animato-js, animato-wasm, animato-leptos,
+animato-dioxus, animato-yew, animato-devtools, animato-gpu, animato-physics, animato-macro, path morphing, SVG
+path parsing and polygon tools, and every update(dt) method.

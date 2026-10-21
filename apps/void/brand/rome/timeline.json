@@ -1,0 +1,68 @@
+{
+ "intro": 6.0,
+ "end": 268.792,
+ "lines": [
+  {
+   "id": "open",
+   "at": 6.0,
+   "seconds": 17.238
+  },
+  {
+   "id": "dictator",
+   "at": 24.438,
+   "seconds": 24.745
+  },
+  {
+   "id": "plot",
+   "at": 50.383,
+   "seconds": 17.295
+  },
+  {
+   "id": "omens",
+   "at": 68.678,
+   "seconds": 21.635
+  },
+  {
+   "id": "decimus",
+   "at": 91.213,
+   "seconds": 16.289
+  },
+  {
+   "id": "street",
+   "at": 108.402,
+   "seconds": 20.526
+  },
+  {
+   "id": "curia",
+   "at": 133.328,
+   "seconds": 13.95
+  },
+  {
+   "id": "strike",
+   "at": 147.778,
+   "seconds": 21.775
+  },
+  {
+   "id": "wounds",
+   "at": 172.553,
+   "seconds": 23.59
+  },
+  {
+   "id": "funeral",
+   "at": 198.343,
+   "seconds": 20.857
+  },
+  {
+   "id": "coin",
+   "at": 220.8,
+   "seconds": 16.784
+  },
+  {
+   "id": "close",
+   "at": 239.384,
+   "seconds": 20.408
+  }
+ ],
+ "scoreAt": 67.136,
+ "hit": 155.136
+}

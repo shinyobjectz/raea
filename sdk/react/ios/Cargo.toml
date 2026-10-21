@@ -1,0 +1,41 @@
+[package]
+name = "raea-motion-ios"
+version = "0.1.0"
+edition = "2024"
+publish = false
+description = "@raea/motion's engine on the iPhone: a bundled TypeScript program run on JavaScriptCore with the native calls"
+
+[workspace]
+
+[lib]
+crate-type = ["staticlib"]
+
+[dependencies]
+raea-react = { path = "..", default-features = false, features = ["sandbox", "h264", "av1", "scripts", "modules", "network"] }
+serde_json = "1"
+# the sandbox (its WASI tools as wsx.* calls, when the app carries modules)
+wsx = { path = "../../../engine/sandbox/wsx" }
+# the browser on its Blitz backend (no Chrome on the phone)
+raea-browser = { path = "../../../engine/browser", default-features = false }
+
+[profile.release]
+lto = "thin"
+codegen-units = 4
+
+[patch.crates-io]
+blitz-paint = { path = "../../../engine/html/vendor/blitz-paint" }
+blitz-dom = { path = "../../../engine/html/vendor/blitz-dom" }
+stylo_taffy = { path = "../../../engine/html/vendor/stylo_taffy" }
+muxide = { path = "../../../engine/media/vendor/muxide" }
+stylo = { path = "../../../engine/html/vendor/stylo" }
+vello_common = { path = "../../../engine/html/vendor/vello_common" }
+vello_cpu = { path = "../../../engine/html/vendor/vello_cpu" }
+anyrender_vello_cpu = { path = "../../../engine/html/vendor/anyrender_vello_cpu" }
+num_threads = { path = "../../../engine/html/vendor/num_threads" }
+anyrender = { path = "../../../engine/html/vendor/anyrender" }
+anyrender_svg = { path = "../../../engine/html/vendor/anyrender_svg" }
+
+[patch."https://github.com/linebender/parley"]
+parley_engine = { path = "../../../engine/html/vendor/parley_engine" }
+fontique = { path = "../../../engine/html/vendor/fontique" }
+parley = { path = "../../../engine/html/vendor/parley" }

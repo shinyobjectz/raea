@@ -1,7 +1,7 @@
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="void/brand/logo/cat-white.svg">
-    <img src="void/brand/logo/cat-black.svg" width="72" alt="raea's cat">
+    <source media="(prefers-color-scheme: dark)" srcset="apps/void/brand/logo/cat-white.svg">
+    <img src="apps/void/brand/logo/cat-black.svg" width="72" alt="raea's cat">
   </picture>
 </p>
 
@@ -19,7 +19,7 @@
   <a href="https://raea.io/why/">Why we built it</a> ·
   <a href="https://raea.io/learn/">How it works</a> ·
   <a href="docs/settings.md">Settings</a> ·
-  <a href="skills/raea/SKILL.md">Agent skill</a>
+  <a href="sdk/skills/raea/SKILL.md">Agent skill</a>
 </p>
 
 <p align="center">
@@ -66,12 +66,12 @@ tools.
 ```sh
 git clone https://github.com/shinyobjectz/raea && cd raea
 
-# the CLI: render, play, run and test compositions
-cd react && cargo build --release --bin raea-motion && cd ..
-react/target/release/raea-motion render react/bench/games/pong/edit.tsx -o pong.mp4
+# the CLI: render, play, run and test compositions (one Cargo workspace, one target/)
+cargo build --release -p raea-react --bin raea-motion
+target/release/raea-motion render sdk/react/bench/games/pong/edit.tsx -o pong.mp4
 
 # void, the Mac app
-cd void && cargo build --release && ./target/release/void
+cargo build --release -p raea-void && target/release/void
 ```
 
 void's agent needs a model. Put a key in `~/.raea/env`; OpenRouter is the default, and Anthropic, Z.ai, DeepSeek,
@@ -86,8 +86,8 @@ behind generated music and speech yourself.
 
 ## Use it from your agent
 
-- **Agent skill.** `skills/raea/SKILL.md` teaches any agent to write, render and check raea compositions.
-  `skills/raea-bevy` covers 3D and games drawn by Bevy.
+- **Agent skill.** `sdk/skills/raea/SKILL.md` teaches any agent to write, render and check raea compositions.
+  `sdk/skills/raea-bevy` covers 3D and games drawn by Bevy.
 - **Claude Code plugin.** `/plugin marketplace add shinyobjectz/raea`, then `/plugin install raea@raea`.
 - **MCP.** With void running, `claude mcp add --transport http void http://127.0.0.1:7457/mcp` gives an agent void's
   tools: `state`, `screenshot`, `send`, `act`, `wait`, `logs`, `hear`, `say`.
@@ -96,23 +96,27 @@ behind generated music and speech yourself.
 
 | Folder | What |
 |---|---|
-| [`engine/`](engine) | The core crate (`raea`): HTML and CSS rendering without a browser (Blitz, Stylo, Vello), the compositor, fonts, a C API |
-| [`react/`](react) | `raea-motion`: runs `@raea/motion` compositions in Bevy; render, play, run, test; the iPhone build |
-| [`motion/`](motion) | `@raea/motion`, the TypeScript SDK: its spec, conformance suite and source |
-| [`rdb/`](rdb) | An edit as typed tables on Bevy's World, and the Bevy renderer that draws it |
-| [`kgpu/`](kgpu) | K on the GPU: a small array language compiled to WGSL, bit-exact with its interpreter |
-| [`media/`](media) | Decode and encode behind one seam: VideoToolbox, software codecs, AV1, a muxer |
-| [`perception/`](perception) | Reading footage the way an editor does: shots, faces, text, speech, motion |
-| [`meaning/`](meaning) | Frame embeddings (SigLIP 2) as columns, searched with K kernels |
-| [`void/`](void) | void, the Mac app: the window, the stage, the agent, voice, its MCP server, evals |
-| [`agent/`](agent) | The agent loop, its multi-provider model layer, a Gherkin parser, traces |
-| [`native/`](native), [`modules/`](modules) | The native-call layer on JavaScriptCore, and the in-process TypeScript loader |
-| [`shell/`](shell), [`cli/`](cli), [`browser/`](browser) | The agent's shell, its `raea` command, and its browser |
-| [`data/`](data) | A project's record, and a brief's facts and checks, as data |
-| [`brief/`](brief), [`score/`](score) | The `.brief` plan format, and its compiler to a composition |
-| [`sandbox/`](sandbox) | A WASI sandbox for command-line tools on the iPhone (experimental) |
-| [`gputrace/`](gputrace), [`tools/`](tools) | GPU telemetry; the JIT-signing linker wrapper |
-| [`skills/`](skills) | Agent skills for working in raea |
+| [`engine/html/`](engine/html) | The core crate (`raea`): HTML and CSS rendering without a browser (Blitz, Stylo, Vello), the compositor, fonts, a C API |
+| [`engine/rdb/`](engine/rdb) | An edit as typed tables on Bevy's World, and the Bevy renderer that draws it |
+| [`engine/kgpu/`](engine/kgpu) | K on the GPU: a small array language compiled to WGSL, bit-exact with its interpreter |
+| [`engine/media/`](engine/media) | Decode and encode behind one seam: VideoToolbox, software codecs, AV1, a muxer |
+| [`engine/mixer/`](engine/mixer), [`engine/seedling/`](engine/seedling) | One mixer core for live play and offline render, and bevy_seedling on it |
+| [`engine/animate/`](engine/animate), [`engine/bevy-plugins/`](engine/bevy-plugins) | Frame-pure animation (easing, tweens, springs), and Bevy plugins compiled into the engine |
+| [`engine/native/`](engine/native), [`engine/modules/`](engine/modules) | The native-call layer on JavaScriptCore, and the in-process TypeScript loader |
+| [`engine/browser/`](engine/browser), [`engine/bundle/`](engine/bundle) | The agent's browser, and the in-process TypeScript bundler (Rolldown) |
+| [`engine/sandbox/`](engine/sandbox) | A WASI sandbox for command-line tools on the iPhone (experimental) |
+| [`engine/gputrace/`](engine/gputrace) | GPU telemetry |
+| [`sdk/motion/`](sdk/motion) | `@raea/motion`, the TypeScript SDK: its spec, conformance suite and source |
+| [`sdk/react/`](sdk/react) | `raea-motion`: runs `@raea/motion` compositions in Bevy; render, play, run, test; the iPhone build |
+| [`sdk/shell/`](sdk/shell), [`sdk/data/`](sdk/data) | The agent's shell; a project's record, and a brief's facts and checks, as data |
+| [`sdk/brief/`](sdk/brief) | The `.brief` plan format |
+| [`sdk/skills/`](sdk/skills) | Agent skills for working in raea |
+| [`apps/void/`](apps/void) | void, the Mac app: the window, the stage, the agent, voice, its MCP server, evals |
+| [`apps/cli/`](apps/cli) | The agent's `raea` command |
+| [`ai/agent/`](ai/agent) | The agent loop, its multi-provider model layer, a Gherkin parser, traces |
+| [`ai/perception/`](ai/perception), [`ai/meaning/`](ai/meaning) | Reading footage the way an editor does; frame embeddings (SigLIP 2) as columns, searched with K kernels |
+| [`ai/ml/`](ai/ml), [`ai/score/`](ai/score) | Models on ONNX Runtime; the compiler from a `.brief` to a composition |
+| [`tools/`](tools) | Build helpers: the JIT-signing linker wrapper, setup scripts |
 | [`docs/`](docs) | Cross-cutting docs and [settings](docs/settings.md) |
 
 Each folder has a README saying what it is and what it depends on. Behaviour specs written in Gherkin (`.feature`)
@@ -120,6 +124,6 @@ sit beside the code they specify.
 
 ## Licence
 
-raea is under the [Functional Source License 1.1, ALv2 Future License](LICENSE.md) (FSL-1.1-ALv2): use it, change
-it and build on it for anything except a competing product or service. Each release becomes Apache 2.0 two years
-after it ships. Third-party parts keep their own licences; see [NOTICE](NOTICE).
+raea is under the [Functional Source License 1.1, ALv2 Future License](LICENSE) (FSL-1.1-ALv2), copyright Shane
+Murphy: use it, change it, build on it and pass it on for anything except a product that competes with raea. Each
+version becomes Apache-2.0 two years after its release. Third-party parts keep their own licences; see [NOTICE](NOTICE).

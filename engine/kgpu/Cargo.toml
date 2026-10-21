@@ -1,0 +1,18 @@
+[package]
+name = "raea-kgpu"
+version = "0.1.0"
+edition = "2024"
+license = "FSL-1.1-ALv2"
+publish = false
+description = "K on the GPU: a small K dialect compiled to fused WGSL compute kernels (wgpu, the same GPU stack as Bevy), with a CPU interpreter of the same text as the reference"
+
+[dependencies]
+wgpu = "=29.0.4"
+pollster = "0.4"
+bytemuck = "1"
+serde_json = "1"
+# its errors, stalls and submission latency in the run's trace (raea-gputrace)
+raea-gputrace = { path = "../gputrace" }
+image = { version = "0.25", default-features = false, features = ["png"] }
+# the bench reads real frames through the media plane's ffmpeg baseline (no codecs compiled in)
+raea-media = { path = "../media", default-features = false }

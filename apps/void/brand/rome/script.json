@@ -1,0 +1,18 @@
+{
+  "title": "The Ides of March",
+  "sources": "Suetonius, Life of Julius Caesar 80-85; Plutarch, Caesar 63-69 and Brutus 14-20; Appian, Civil Wars II; the EID MAR denarius (RRC 508/3).",
+  "lines": [
+    {"id": "open", "text": "Rome. The fifteenth of March, forty-four years before Christ. By noon, the most powerful man in the world will be dead on a stone floor. And the men who killed him will be his friends."},
+    {"id": "dictator", "text": "Gaius Julius Caesar had crossed the Rubicon, won a civil war, and come home to a city that could not decide whether to worship him or fear him. That February, the Senate named him dictator for life. To men raised on the Republic, those words sounded like the end of it."},
+    {"id": "plot", "text": "So they began to meet in quiet rooms. More than sixty senators, led by two men Caesar had pardoned: Gaius Cassius, and Marcus Junius Brutus, a man Caesar loved almost as a son."},
+    {"id": "omens", "text": "The warnings came early. A soothsayer named Spurinna told Caesar to beware a danger that would come no later than the Ides of March. And the night before, his wife Calpurnia dreamed that she held his body in her arms. She begged him to stay home."},
+    {"id": "decimus", "text": "He almost did. But one of the conspirators, Decimus Brutus, came to the house and laughed at the omens. Would the master of Rome send the Senate home, because his wife had a bad dream?"},
+    {"id": "street", "text": "On the way, Caesar passed Spurinna in the street. The Ides of March have come, he said. Yes, said the seer. They have come. But they have not gone. Someone pressed a scroll into his hand that named the plot. He never read it."},
+    {"id": "curia", "text": "The Senate met that day in a hall beside the Theatre of Pompey, beneath a statue of the man Caesar had beaten. Outside, a conspirator drew Mark Antony aside, to talk."},
+    {"id": "strike", "text": "Inside, Tillius Cimber came forward with a petition, and seized Caesar's toga. Casca struck first, at the neck. Then they all came. Caesar fought them, until he saw Brutus among them. Then he pulled his toga over his face, and fell."},
+    {"id": "wounds", "text": "Twenty three wounds. A doctor would later say that only one of them had killed him. He lay at the foot of Pompey's statue. Shakespeare gave him the words, et tu, Brute. The ancient writers say that if he said anything at all, it was in Greek. You too, child?"},
+    {"id": "funeral", "text": "The killers ran into the streets crying liberty. But Rome did not rise for them. At the funeral, Antony read out Caesar's will, and held up his torn and bloody toga. The crowd burned his body in the Forum, on a pyre of benches and tables."},
+    {"id": "coin", "text": "Two years later, Brutus struck a coin. A cap of freedom between two daggers, and two words. Eid Mar. The Ides of March. Within months, he was dead by his own hand."},
+    {"id": "close", "text": "They killed one man to save the Republic. Instead, they opened the door for his heir, Octavian, who would end it, and call himself Augustus. The Ides of March did not stop one man from ruling Rome. It made it certain."}
+  ]
+}

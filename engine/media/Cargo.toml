@@ -1,0 +1,46 @@
+[package]
+name = "raea-media"
+version = "0.1.0"
+edition = "2024"
+license = "FSL-1.1-ALv2"
+publish = false
+description = "raea's media plane: one MediaBackend seam, several backends (ffmpeg baseline, portable software, platform hardware, AV1), audio as columns"
+
+[features]
+default = ["soft", "av1", "apple"]
+# b: portable software, no ffmpeg: openh264 (H.264), MP4 demux/mux in Rust, Symphonia (audio decode), Opus encode
+soft = ["soft-audio", "h264"]
+# soft without H.264: audio decode, Opus, MP4 demux and mux (an exported game's player: lightspeed R7)
+soft-audio = ["dep:re_mp4", "dep:muxide", "dep:symphonia", "dep:opus"]
+h264 = ["soft-audio", "dep:openh264"]
+# d: royalty-free AV1: dav1d decode, rav1e encode
+av1 = ["dep:rav1d", "dep:rav1e"]
+# c: platform hardware on Apple (AVFoundation / VideoToolbox); other platforms slot in behind the same trait
+apple = ["dep:muxide", "dep:re_mp4"]
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+# decode errors and slow seeks in the run's trace (raea_native::trace)
+raea-native = { path = "../native", default-features = false }
+image = { version = "0.25", default-features = false, features = ["png"] }
+openh264 = { version = "0.9", optional = true }
+re_mp4 = { version = "0.5", optional = true }
+muxide = { version = "0.2", optional = true }
+symphonia = { version = "0.5", optional = true, features = ["aac", "isomp4", "mp3", "wav", "pcm", "flac"] }
+# from the v1.1.0 tag: the crates.io package leaves out src/arm/asm-offsets.h, which its arm assembly includes
+rav1d = { git = "https://github.com/memorysafety/rav1d", tag = "v1.1.0", optional = true }
+opus = { version = "0.4", optional = true }
+rav1e = { version = "0.8", optional = true, default-features = false, features = ["threading"] }
+
+[target.'cfg(target_vendor = "apple")'.dependencies]
+objc2 = "0.6"
+objc2-foundation = "0.3"
+objc2-av-foundation = { version = "0.3", features = ["objc2-core-media", "objc2-core-video", "objc2-core-graphics", "block2"] }
+objc2-core-media = "0.3"
+objc2-core-video = "0.3"
+objc2-core-foundation = "0.3"
+objc2-avf-audio = "0.3"
+# the encoder drives a VTCompressionSession itself (bounded frames in flight), muxed by muxide
+objc2-video-toolbox = "0.3"
+block2 = "0.6"

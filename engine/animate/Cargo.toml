@@ -1,0 +1,17 @@
+[package]
+name = "raea-animate"
+version = "0.1.0"
+edition = "2024"
+publish = false
+license = "MIT OR Apache-2.0"
+description = "raea's animation substrate: a frame-pure fork of Animato 1.7.1 (easing, keyframe tracks, tweens, timelines and staggers, analytic springs, bezier paths, Oklab/Oklch colour) evaluated as value_at(frame), with the declared-animation wire format @raea/motion's <Animate> sends once and a Bevy plugin that samples it from raea's frame clock"
+
+[features]
+default = []
+# Bevy components, the frame clock resource and the plugin that samples animations (sdk/react/src/animate.rs builds on it)
+bevy = ["dep:bevy"]
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+bevy = { version = "=0.19.1", default-features = false, features = ["std", "default_app"], optional = true }

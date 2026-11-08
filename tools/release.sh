@@ -69,7 +69,8 @@ gate_inputs=(skills sdk/guides docs/skills.glossary.md engine/cli/src tools/skil
 skills_at() {
   local pin; pin=$(git rev-parse "$ref:skills") || { echo "release.sh: $ref pins no raea-skills (skills/)" >&2; return 1; }
   git -C skills cat-file -e "$pin^{commit}" 2>/dev/null || git -C skills fetch -q origin "$pin" || { echo "release.sh: raea-skills has no commit $pin (git submodule update --init skills)" >&2; return 1; }
-  mkdir -p "$1" && git -C skills archive "$pin" | tar -x -C "$1"
+  # its skills/ folder alone: the repo's root holds a symlink (AGENTS.md) that Windows' tar can't make, and nothing reads it
+  mkdir -p "$1" && git -C skills archive "$pin" skills | tar -x -C "$1"
 }
 if [ ! -f "$root/apps/app/src/acp/protocol.ts" ]; then
   [ -n "${RAEA_SKILLS_PASSED:-}" ] || { echo "release.sh: no feed app here (apps/app), so the skills gate can't run; run tools/skills.sh check in a checkout with the feed app, then name the commit it passed on as RAEA_SKILLS_PASSED (release.yml: a \"skills-passed: <sha>\" line in the annotated tag's message, or the skills_passed input when run by hand)" >&2; exit 1; }

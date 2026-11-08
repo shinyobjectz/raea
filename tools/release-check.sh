@@ -56,7 +56,8 @@ TS
 # and its guides and styles.gen come from the release too
 (cd "$check/p" && RAEA_NO_TREE=1 "$raea" guide music | grep -q "music") || fail "the unpacked raea has no craft guides"
 mkdir -p "$check/styled" && { echo 'import { css } from "./styles.gen";'; cat "$check/p/hello.tsx"; echo 'void css;'; } > "$check/styled/hello.tsx"
-(cd "$check/styled" && RAEA_NO_TREE=1 "$raea" render hello.tsx --frame 1 -o hello.png >/dev/null 2>&1 && [ -s styles.gen.ts ]) || fail "the unpacked raea didn't write styles.gen.ts"
+(cd "$check/styled" && RAEA_NO_TREE=1 "$raea" render hello.tsx --frame 1 -o hello.png > render.log 2>&1 && [ -s styles.gen.ts ]) \
+  || { tail -20 "$check/styled/render.log" >&2; fail "the unpacked raea didn't write styles.gen.ts"; }
 # the app targets (docs/targets.feature T1c, T1e, T1f): an app importing react, @raea/ui and @raea/rune, bundled by the
 # release's own raea (no bun), checked headless on each target with one press: its frames, the press drawn (the
 # frame after it differs from the mount's) and an empty unmapped.json; filmed on native, the public engine's MP4 says

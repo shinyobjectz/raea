@@ -84,6 +84,12 @@ jobs:
           mkdir ship
           cp target/dist/raea target/dist/${{ matrix.lib }} target/dist/raea-rune-host target/dist/raea-page-host ship/
           if [ -n "${{ matrix.extra }}" ]; then cp target/dist/${{ matrix.extra }} ship/; fi
+      # the packing and its checks need only ship/, and macos-15's disk ran out packing rc1 with target/ kept
+      - name: Free the build's disk
+        run: |
+          df -h . | tail -1
+          rm -rf target
+          df -h . | tail -1
       - name: Where the skills gate passed
         run: bash tools/release/skills-passed.sh "$TAG" "${{ inputs.skills_passed }}"
       - name: Pack and check (tools/release.sh)
@@ -93,12 +99,14 @@ jobs:
           v=${TAG#v}
           if [ "$RUNNER_OS" = Linux ]; then xvfb-run -a -s "-screen 0 1280x1024x24" bash tools/release.sh "$v" ship HEAD
           else bash tools/release.sh "$v" ship HEAD; fi
-      # a failed check's own files (the app check's frames and logs), not the unpacked release
+      # a failed check's own files (the app check's frames, every step's log), not the unpacked release
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
           name: release-check-${{ runner.os }}
-          path: ${{ runner.temp }}/release-check/app
+          path: |
+            ${{ runner.temp }}/release-check/app
+            ${{ runner.temp }}/release-check/**/*.log
           retention-days: 7
           if-no-files-found: ignore
       - uses: actions/attest-build-provenance@v2

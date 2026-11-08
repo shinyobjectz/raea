@@ -144,7 +144,8 @@ raea check out/piece.mp4 --manifest out/render.json --taste ~/.raea/taste/taste.
 
 - Final exports: `--quality master` for motion graphics and type; name files with lowercase letters, digits and
   hyphens only (`spring-launch-9x16.mp4`).
-- A render is a standard file (H.264 High, yuv420p, AAC) but large; hand over a share copy too:
+- A render is a standard MP4 but large: H.264 High and AAC on a Mac (VideoToolbox), H.264 Constrained Baseline and
+  Opus on Windows and Linux (openh264), yuv420p on all. Hand over a share copy too, which any player takes:
   `ffmpeg -i film.mp4 -c:v libx264 -preset slow -crf 23 -maxrate 2600k -bufsize 5200k -pix_fmt yuv420p -c:a aac -b:a 128k -movflags +faststart film-share.mp4`.
 - Deliver to the controllers' specs (sizes, platforms, loudness) when the workspace sets them.
 

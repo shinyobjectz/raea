@@ -259,6 +259,16 @@ pub fn quality_kbps(o: &EncodeOpts) -> u32 {
     }
 }
 
+/// openh264 at a fixed quantiser `qp`: its Quality mode with the QP range pinned (#28, tests/qp.rs). With rate control
+/// off it encodes at its default QP 26 whatever the range says (the crate never sets the layer's iDLayerQp). With it
+/// on, it refuses a bitrate of 0 and a pinned QP below 14 (Native:3; 13 passes all-intra but not with P-frames), and
+/// the bitrate moves nothing once the QP is pinned. A frame too big for its buffer at that QP is Native:3 too.
+#[cfg(feature = "h264")]
+pub(crate) fn fixed_qp(config: EncoderConfig, qp: u8) -> EncoderConfig {
+    let qp = qp.clamp(14, 51);
+    config.rate_control_mode(RateControlMode::Quality).bitrate(BitRate::from_bps(50_000_000)).qp(openh264::encoder::QpRange::new(qp, qp))
+}
+
 /// openh264's encoder at the options' bitrate (quality_kbps), or all-intra at a fixed quantiser when `intra_qp` is set (every frame an IDR: an optimized copy, raea_io_media::mezz).
 #[cfg(feature = "h264")]
 pub fn h264_encoder(out: &Path, o: &EncodeOpts, intra_qp: Option<u8>) -> R<Box<dyn VideoEncoder>> {
@@ -272,7 +282,7 @@ pub fn h264_encoder(out: &Path, o: &EncodeOpts, intra_qp: Option<u8>) -> R<Box<d
         // untagged, ffmpeg and other players read it as BT.601 and shift reds and greens
         .vui(openh264::encoder::VuiConfig::bt709());
     let config = match intra_qp {
-        Some(qp) => config.rate_control_mode(RateControlMode::Off).qp(openh264::encoder::QpRange::new(qp, qp)).intra_frame_period(openh264::encoder::IntraFramePeriod::from_num_frames(1)),
+        Some(qp) => fixed_qp(config, qp).intra_frame_period(openh264::encoder::IntraFramePeriod::from_num_frames(1)),
         None => config,
     };
     let enc = H264Encoder::with_api_config(OpenH264API::from_source(), config).map_err(|e| format!("openh264: {e}"))?;

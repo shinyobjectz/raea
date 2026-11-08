@@ -72,6 +72,13 @@ const INTRA_QP: u8 = 16;
 /// all-intra H.264 at `part`: the copy's frame k is the source's frame at the range's start + k / fps.
 #[cfg(all(feature = "h264", not(target_vendor = "apple")))]
 fn encode(src: &Path, part: &Path, range: Option<(usize, usize)>, p: &Probe) -> R<()> {
+    // a frame too detailed for openh264's buffer at INTRA_QP (Native:3: noise, some 1.6 MB a 1080p frame) is made
+    // again at QP 26, which every copy had until openh264 took the quantiser asked for (#28)
+    encode_at(src, part, range, p, INTRA_QP).or_else(|e| if e.contains("Native:3") { encode_at(src, part, range, p, 26) } else { Err(e) })
+}
+
+#[cfg(all(feature = "h264", not(target_vendor = "apple")))]
+fn encode_at(src: &Path, part: &Path, range: Option<(usize, usize)>, p: &Probe, qp: u8) -> R<()> {
     let (t0, t1) = match range {
         Some((a, b)) => (a as f64 * p.frame_secs(), (b + 1) as f64 * p.frame_secs()),
         None => (0.0, p.secs),
@@ -94,7 +101,7 @@ fn encode(src: &Path, part: &Path, range: Option<(usize, usize)>, p: &Probe) -> 
     }
     let fps = if info.fps > 0.0 { info.fps } else { p.fps };
     let opts = crate::EncodeOpts { width: info.width, height: info.height, fps, kbps: 0, quality: None, nv12: false, realtime: false };
-    let mut enc = crate::soft::h264_encoder(part, &opts, Some(INTRA_QP))?;
+    let mut enc = crate::soft::h264_encoder(part, &opts, Some(qp))?;
     let n = ((t1 - t0) * fps).round().max(1.0) as usize;
     for k in 0..n {
         enc.push(&dec.frame_at(t0 + k as f64 / fps)?.rgba)?;

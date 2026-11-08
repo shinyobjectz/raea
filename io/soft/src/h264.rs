@@ -224,9 +224,9 @@ pub fn mux_h264(
     })
 }
 
-/// An encoder for one GOP that depends on nothing before it: fixed quantiser (no rate control state carried
-/// between frames), the first frame an IDR with its SPS/PPS, no other keyframes. Two GOPs made from the same frames
-/// are the same bytes, so an export can be stitched from GOPs made at different times.
+/// An encoder for one GOP that depends on nothing before it: fixed quantiser (fixed_qp: the rate control can't move
+/// it, so no state is carried between frames), the first frame an IDR with its SPS/PPS, no other keyframes. Two GOPs
+/// made from the same frames are the same bytes, so an export can be stitched from GOPs made at different times.
 #[cfg(feature = "h264")]
 pub struct GopEncoder {
     pub(crate) enc: H264Encoder,
@@ -239,8 +239,6 @@ impl GopEncoder {
     pub fn new(w: u32, h: u32, fps: f64, qp: u8) -> R<GopEncoder> {
         let config = EncoderConfig::new()
             .max_frame_rate(FrameRate::from_hz(fps as f32))
-            .rate_control_mode(RateControlMode::Off)
-            .qp(openh264::encoder::QpRange::new(qp, qp))
             .skip_frames(false)
             .scene_change_detect(false)
             .adaptive_quantization(false)
@@ -251,7 +249,7 @@ impl GopEncoder {
             .num_threads(1)
             // BT.709 limited range, as h264_encoder tags its stream
             .vui(openh264::encoder::VuiConfig::bt709());
-        let enc = H264Encoder::with_api_config(OpenH264API::from_source(), config)
+        let enc = H264Encoder::with_api_config(OpenH264API::from_source(), crate::fixed_qp(config, qp))
             .map_err(|e| format!("openh264: {e}"))?;
         Ok(GopEncoder {
             enc,

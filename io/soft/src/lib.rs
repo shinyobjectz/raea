@@ -259,7 +259,7 @@ pub fn quality_kbps(o: &EncodeOpts) -> u32 {
     }
 }
 
-/// openh264 at a fixed quantiser `qp`: its Quality mode with the QP range pinned (#28, tests/qp.rs). With rate control
+/// openh264 at a fixed quantiser `qp`: its Quality mode with the QP range pinned (#28, tests/quality.rs). With rate control
 /// off it encodes at its default QP 26 whatever the range says (the crate never sets the layer's iDLayerQp). With it
 /// on, it refuses a bitrate of 0 and a pinned QP below 14 (Native:3; 13 passes all-intra but not with P-frames), and
 /// the bitrate moves nothing once the QP is pinned. A frame too big for its buffer at that QP is Native:3 too.

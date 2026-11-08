@@ -7,7 +7,12 @@ use std::path::Path;
 /// `css` with each `url(..)` naming a file (not a URL with a scheme, a data: URI or a `#fragment`) as that file, quoted:
 /// `/media/...` (staticFile's) found from the edit's folder `media` (media_path), anything else from `rel`, the folder
 /// the stylesheet's own relative URLs start from. `missing` hears of each file that isn't there.
-pub fn css_file_urls(css: &str, media: &Path, rel: &Path, mut missing: impl FnMut(&Path)) -> String {
+pub fn css_file_urls(css: &str, media: &Path, rel: &Path, missing: impl FnMut(&Path)) -> String {
+    urls_as(css, media, rel, missing, raea_io_home::src)
+}
+
+/// css_file_urls with each file written by `src` (a test writes Windows' form on any system)
+fn urls_as(css: &str, media: &Path, rel: &Path, mut missing: impl FnMut(&Path), src: impl Fn(&Path) -> String) -> String {
     if !css.contains("url(") {
         return css.to_string();
     }
@@ -35,21 +40,15 @@ pub fn css_file_urls(css: &str, media: &Path, rel: &Path, mut missing: impl FnMu
     out
 }
 
-#[cfg(not(test))]
-fn src(p: &Path) -> String {
-    raea_io_home::src(p)
-}
-
-// a test asks for Windows' form by a path's look, so a Windows path is checked on any system
-#[cfg(test)]
-fn src(p: &Path) -> String {
-    raea_io_home::src_on(&p.display().to_string(), p.display().to_string().as_bytes().get(1) == Some(&b':'))
-}
-
 #[cfg(test)]
 mod tests {
-    use super::css_file_urls;
     use std::path::Path;
+
+    /// css_file_urls as each path's look says it's written: Windows' form for a C:\ path, so it's checked on any system
+    fn css_file_urls(css: &str, media: &Path, rel: &Path, missing: impl FnMut(&Path)) -> String {
+        let src = |p: &Path| raea_io_home::src_on(&p.display().to_string(), p.display().to_string().as_bytes().get(1) == Some(&b':'));
+        super::urls_as(css, media, rel, missing, src)
+    }
 
     #[test]
     fn a_windows_path_is_a_file_url_with_no_backslash() {

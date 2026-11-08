@@ -13,5 +13,5 @@
 # into raea_sys_frame::json_f32; begin_live and app_mut gone; await_models split by target); the one left is an
 # accessor matched by shape: Engine::world_mut and Opening::world_mut (the canvas window goes on before the engine is
 # finished, its camera after) with runtime/page bevy_page.rs BevyPage::app
-exact=296
+exact=295
 near=56

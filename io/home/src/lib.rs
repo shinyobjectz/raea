@@ -98,7 +98,9 @@ pub fn src(p: &std::path::Path) -> String {
     src_on(&p.display().to_string(), cfg!(windows))
 }
 
-fn src_on(s: &str, windows: bool) -> String {
+/// `src` of the path `s` as Windows writes it (`windows`) or as Unix does, whichever system asks (a test of Windows'
+/// form runs on the Mac too)
+pub fn src_on(s: &str, windows: bool) -> String {
     if !windows {
         return s.to_string();
     }

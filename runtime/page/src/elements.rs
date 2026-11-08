@@ -151,30 +151,10 @@ pub(crate) fn walk(react: &World, e: Entity, parent: u64, at: At, dir: &Path, ho
     out.order.insert(parent, list);
 }
 
-/// A stylesheet's `url()`s of the composition's media (`/media/...`, staticFile's) as the files' paths, which
-/// raea-runtime-js's @font-face and backgrounds read; other text as it is.
+/// A stylesheet's `url()`s that name the composition's files as what raea-runtime-js's @font-face and backgrounds read
+/// (raea-runtime-bundle's css_file_urls: a file URL on Windows, #28), relative ones from the edit's folder.
 pub(crate) fn media_urls(text: &str, dir: &Path) -> String {
-    if !text.contains("url(") || !text.contains("/media/") {
-        return text.to_string();
-    }
-    let mut out = String::with_capacity(text.len());
-    let mut rest = text;
-    while let Some(i) = rest.find("url(") {
-        out.push_str(&rest[..i + 4]);
-        rest = &rest[i + 4..];
-        let Some(j) = rest.find(')') else { break };
-        let inner = rest[..j].trim();
-        let q = inner.chars().next().filter(|c| *c == '"' || *c == '\'');
-        let url = q.map_or(inner, |c| inner.trim_matches(c));
-        if url.starts_with("/media/") {
-            out.push_str(&format!("\"{}\"", raea_runtime_react::scene::media_path(dir, url).display()));
-        } else {
-            out.push_str(&rest[..j]);
-        }
-        rest = &rest[j..];
-    }
-    out.push_str(rest);
-    out
+    raea_runtime_react::scene::css_file_urls(text, dir, dir, |_| ())
 }
 
 /// A <Video>'s crop (raea-page's `fit_rect`) at source time `at`, from its framing="face" and punchIn (motion.feature,
@@ -256,31 +236,10 @@ pub(crate) fn page_props(kind: &str, props: Option<&Map<String, Value>>, dir: &P
     out
 }
 
-/// A CSS value with each `url(..)` that names a media file (not a URL with a scheme, nor a data: URI) turned into
-/// that file's path, as an img's src is (a background or a border-image of staticFile("x.png")).
+/// A CSS value with each `url(..)` that names a media file as that file, as an img's src is (a background or a
+/// border-image of staticFile("x.png")); one that isn't there refuses the render.
 fn css_urls(dir: &Path, s: &str) -> String {
-    let mut out = String::with_capacity(s.len());
-    let mut rest = s;
-    while let Some(at) = rest.find("url(") {
-        out.push_str(&rest[..at + 4]);
-        rest = &rest[at + 4..];
-        let Some(end) = rest.find(')') else { break };
-        let inner = rest[..end].trim();
-        let quote = inner.chars().next().filter(|c| *c == '"' || *c == '\'');
-        let path = quote.map_or(inner, |q| inner.trim_matches(q));
-        if path.contains("://") || path.starts_with("data:") || path.is_empty() {
-            out.push_str(&rest[..end]);
-        } else {
-            let file = raea_runtime_react::scene::media_path(dir, path);
-            if !file.exists() {
-                REFUSED.with(|c| c.borrow_mut().push(format!("missing image: {}", file.display())));
-            }
-            out.push_str(&format!("\"{}\"", raea_io_home::src(&file)));
-        }
-        rest = &rest[end..];
-    }
-    out.push_str(rest);
-    out
+    raea_runtime_react::scene::css_file_urls(s, dir, dir, |f| REFUSED.with(|c| c.borrow_mut().push(format!("missing image: {}", f.display()))))
 }
 
 #[cfg(test)]

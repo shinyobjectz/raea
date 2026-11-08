@@ -140,3 +140,4 @@ shader/gpu_component_array_buffer	-	60,180,240,400
 shader_advanced/compute_mesh	-	5,10
 shader_advanced/custom_phase_item	-	5,10
 shader_advanced/custom_post_processing	-	10,30,60
+shader_advanced/custom_vertex_attribute	-	5,10

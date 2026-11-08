@@ -3,7 +3,9 @@
 
 use bevy::prelude::*;
 
+mod attribute;
 mod indexed;
+pub use attribute::{attribute, with_attributes};
 pub use indexed::buffer_indexed;
 
 /// A <BufferMesh>'s vertex colours (`colors`: r, g, b, a in linear light for each vertex, or "#rrggbb" sRGB each),

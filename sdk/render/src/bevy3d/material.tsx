@@ -2,6 +2,7 @@
 import { ExtendedMaterial, ShaderExtension, StandardMaterial, type AlphaMode } from "./materials";
 import { surfaceShader, type SurfaceShaderSpec } from "../3d";
 import type { StorageValue } from "../3d/materials";
+import type { MeshVertexAttribute } from "../3d/attribute";
 
 /** Your own Material (docs/control.feature FC2a): Bevy's `impl Material`, not an extension of StandardMaterial. Its
  *  fragment_shader() (and vertex_shader(), when `vertex` names one) is the file compiled as written: its imports (a
@@ -18,6 +19,9 @@ export interface MaterialProps {
   fragment: string;
   /** a vertex shader file, as Material::vertex_shader names one (Bevy's mesh vertex shader when not given) */
   vertex?: string;
+  /** the mesh attributes its vertex shader reads, each at its @location: [[ATTRIBUTE_POSITION, 0], [BLEND_COLOR, 1]], the
+   *  vertex buffer its specialize lays out (layout.0.get_layout); the mesh's whole layout when not given */
+  vertex_attributes?: [MeshVertexAttribute, number][];
   uniforms?: Record<string, number | number[] | string | Record<string, number | number[] | string>>;
   /** its read-only storage buffers (`var<storage, read> NAME: TYPE`, up to 2), each in TYPE's storage layout: an
    *  array<T(, N)> a list of its elements, a number or [x, y(, z(, w))] each, as Bevy's ShaderBuffer::from(Vec<[f32; 4]>)
@@ -41,7 +45,7 @@ const storageValue = (x: unknown): boolean => Number.isFinite(x) || (Array.isArr
 
 /** A Material's props checked, as the shader spec it is drawn by (in a Mesh3d an OwnMaterial, in a Mesh2d its
  *  Material2d). */
-function ownSpec({ fragment, vertex, uniforms, buffers, textures, defs, alpha_mode, depth_bias, cull_mode, constants }: MaterialProps): SurfaceShaderSpec {
+function ownSpec({ fragment, vertex, vertex_attributes, uniforms, buffers, textures, defs, alpha_mode, depth_bias, cull_mode, constants }: MaterialProps): SurfaceShaderSpec {
   for (const [k, b] of Object.entries(buffers ?? {})) if (typeof b !== "object" || b === null || !storageValue(b)) throw new TypeError(`Material: buffer ${k} is its elements' list or a struct's { field: value }, of numbers and lists, got ${JSON.stringify(b)}`);
   if (typeof fragment !== "string" || !fragment) throw new TypeError(`Material: fragment is the shader file, staticFile("shaders/x.wesl"), got ${JSON.stringify(fragment)}`);
   if (vertex !== undefined && (typeof vertex !== "string" || !vertex)) throw new TypeError(`Material: vertex is a shader file, got ${JSON.stringify(vertex)}`);
@@ -50,7 +54,8 @@ function ownSpec({ fragment, vertex, uniforms, buffers, textures, defs, alpha_mo
   if (depth_bias !== undefined && !Number.isFinite(depth_bias)) throw new TypeError(`Material: depth_bias is a number, got ${depth_bias}`);
   if (cull_mode !== undefined && cull_mode !== null && cull_mode !== "Front" && cull_mode !== "Back") throw new TypeError(`Material: cull_mode is "Front", "Back" or null, got ${JSON.stringify(cull_mode)}`);
   for (const [k, n] of Object.entries(constants ?? {})) if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(k) || !Number.isFinite(n)) throw new TypeError(`Material: constant ${k} is a WGSL name with a number, got ${JSON.stringify(n)}`);
-  const own = { ...(vertex !== undefined ? { vertex } : {}), ...(alpha_mode !== undefined ? { alpha_mode } : {}), ...(depth_bias !== undefined ? { depth_bias } : {}), ...(cull_mode !== undefined ? { cull_mode } : {}), ...(constants !== undefined ? { constants } : {}) };
+  for (const e of vertex_attributes ?? []) if (!Array.isArray(e) || typeof e[0] !== "object" || !Number.isInteger(e[1]) || e[1] < 0) throw new TypeError(`Material: vertex_attributes are [attribute, location] pairs, got ${JSON.stringify(e)}`);
+  const own = { ...(vertex !== undefined ? { vertex } : {}), ...(vertex_attributes !== undefined ? { vertex_attributes } : {}), ...(alpha_mode !== undefined ? { alpha_mode } : {}), ...(depth_bias !== undefined ? { depth_bias } : {}), ...(cull_mode !== undefined ? { cull_mode } : {}), ...(constants !== undefined ? { constants } : {}) };
   return { fragment, uniforms: uniforms as SurfaceShaderSpec["uniforms"], textures, defs, own, ...(buffers ? { buffers } : {}) };
 }
 

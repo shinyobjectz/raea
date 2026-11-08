@@ -5,6 +5,7 @@ import { useAnimation3d, type Keys, type Move, type TrackSpec } from "@raea/math
 import { Place3d, usePlace3d, usePointer3d, type LocalBounds, type PointerHandlers3d } from "../events3d";
 import { Canvas3DProps, Vec3, checkArgs, checkPass, checkVec, node3d, serialisable } from "./all";
 import { InCanvas3D } from "./model";
+import type { MeshAttribute } from "./attribute";
 
 const FILL = { position: "absolute", left: 0, top: 0, width: "100%", height: "100%" } as const;
 
@@ -329,6 +330,9 @@ export interface MeshProps extends PointerHandlers3d {
   /** false: no shadow falls on it (Bevy's NotShadowReceiver: a backdrop that stays clean under a floating product, a
    * glowing sign). True by default */
   receiveShadow?: boolean;
+  /** its geometry's own vertex attributes, as Bevy's Mesh::with_inserted_attribute adds them: [[attribute, values]],
+   *  a value a vertex (a Cuboid has 24), for a Material whose vertex_attributes read them */
+  attributes?: MeshAttribute[];
   /** the render layers it's on ([0] by default; Bevy's RenderLayers): a camera draws it only when they share a layer,
    * and only lights sharing a layer light it */
   layers?: number[];
@@ -405,5 +409,5 @@ export function Mesh(props: MeshProps) {
   const id = useId();
   const m = usePlace3d(position, rotation, scale, props.quaternion);
   usePointer3d(props.name ?? id, m, () => (shape === undefined ? boundsFromChildren(props.children) : undefined), props as Record<string, unknown>);
-  return node3d("Mesh", { ...props, animate: undefined, shape: undefined, position, rotation, scale }, <Place3d.Provider value={m}>{props.children}</Place3d.Provider>, Object.keys(extra).length ? extra : undefined);
+  return node3d("Mesh", { ...props, animate: undefined, shape: undefined, position, rotation, scale, attributes: props.attributes && JSON.stringify(props.attributes) }, <Place3d.Provider value={m}>{props.children}</Place3d.Provider>, Object.keys(extra).length ? extra : undefined);
 }

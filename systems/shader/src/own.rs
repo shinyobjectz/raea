@@ -15,7 +15,7 @@ use std::hash::{Hash, Hasher};
 use std::sync::Arc;
 
 use bevy::asset::uuid_handle;
-use bevy::mesh::MeshVertexBufferLayoutRef;
+use bevy::mesh::{MeshVertexAttribute, MeshVertexBufferLayoutRef};
 use bevy::pbr::{Material, MaterialPipeline, MaterialPipelineKey, MaterialPlugin};
 use bevy::prelude::*;
 use bevy::render::render_resource::{AsBindGroup, Face, RenderPipelineDescriptor, SpecializedMeshPipelineError};
@@ -102,6 +102,9 @@ pub struct OwnMaterial {
     cull: Option<Option<Face>>,
     /// its fragment stage's pipeline-overridable constants (WGSL `override`): their hash in CONSTANTS, 0 for none
     constants: u64,
+    /// its vertex buffer's attributes and their shader locations (Material::specialize's get_layout): their hash in
+    /// LAYOUTS, 0 for the pipeline's own
+    layout: u64,
 }
 
 /// Each Material's constants by their hash: its key holds the hash, as a key is Copy (SpriteMaterial's combined key,
@@ -109,6 +112,29 @@ pub struct OwnMaterial {
 static CONSTANTS: std::sync::LazyLock<std::sync::Mutex<std::collections::HashMap<u64, Vec<(String, f64)>>>> = std::sync::LazyLock::new(Default::default);
 
 /// Constants kept in CONSTANTS under their hash (0 for none).
+/// Each Material's vertex buffer layout by its hash, as CONSTANTS.
+static LAYOUTS: std::sync::LazyLock<std::sync::Mutex<std::collections::HashMap<u64, Vec<(MeshVertexAttribute, u32)>>>> = std::sync::LazyLock::new(Default::default);
+
+/// What `table` (CONSTANTS, LAYOUTS) keeps under `id`.
+fn kept<T: Clone>(table: &std::sync::Mutex<std::collections::HashMap<u64, T>>, id: u64) -> Option<T> {
+    table.lock().ok()?.get(&id).cloned()
+}
+
+/// A layout's [[{ name, id, format }, location], ...] kept in LAYOUTS under its hash (0 for none).
+fn layout_of(v: Option<&Value>) -> Result<u64, String> {
+    let Some(list) = v.and_then(Value::as_array).filter(|l| !l.is_empty()) else { return Ok(0) };
+    let mut out = Vec::new();
+    for e in list {
+        let (a, at) = (e.get(0).ok_or("vertex_attributes are [attribute, location] pairs")?, e.get(1).and_then(Value::as_u64).ok_or("a vertex attribute's location is a whole number")?);
+        out.push((raea_sys_material::mesh::attribute(a)?, at as u32));
+    }
+    let mut h = std::collections::hash_map::DefaultHasher::new();
+    out.iter().for_each(|(a, at)| (a.name, a.id, at).hash(&mut h));
+    let id = h.finish().max(1);
+    LAYOUTS.lock().map(|mut m| m.insert(id, out)).ok();
+    Ok(id)
+}
+
 fn intern(c: Vec<(String, f64)>) -> u64 {
     if c.is_empty() {
         return 0;
@@ -140,11 +166,13 @@ pub struct OwnKey {
     vertex: u128,
     cull: Option<Option<Face>>,
     constants: u64,
+    layout: u64,
 }
 
 impl From<&OwnMaterial> for OwnKey {
     fn from(m: &OwnMaterial) -> Self {
-        OwnKey { shader: m.shader, vertex: m.vertex, cull: m.cull, constants: m.constants }
+        let &OwnMaterial { shader, vertex, cull, constants, layout, .. } = m;
+        OwnKey { shader, vertex, cull, constants, layout }
     }
 }
 
@@ -152,8 +180,8 @@ impl From<&OwnMaterial> for OwnKey {
 /// material's shaders put where that trait's placeholder is (`swap`).
 macro_rules! specialize {
     ($pipeline:ty, $key:ident, $placeholder:expr) => {
-        fn specialize(_: &$pipeline, descriptor: &mut RenderPipelineDescriptor, _: &MeshVertexBufferLayoutRef, key: $key<Self>) -> Result<(), SpecializedMeshPipelineError> {
-            swap(descriptor, &$placeholder, key.bind_group_data)
+        fn specialize(_: &$pipeline, descriptor: &mut RenderPipelineDescriptor, layout: &MeshVertexBufferLayoutRef, key: $key<Self>) -> Result<(), SpecializedMeshPipelineError> {
+            swap(descriptor, layout, &$placeholder, key.bind_group_data)
         }
     };
 }
@@ -210,15 +238,18 @@ fn alpha2d(a: AlphaMode) -> AlphaMode2d {
 /// A pipeline given the material's own shaders: its fragment where it is `placeholder`, its vertex shader (if any) in
 /// that same pipeline (the main pass's: the prepass and shadow pipelines keep Bevy's), the faces it culls, and its
 /// fragment's pipeline-overridable constants (as Bevy's pipeline_constants pushes LEVELS in its specialize).
-fn swap(descriptor: &mut RenderPipelineDescriptor, placeholder: &Handle<Shader>, k: OwnKey) -> Result<(), SpecializedMeshPipelineError> {
+fn swap(descriptor: &mut RenderPipelineDescriptor, layout: &MeshVertexBufferLayoutRef, placeholder: &Handle<Shader>, k: OwnKey) -> Result<(), SpecializedMeshPipelineError> {
     let Some(f) = descriptor.fragment.as_mut().filter(|f| f.shader.id() == placeholder.id()) else { return Ok(()) };
     let shader = |id: u128| Handle::Uuid(bevy::asset::uuid::Uuid::from_u128(id), core::marker::PhantomData);
     f.shader = shader(k.shader);
-    if let Some(c) = CONSTANTS.lock().ok().and_then(|m| m.get(&k.constants).cloned()) {
+    if let Some(c) = kept(&CONSTANTS, k.constants) {
         f.constants.extend(c.into_iter().map(|(n, v)| (n.into(), v)));
     }
     if k.vertex != 0 {
         descriptor.vertex.shader = shader(k.vertex);
+    }
+    if let Some(l) = kept(&LAYOUTS, k.layout) {
+        descriptor.vertex.buffers = vec![layout.0.get_layout(&l.iter().map(|(a, at)| a.at_shader_location(*at)).collect::<Vec<_>>())?];
     }
     if let Some(c) = k.cull {
         descriptor.primitive.cull_mode = c;
@@ -306,7 +337,7 @@ pub fn build(world: &mut World, v: &Value, image: &mut impl FnMut(&mut World, &V
     let constants = intern(constants);
     let [t0, t1, t2, t3] = t;
     let [d1, d2a, cube, cube_array, d3] = dims;
-    Ok(OwnMaterial { u0, u1, u2, u3, u4, u5, u6, u7, t0, t1, t2, t3, d1, d2a, cube, cube_array, d3, b0: b[0].clone(), b1: b[1].clone(), packing, shader, vertex, alpha, depth_bias, cull, constants })
+    Ok(OwnMaterial { u0, u1, u2, u3, u4, u5, u6, u7, t0, t1, t2, t3, d1, d2a, cube, cube_array, d3, b0: b[0].clone(), b1: b[1].clone(), packing, shader, vertex, alpha, depth_bias, cull, constants, layout: layout_of(own.get("vertex_attributes"))? })
 }
 
 /// Bevy's AlphaMode as the SDK writes it: "Opaque", "Blend", {"Mask": cutoff}, "Premultiplied", "AlphaToCoverage",

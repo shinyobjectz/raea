@@ -11,6 +11,7 @@ export * from "./bevy";
 export * from "./compute";
 export * from "./framepass";
 export * from "./phase";
+export * from "./attribute";
 export * from "./text";
 export * from "./shapes";
 export * from "./sprite";

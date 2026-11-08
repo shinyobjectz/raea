@@ -237,13 +237,13 @@ pub(crate) fn spawn_3d(world: &mut World, e: Entity, t: &Tup, inserted: &[Tup], 
             // a shape as a value (docs/media.feature M2): its `shape` column, a CSG expression, built by Manifold
             // once per expression (shape::cached), flat-shaded
             let expr = match vals.get("shape") { Some(V::S(s)) => s.clone(), _ => return Err(format!("mesh {}: needs shape, as box(1, 1, 1) or minus(rounded_box(2, 1, 0.2, 0.1), text3d(\"SALE\", 0.45, 0.3))", t.id)) };
-            // a picture map needs texture coordinates, which Manifold doesn't make (scene3d); a normal map needs
-            // tangents too, made from them (mikktspace); so does a grid's outline (grid.rs)
+            // a picture map needs UVs, which Manifold doesn't make (scene3d); a normal map tangents (mikktspace), as a grid's outline
             let grid = grid::grid_of(vals);
             let uvs = scene3d::has_maps(vals) || grid.is_some();
             let tangents = raea_sys_material::maps::needs_tangents(vals);
+            let attrs = match vals.get("attributes") { Some(V::S(a)) => a.as_str(), _ => "" };
             // made once per shape and what it's given (share.rs): equal parts hold one Mesh, so Bevy batches them
-            let mesh = scene3d::shared_mesh(world, &format!("{expr}\0{uvs}\0{tangents}"), || raea_sys_material::mesh::shape_mesh(&t.id, &expr, uvs, tangents))?;
+            let mesh = scene3d::shared_mesh(world, &format!("{expr}\0{uvs}\0{tangents}\0{attrs}"), || raea_sys_material::mesh::shape_mesh(&t.id, &expr, uvs, tangents).and_then(|m| raea_sys_material::mesh::with_attributes(m, attrs).map_err(|e| format!("mesh {}: {e}", t.id))))?;
             // a three.js shader (raea-sys-three-shader, docs/r3f.feature R3F11): its own material, and the mesh given
             // what it reads; its pictures' files found as a model's are (the edit's folder, its media)
             let three = match vals.get("three") {

@@ -197,7 +197,7 @@ export declare function stepBodies(bodies: Body[], dt: number, gravity?: Vec3): 
 
 ## Existing Bevy knowledge packs (surveyed 2026-10-18)
 
-What the skills library (`sdk/guides/craft/bevy/`, mirrored in `sdk/skills/raea-bevy/`) took from each. Nothing was
+What the skills library (`sdk/guides/craft/bevy/`, copied into `skills/skills/raea/3d/` (raea-skills)) took from each. Nothing was
 copied from a pack without a permissive license; the library is written for our SDK, so most packs informed its
 structure and its list of mistakes rather than its text.
 

@@ -1,1 +1,0 @@
-../../guides/craft/bevy/lights.md

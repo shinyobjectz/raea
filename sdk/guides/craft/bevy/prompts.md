@@ -96,7 +96,7 @@ Paste it as it is, with the brackets filled from the brief.
 
 ```text
 You build one 3D scene in raea, the TSX/Bevy engine, from brief.ts, its plans and its reference pictures. The scene
-lives in EDIT.tsx and is frame-pure. Read the raea-bevy skill's scenes.md, meshes.md and materials.md first.
+lives in EDIT.tsx and is frame-pure. Read `raea guide bevy/scenes`, `raea guide bevy/meshes` and `raea guide bevy/materials` first.
 
 THE BAR
 The target picture media/ref/target.png is a real in-engine screenshot of this scene from the hero camera. The

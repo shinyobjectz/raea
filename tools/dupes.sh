@@ -11,9 +11,9 @@
 set -u
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
 cd "$ROOT" || exit 2
-# tools/rask is its own repository (a submodule, empty in the fresh checkout L1 uses), so it never counts
+# tools/rask and skills (raea-skills) are their own repositories (submodules, empty in a fresh export), so they never count
 X=(--exclude vendor --exclude target --exclude sdk/ui/conformance --exclude-tests --exclude tests.rs --exclude engine/bevy-plugins/src/declared.rs \
-   --exclude tools/rask)
+   --exclude tools/rask --exclude skills)
 command -v cargo-dupes >/dev/null || { echo "dupes: cargo-dupes isn't installed (cargo install cargo-dupes --locked)"; exit 1; }
 [ "${1:-}" = report ] && exec cargo dupes report "${X[@]}"
 

@@ -25,7 +25,7 @@ raea render title.tsx -o title.mp4
 - Time anchored to words in a transcript (`word()`, `findPhrase()`), so cues follow the speech when the cut moves.
 - Games as a pure step from input to state (`useGameState`, `useInput`, `useGameEvents`): played live, rendered from a
   logged play, the same pixels.
-- 3D and an ECS world in the same tree, drawn by Bevy (`raea/3d`, `/ecs`); see skills/raea-bevy.
+- 3D and an ECS world in the same tree, drawn by Bevy (`raea/3d`, `/ecs`); see the raea skill's 3D guide (skills/skills/raea/3d.md).
 - Sound made on your Mac as values: `Tone.tokensynth()` instruments for music and `sao()` foley, cached by prompt,
   seed and settings; `raea sounds` fetches open sample libraries for a Tone.js `Sampler`.
 - The same code renders on the Mac and the iPhone.

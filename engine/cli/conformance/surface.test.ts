@@ -49,11 +49,12 @@ const listed = new Set([...help.matchAll(/raea ([a-z][\w-]*)/g), ...help.matchAl
 const shellVerbs = JSON.parse(/const SHELL: &\[&str\] = &(\[[^\]]*\]);/.exec(readFileSync(join(raea, "engine/cli/src/verbs.rs"), "utf8"))![1]) as string[];
 const handled = new Set([...cli.matchAll(/case "(\w+)":/g)].map((m) => m[1]).filter((c) => c !== "--help" && c !== "help"));
 
-/** the hand-written text under dir: a skill's reference/ is the help itself, written by tools/skills.sh gen */
+/** the hand-written text under dir: a skill's reference/ is the help itself, written by tools/skills.sh gen, and raea-skills'
+ * _template is a skill's placeholder text */
 function files(dir: string, out: string[] = []): string[] {
   for (const f of readdirSync(dir)) {
     const p = join(dir, f);
-    if (lstatSync(p).isDirectory()) f !== "reference" && files(p, out);
+    if (lstatSync(p).isDirectory()) f !== "reference" && !f.startsWith("_") && files(p, out);
     else if (f.endsWith(".md")) out.push(p);
   }
   return out;
@@ -79,7 +80,7 @@ describe("raea's surface", () => {
   });
 
   test.skipIf(missing || stale)("every `raea <command>` in the agent's context exists", () => {
-    const sources = [...files(join(raea, "sdk/guides")), ...files(join(raea, "sdk/skills")), "AGENTS.md (cli NOTES)"];
+    const sources = [...files(join(raea, "sdk/guides")), ...files(join(raea, "skills/skills")), ...(existsSync(join(raea, "sdk/skills")) ? files(join(raea, "sdk/skills")) : []), "AGENTS.md (cli NOTES)"];
     const bad: string[] = [];
     for (const src of sources) {
       const text = src.startsWith("AGENTS.md") ? /const NOTES = `([\s\S]*?)`;/.exec(cli)![1] : readFileSync(src, "utf8");
@@ -107,7 +108,7 @@ describe("raea's surface", () => {
     const host = join(raea, "apps/app/host");
     const sources = [
       ...files(join(raea, "sdk/guides")),
-      ...files(join(raea, "sdk/skills")),
+      ...files(join(raea, "skills/skills")), ...(existsSync(join(raea, "sdk/skills")) ? files(join(raea, "sdk/skills")) : []),
       // the feed's prompts (apps/app is a submodule: an export without it checks the rest)
       ...(existsSync(host) ? readdirSync(host) : []).filter((f) => f.endsWith(".ts") && !f.endsWith(".test.ts")).map((f) => join(host, f)),
       "AGENTS.md (cli NOTES)",

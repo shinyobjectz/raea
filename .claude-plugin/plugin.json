@@ -6,6 +6,6 @@
   "homepage": "https://raea.io",
   "repository": "https://github.com/shinyobjectz/raea",
   "license": "FSL-1.1-ALv2",
-  "skills": ["./sdk/skills/"],
+  "skills": ["./skills/skills/raea"],
   "keywords": ["video", "motion-graphics", "game-development", "rendering", "bevy", "react", "agent-skills"]
 }

@@ -56,7 +56,7 @@ second host beside Blitz, for native apps, video and layers in Bevy.
 
 ## Skills that stay true
 
-The public agent skills (`raea`, `raea-bevy` and the craft guides) are generated from the code where they can be and
+The public agent skill (`raea`, in raea-skills) and the craft guides are generated from the code where they can be and
 checked against it where they can't, so they don't drift from the engine.
 
 ## Releases

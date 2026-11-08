@@ -717,7 +717,7 @@ be treated as non-exact.
 3. **Generate the TypeScript, then curate it.** Keep the generator as the source of the types and wrappers, and add a
    per-plugin allow-list so agents see `RigidBody`, `ColliderConstructor`, `Restitution`, `Friction`, `LinearVelocity`
    and `Gravity`, not `SolverBody` or `LastPhysicsTick`. Put the result in `raea` behind the plugin's feature,
-   such as a `./physics` entry, and teach it in the raea-bevy skill.
+   such as a `./physics` entry, and teach it in the raea skill's 3D guide.
 4. **Hand-write only the asset and event edges**, as reflected components of ours that build the plugin's runtime
    objects from numbers (hanabi's `Particles`), so the generator covers them too.
 5. **Physics first.** avian3d is the best fit: deterministic, step-driven and data-described, with exact render equals

@@ -41,10 +41,10 @@ pub fn version() -> String {
         .unwrap_or_else(|| format!("{}-checkout", env!("CARGO_PKG_VERSION")))
 }
 
-/// The skills raea ships: an install's share/raea/skills, or the checkout's sdk/skills.
+/// The skills raea ships: an install's share/raea/skills, or a checkout's skills/skills (the raea-skills submodule).
 fn shipped() -> R<PathBuf> {
     let home = raea_io_home::home();
-    ["skills", "sdk/skills"].iter().map(|d| home.join(d)).find(|d| d.join("raea/SKILL.md").is_file()).ok_or_else(|| format!("no skills under {}: reinstall raea (curl -fsSL https://raea.io/install | sh)", home.display()))
+    ["skills", "skills/skills"].iter().map(|d| home.join(d)).find(|d| d.join("raea/SKILL.md").is_file()).ok_or_else(|| format!("no skills under {}: reinstall raea (curl -fsSL https://raea.io/install | sh), or in a checkout, git submodule update --init skills", home.display()))
 }
 
 /// SKILL.md with `version: V` in its front matter (replacing one that's there), so a copy says which raea it came with.
@@ -65,7 +65,7 @@ pub fn skill(args: &[String]) -> R<String> {
     }
     let dir = shipped()?.join(name);
     if !dir.join("SKILL.md").is_file() {
-        return Err(format!("no skill {name:?}: {}", installed_names()?.join(", ")));
+        return Err(format!("no skill {name:?}{}: {}", if name == "raea-bevy" { " (raea-bevy is the raea skill's 3D guide now: 3d.md beside its SKILL.md)" } else { "" }, installed_names()?.join(", ")));
     }
     match reference {
         Some(r) => {
@@ -81,19 +81,14 @@ pub fn skill(args: &[String]) -> R<String> {
 }
 
 fn installed_names() -> R<Vec<String>> {
-    let mut v = Vec::new();
-    for e in std::fs::read_dir(shipped()?).map_err(|e| e.to_string())?.flatten() {
-        // raea-work is internal (work.raea.io's pages): a checkout has it, a release doesn't ship it
-        let name = e.file_name().to_string_lossy().into_owned();
-        if name != "raea-work" && e.path().join("SKILL.md").is_file() {
-            v.push(name);
-        }
-    }
+    // raea-work is internal (work.raea.io's pages); raea-skills' _template starts a skill and isn't one
+    let ok = |e: &std::fs::DirEntry, n: &str| n != "raea-work" && !n.starts_with('_') && e.path().join("SKILL.md").is_file();
+    let mut v: Vec<String> = std::fs::read_dir(shipped()?).map_err(|e| e.to_string())?.flatten().filter_map(|e| Some(e.file_name().to_string_lossy().into_owned()).filter(|n| ok(&e, n))).collect();
     v.sort();
     Ok(v)
 }
 
-/// Copies a folder, following links (raea-bevy's topic files link to the craft guides in a checkout).
+/// Copies a folder, following links.
 fn copy(from: &Path, to: &Path) -> R<()> {
     std::fs::create_dir_all(to).map_err(|e| format!("{}: {e}", to.display()))?;
     for e in std::fs::read_dir(from).map_err(|e| e.to_string())?.flatten() {
@@ -128,6 +123,8 @@ pub fn install(args: &[String]) -> R<String> {
         std::fs::write(&md, stamp(&text, &v)).map_err(|e| e.to_string())?;
         out += &format!("{}: {name} {v}\n", dst.display());
     }
+    let old = to.join("raea-bevy"); // an older raea's copy (stamped `version:`), whose text is the raea skill's 3d.md now
+    if std::fs::read_to_string(old.join("SKILL.md")).is_ok_and(|t| t.contains("\nversion: ")) && std::fs::remove_dir_all(&old).is_ok() { out += &format!("{}: removed, now raea's 3d.md\n", old.display()); }
     // pinned moves (SK10): a skill per move, so an agent's /quieter loads the one guide
     for (i, a) in args.iter().enumerate() {
         if a == "--pin" {
@@ -164,7 +161,7 @@ mod tests {
         let core = skill(&[]).unwrap();
         assert!(core.starts_with("---\nname: raea\n") && core.contains(&format!("\nversion: {}\n---\n", version())), "{}", &core[..200.min(core.len())]);
         assert!(skill(&["--reference".into(), "cli".into()]).unwrap().contains("raea render"));
-        assert!(skill(&["raea-bevy".into()]).is_ok());
+        assert!(skill(&["raea-bevy".into()]).unwrap_err().contains("3d.md") && installed_names().unwrap() == ["raea"]);
         assert!(skill(&["../x".into()]).is_err());
         assert!(skill(&["--reference".into(), "../../x".into()]).is_err());
     }

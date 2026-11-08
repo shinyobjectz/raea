@@ -194,7 +194,7 @@ fn the_skill_states_the_core_rules_as_motion_md_does() {
     let core = motion.split("## The core rules").nth(1).unwrap().split("\n## ").next().unwrap();
     let titles: Vec<&str> = core.lines().filter_map(|l| l.split_once(". **").filter(|(n, _)| n.trim().parse::<u32>().is_ok())).filter_map(|(_, t)| t.split_once("**").map(|(t, _)| t)).collect();
     assert_eq!(titles.len(), 10, "{titles:?}");
-    let skill = include_str!("../../../sdk/skills/raea/SKILL.md");
+    let skill = &std::fs::read_to_string(concat!(env!("CARGO_MANIFEST_DIR"), "/../../skills/skills/raea/SKILL.md")).expect("raea-skills: git submodule update --init skills");
     let rules = skill.split("Rules that keep renders right").nth(1).unwrap().split("\n\n").next().unwrap();
     assert!(rules.contains("`raea guide motion` has all ten"), "{rules}");
     let mut bullets: Vec<String> = Vec::new();

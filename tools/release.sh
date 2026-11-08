@@ -63,7 +63,14 @@ raea_bin=$bin/raea; [ -f "$raea_bin.exe" ] && raea_bin=$raea_bin.exe
 # none. There, RAEA_SKILLS_PASSED=SHA stands for it: the gate passed at SHA where the feed app is (a maintainer's
 # checkout), and it counts for REF only when what the gate reads (the skills and guides, the glossary, the CLI's usage,
 # skills.sh) is the same at both. With neither, the release refuses (T1f, 11-07)
-gate_inputs=(sdk/skills sdk/guides docs/skills.glossary.md engine/cli/src tools/skills.sh)
+# the raea skill lives in the raea-skills submodule (skills/), so its pointer stands for their text
+gate_inputs=(skills sdk/guides docs/skills.glossary.md engine/cli/src tools/skills.sh)
+# raea-skills (skills/) at the commit REF pins, written into DIR: a submodule isn't in REF's own archive
+skills_at() {
+  local pin; pin=$(git rev-parse "$ref:skills") || { echo "release.sh: $ref pins no raea-skills (skills/)" >&2; return 1; }
+  git -C skills cat-file -e "$pin^{commit}" 2>/dev/null || git -C skills fetch -q origin "$pin" || { echo "release.sh: raea-skills has no commit $pin (git submodule update --init skills)" >&2; return 1; }
+  mkdir -p "$1" && git -C skills archive "$pin" | tar -x -C "$1"
+}
 if [ ! -f "$root/apps/app/src/acp/protocol.ts" ]; then
   [ -n "${RAEA_SKILLS_PASSED:-}" ] || { echo "release.sh: no feed app here (apps/app), so the skills gate can't run; run tools/skills.sh check in a checkout with the feed app, then name the commit it passed on as RAEA_SKILLS_PASSED (release.yml: a \"skills-passed: <sha>\" line in the annotated tag's message, or the skills_passed input when run by hand)" >&2; exit 1; }
   git rev-parse -q --verify "$RAEA_SKILLS_PASSED^{commit}" >/dev/null || { echo "release.sh: RAEA_SKILLS_PASSED=$RAEA_SKILLS_PASSED isn't a commit here (a full SHA, fetched)" >&2; exit 1; }
@@ -74,6 +81,7 @@ if [ ! -f "$root/apps/app/src/acp/protocol.ts" ]; then
   RAEA_BIN="$(cd "$(dirname "$raea_bin")" && pwd)/$(basename "$raea_bin")" bash tools/skills.sh check-cli || { echo "release.sh: cli.md doesn't match $raea_bin's help" >&2; exit 1; }
 else
   git archive "$ref" | untar "$gate" || { echo "release.sh: the skills gate couldn't unpack $ref" >&2; exit 1; }
+  skills_at "$gate/skills" || exit 1
   git -C "$gate" init -q && git -C "$gate" add -A && git -C "$gate" -c gc.auto=0 -c maintenance.auto=false -c user.name=release -c user.email=release@raea.io commit -qm "$ref" --no-verify
   if ! (cd "$gate" && SKILLS_STRICT=1 SKILLS_CHANGED= RAEA_BIN="$raea_bin" RAEA_APP="$root/apps/app" RAEA_APP_REV="$(git -C "$root" rev-parse "$ref:apps/app")" bash tools/skills.sh check); then
     echo "release.sh: tools/skills.sh check failed on $ref with $raea_bin; fix the skills (tools/skills.sh gen) before releasing" >&2
@@ -90,6 +98,9 @@ since=${RAEA_SINCE:-$(git describe --tags --abbrev=0 --match 'v*' "$ref" 2>/dev/
   echo
   if [ -z "$since" ]; then range=("$ref"); elif git rev-parse -q --verify "$since^{commit}" >/dev/null; then range=("$since..$ref"); else range=(--since="$since" "$ref"); fi
   git log --no-merges --format='- %s' "${range[@]}" -- sdk/skills sdk/guides ':!sdk/skills/raea-work' | cut -c1-200
+  # and raea-skills' own, between the commit the last release pinned (none before the move) and this one
+  from=$( [ -n "$since" ] && git rev-parse -q --verify "$since:skills" 2>/dev/null || true )
+  git -C skills log --no-merges --format='- %s' ${from:+"$from.."}"$(git rev-parse "$ref:skills")" -- skills | cut -c1-200
 } > "$out/raea-$version-skills.md"
 case $platform in
   linux-x86_64)
@@ -134,13 +145,13 @@ copy sdk/react/tw/node_modules/tailwindcss "$stage/share/raea/sdk/react/tw/node_
 # (raea_io_home::models: ~/.local/share/raea-models, %LOCALAPPDATA%\raea\models on Windows); every platform since #43
 mkdir -p "$stage/share/raea/models/beat-this"
 cp ~/.local/share/raea-models/beat-this/beat_this_small0.onnx "$stage/share/raea/models/beat-this/"
-# the agent skills (sdk/skills: raea, raea-bevy), which the installer copies into ~/.claude/skills; raea-bevy's topic files
-# are links to the craft guides, so they go as the files they point to
+# the agent skill (raea: raea-skills at the commit REF pins), which the installer copies into
+# ~/.claude/skills; raea-work (sdk/skills, work.raea.io's showcase pages) is internal and stays out, and _template is
+# raea-skills' start of a new skill
 skills=$(mktemp -d)
-git archive "$ref" sdk/skills sdk/guides | tar -x -C "$skills"
-# raea-work is internal (work.raea.io's showcase pages), so it stays out, as the public export drops it
-rm -rf "$skills/sdk/skills/raea-work"
-cp -RL "$skills/sdk/skills" "$stage/share/raea/skills"
+skills_at "$skills" || exit 1
+rm -rf "$skills/skills/_template"
+cp -R "$skills/skills" "$stage/share/raea/skills"
 # the runtime's packages, as installed here
 copy sdk/react/js/node_modules "$stage/share/raea/sdk/react/js"
 rm -rf "$stage/share/raea/tools/tokensynth/__pycache__" "$skills"

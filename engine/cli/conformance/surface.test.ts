@@ -84,7 +84,7 @@ describe("raea's surface", () => {
     const bad: string[] = [];
     for (const src of sources) {
       const text = src.startsWith("AGENTS.md") ? /const NOTES = `([\s\S]*?)`;/.exec(cli)![1] : readFileSync(src, "utf8");
-      for (const m of text.matchAll(/`raea (\w+)/g)) if (!listed.has(m[1])) bad.push(`${src.replace(raea + "/", "")}: raea ${m[1]}`);
+      for (const m of text.matchAll(/`raea ([a-z][\w-]*)/g)) if (!listed.has(m[1])) bad.push(`${src.replace(raea + "/", "")}: raea ${m[1]}`);
       // render's --at takes frame numbers (cut's and frame's take seconds)
       for (const m of text.matchAll(/raea render [^\n`]*?--at ([^\s`\\]+)/g)) if (!/^(\d+|[A-Z]+)(,(\d+|[A-Z]+))*$/.test(m[1])) bad.push(`${src.replace(raea + "/", "")}: raea render --at ${m[1]} (frame numbers)`);
     }

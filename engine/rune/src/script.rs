@@ -2,7 +2,7 @@
 //! element, each by data-testid), plus a key at the focus and frames to wait, played through Rune's input. T3's set adds
 //! a hover (the pointer left over an element), the system's appearance and the window's width (docs/targets.feature T3a).
 
-use serde::Deserialize;
+use serde::{Deserialize, Deserializer, de::Error as _};
 
 use crate::js::App;
 
@@ -18,19 +18,35 @@ pub enum Step {
     /// a key at the focus, by DOM's name ("Enter", "Escape", "ArrowDown", "a")
     Key { key: String },
     /// frames to run with no input
-    Frames { frames: u32 },
+    Frames {
+        #[serde(deserialize_with = "whole")]
+        frames: u32,
+    },
     /// the files the app's next fs.pick picks (T2d: a headless check opens no dialog)
     Pick { pick: Vec<String> },
     /// the file the app's next fs.save saves to
     Save { save: String },
     /// the button pressed in the app's next dialog.message
-    Dialog { dialog: usize },
+    Dialog {
+        #[serde(deserialize_with = "whole")]
+        dialog: usize,
+    },
     /// the pointer moved to the element's middle and left there (T3: hover)
     Hover { hover: String },
     /// the system's appearance (T3: Tailwind's dark:)
     Dark { dark: bool },
     /// the window's width at the same height (T3: a breakpoint)
     Width { width: f32 },
+}
+
+/// A count from JS: JSON from a JS engine writes every number as a double (`30.0`), so a whole double is taken
+/// as the count it is, and anything else (`2.5`, `-1`) is refused.
+fn whole<'de, D: Deserializer<'de>, T: TryFrom<u64>>(d: D) -> Result<T, D::Error> {
+    let n = f64::deserialize(d)?;
+    if !(n >= 0.0 && n.fract() == 0.0 && n < 9_007_199_254_740_992.0) {
+        return Err(D::Error::custom(format!("{n} isn't a whole number of 0 or more")));
+    }
+    T::try_from(n as u64).map_err(|_| D::Error::custom(format!("{n} is too large")))
 }
 
 /// `steps` as JSON: an array of steps.
@@ -103,4 +119,25 @@ pub fn play(app: &mut App, step: &Step) -> Result<(), String> {
 fn queue(s: raea_io_os::Scripted) -> Result<(), String> {
     raea_io_os::script(s);
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{Step, parse};
+
+    #[test]
+    fn counts_from_js_are_doubles() {
+        let steps = parse(r#"[{"frames":30.0},{"frames":30},{"dialog":1.0},{"press":"add"}]"#).unwrap();
+        assert!(matches!(steps[0], Step::Frames { frames: 30 }));
+        assert!(matches!(steps[1], Step::Frames { frames: 30 }));
+        assert!(matches!(steps[2], Step::Dialog { dialog: 1 }));
+        assert!(matches!(steps[3], Step::Press { .. }));
+    }
+
+    #[test]
+    fn a_count_that_isnt_whole_is_refused() {
+        assert!(parse(r#"[{"frames":2.5}]"#).is_err());
+        assert!(parse(r#"[{"frames":-1}]"#).is_err());
+        assert!(parse(r#"[{"frames":5000000000}]"#).is_err());
+    }
 }

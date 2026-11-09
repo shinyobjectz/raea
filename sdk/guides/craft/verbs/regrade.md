@@ -8,6 +8,10 @@ light.
 - On the note's part, measure rather than guess: its colour temperature, brightness and saturation against what's
   around it.
 
+## Decide
+- What each colour means in this world, from the brief's `## Look`.
+- Light or grade. When the scene can be re-lit or its materials changed, do that first.
+
 ## Change
 - Change the light or the material in the scene before grading on top of it. A grade can't add what the light
   doesn't have.
@@ -17,3 +21,8 @@ light.
 
 ## Verify
 - The same frames, before and after, side by side at the size it ships. In dark frames, check the export for blotching.
+
+## When it goes wrong
+- Skin tones went off with the rest of the frame.
+- The whole frame shifted, and the accent no longer stands apart.
+- Blacks were crushed, and the dark frames blotch in the export.

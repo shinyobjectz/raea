@@ -8,6 +8,10 @@ note names. Keep the point of view: a quieter piece still has one.
   note's part or moment is where to start, but loudness usually comes from more than one place at once.
 - Name the one thing that should stay loud. A quiet piece still has one accent.
 
+## Decide
+- The one accent that stays loud.
+- Take away or turn down. Removing a layer is cleaner than lowering everything a little.
+
 ## Change
 - Take away before turning down: remove the second glow, the extra layer, the repeated whoosh. Then reduce what's left
   (intensity, saturation, speed, level) on the named part, not the whole frame.
@@ -20,3 +24,8 @@ note names. Keep the point of view: a quieter piece still has one.
 ## Verify
 - Look at the same frames and moments as before, side by side. The note's part is calmer; the accent still lands.
 - Nothing outside the note changed unless it had to.
+
+## When it goes wrong
+- It's lifeless: the accent went quiet along with everything else.
+- The whole frame was desaturated or darkened, instead of the parts around the accent.
+- Blur, fog or grain made it quieter by softening the work itself.

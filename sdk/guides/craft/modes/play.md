@@ -20,10 +20,32 @@ and hear, and when it ends they press to play again.
 - **Clear failure, quick restart.** The player sees why they lost and is playing again in a moment.
 - **Deterministic.** State lives in `useGameState` with a pure step, so a logged play renders back to the same pixels.
 
+## The decisions
+
+- **The core move and its numbers.** Set the speed, the acceleration, how long a jump hangs and the frame where it
+  lands. The easy default is whatever the physics gives you. Tune the numbers by hand while you play.
+- **What the camera shows.** Show what the player needs to see coming. The easy default is a fixed camera centred
+  on the player, which hides the danger on a fast run toward the edge of the screen.
+- **The first minute.** Let the first obstacle teach the move. The easy default is a line of instructions.
+- **The run and the restart.** Decide how long a run lasts and how quickly the player is back in after losing. Both
+  should be short enough that one more go is easy to say yes to.
+- **Sound.** Give every input and every outcome a sound (`games`). Silence after a jump reads as a missed jump.
+- **What is random.** Seed it from the game's state, so a logged play renders back the same.
+
 ## The rut
 
 A title screen before anything happens. Controls explained in text instead of taught by the first obstacle. A score
 that means nothing.
+
+## How it fails
+
+| What you see | Why | What to change |
+|---|---|---|
+| new players stand still | the goal or the player doesn't stand out | separate them by shape and contrast first, then by colour |
+| the controls feel floaty or stiff | the feel numbers were never tuned: slow acceleration, no landing frame | tune them live, one at a time |
+| deaths feel unfair | the cause wasn't visible: a hitbox bigger than the sprite, danger off screen | make hitboxes match the drawing, and show danger before it arrives |
+| a replay doesn't match the play | some state lives outside `useGameState`: `Math.random()`, the clock, a ref | move it into the step, seeded from state (`harden`) |
+| it stutters live | the frame costs too much | reduce the cost (`optimize`). Never swap in a video |
 
 ## Check
 

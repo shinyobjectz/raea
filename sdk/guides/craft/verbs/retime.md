@@ -8,6 +8,10 @@ and where the piece breathes.
   gone before it can be read, a cut before the result lands).
 - With music, look at the song's map: are holds and cuts on its beats, builds and stops?
 
+## Decide
+- The target length, from the brief or the delivery.
+- Where the piece breathes: the one or two holds that earn their time.
+
 ## Change
 - Fix it in the cut first: shorten the drags, extend the rushed. Motion can't rescue a slow cut.
 - Reading time: about 0.3 s a word, a second at least for anything that has to be read.
@@ -16,3 +20,9 @@ and where the piece breathes.
 
 ## Verify
 - Watch it straight through once at full speed, without stopping. Mark anything that still drags or rushes.
+
+## When it goes wrong
+- Every shot is the same length, so nothing feels faster or slower.
+- Text is gone before it's read twice.
+- The music is cut mid-phrase to make a hold fit.
+- The piece is now longer than asked.

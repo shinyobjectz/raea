@@ -8,6 +8,10 @@ Notes like these: "I can't read it", "the font", "too small on my phone", "the c
 - Count the faces and weights. Name what each one is for (the brand's, from `brand/brand.css`; a caption's).
 - Check the measure: lines too long to take in at a glance, single words left alone on a line.
 
+## Decide
+- The face and weights, from the brand kit. A second face only when it has a job the first can't do.
+- The sizes, from the smallest screen it plays on.
+
 ## Change
 - One face, two at most, from the brand kit. Contrast comes from size and weight, not from more fonts.
 - Size for the phone: a 9:16 caption at least 48 px tall on a 1080 wide frame; titles far bigger.
@@ -18,3 +22,9 @@ Notes like these: "I can't read it", "the font", "too small on my phone", "the c
 ## Verify
 - Stills of each line on a phone-size preview; read them aloud at speaking pace.
 - The faces in the render are only the ones the brand names.
+
+## When it goes wrong
+- The render shows a fallback face because the font wasn't loaded. Check the faces in a still, not in the code.
+- A single word sits alone on the last line.
+- Captions sit over a face, or under a platform's buttons.
+- A line is too long to read twice while it's up.

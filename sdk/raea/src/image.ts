@@ -3,3 +3,4 @@
 // raea/image (bevy_image): pictures, on the page and in the world.
 export { Img, type ImgProps } from "@raea/video/media";
 export { ImagePlane, Plate, type ImagePlaneProps, type PlateProps } from "./3d";
+export { TextureAtlasBuilder, type BuiltAtlas, type AtlasSprite } from "@raea/render/3d/atlas";

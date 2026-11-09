@@ -49,6 +49,8 @@ pub fn sprites(tracks: &[Track], p: &mut Program) {
             }
         }
         sheet(p, &mut row, &id, &its);
+        // one picture of an atlas (TextureAtlasBuilder): its index in the atlas's list (raea-sys-sprite's atlas.rs)
+        if let Some(i) = num(first, "atlasPick") { row.insert("atlas_pick".into(), V::N(i)); }
         // as JSON: the picture's sampler (Bevy's load_with_settings, raea-sys-sampler's), Bevy's SpriteImageMode as given
         // and its <Material> (Bevy's SpriteMaterial, systems/sprite)
         for (prop, col) in [("sampler", "texture_sampler"), ("image_mode", "image_mode"), ("shader", "shader")] {
@@ -76,6 +78,8 @@ pub fn shapes(tracks: &[Track], p: &mut Program) {
         let mut row = BTreeMap::new();
         row.insert("id".into(), V::S(id.clone()));
         let first = &its[0].props;
+        // a native <Text2d>: its spec, each font file found as staticFile's /media/ is (raea-sys-sprite's text2d.rs)
+        if let Some(spec) = first.get("text") { row.insert("text".into(), V::S(text_spec(spec))); }
         row.insert("shape".into(), V::S(first.get("shape").and_then(Value::as_str).unwrap_or("rect").to_string()));
         let size = first.get("size").and_then(Value::as_array);
         let at = |i: usize| size.and_then(|a| a.get(i)).and_then(Value::as_f64).unwrap_or(100.0);
@@ -97,4 +101,17 @@ pub fn shapes(tracks: &[Track], p: &mut Program) {
         p.spawns.push(("shape2d".into(), vec![row]));
         own_uniforms(p, &id, &its, |it| it.props.get("shader"));
     }
+}
+
+/// A <Text2d>'s spec with each section's font file found.
+fn text_spec(spec: &Value) -> String {
+    let mut spec = spec.clone();
+    if let Some(Value::Array(sections)) = spec.get_mut("sections") {
+        for s in sections.iter_mut() {
+            if let Some(f) = s.get("font").and_then(Value::as_str).map(src_path) {
+                s["font"] = Value::String(f);
+            }
+        }
+    }
+    spec.to_string()
 }

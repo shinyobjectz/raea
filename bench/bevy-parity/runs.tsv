@@ -151,3 +151,6 @@ shader_advanced/render_depth_to_texture	-	5,10,30,60
 shader_advanced/specialized_mesh_pipeline	-	5,10
 shader_advanced/texture_binding_array	-	5,10
 2d/2d_shapes	-	5,10
+2d/rotation	-	10,60
+2d/texture_atlas	-	10,30
+2d/text2d	-	10,60

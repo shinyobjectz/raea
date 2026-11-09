@@ -33,6 +33,9 @@ export interface SpriteProps extends Place2dProps {
   height?: number;
   /** a sprite sheet: the picture is `[columns, rows]` cells of equal size, read left to right, top to bottom */
   grid?: [number, number];
+  /** one picture of a built atlas (TextureAtlasBuilder's sources.handle gives it with its src): its index in the
+   * atlas's list */
+  atlasPick?: number;
   /** with `grid`: which cell shows (0 is the top left); animate it to play the sheet: frame={Math.floor(f / 3)} */
   frame?: number;
   flipX?: boolean;
@@ -103,6 +106,7 @@ export function Sprite(props: SpriteProps) {
     checkImageMode(props.image_mode);
   }
   if (props.sampler !== undefined) samplerSpec("Sprite: sampler", props.sampler);
+  if (props.atlasPick !== undefined && !(Number.isInteger(props.atlasPick) && props.atlasPick >= 0 && props.src.startsWith("atlas:"))) throw new TypeError("Sprite: atlasPick is one picture of a built atlas: spread TextureAtlasBuilder's sources.handle(texture) into it");
   check2d("Sprite", props);
   const id = useId();
   const handled = Object.keys(props).some((k) => /^on[A-Z]/.test(k));

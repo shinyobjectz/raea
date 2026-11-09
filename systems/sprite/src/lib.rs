@@ -23,6 +23,9 @@ use raea_sys_frame::{FrameRows, RenderImages, num};
 #[derive(Component)]
 pub struct Part2d;
 
+pub mod atlas;
+pub mod text2d;
+
 /// The scene's 2D camera.
 #[derive(Component)]
 pub struct Camera2dOver;
@@ -90,7 +93,10 @@ pub fn shape_image(w: u32, h: u32, rgba: Vec<u8>, v: &BTreeMap<String, V>) -> Re
 /// A sprite's entity from its row and its picture (`size` in px).
 /// A sprite's picture and its size: a "render:NAME" (or "render:NAME:WxH") image as it is, from `render` (raea-runtime-plugins'
 /// fields::image), which a frame may switch to another by name (sync_2d); otherwise the picture `picture` decodes.
-pub fn source(world: &mut World, src: &str, picture: impl FnOnce(&str) -> Result<((u32, u32), Vec<u8>), String>, render: impl FnOnce(&mut World, &serde_json::Value) -> Result<Handle<Image>, String>) -> Result<(Handle<Image>, UVec2), String> {
+pub fn source(world: &mut World, src: &str, mut picture: impl FnMut(&str) -> Result<((u32, u32), Vec<u8>), String>, render: impl FnOnce(&mut World, &serde_json::Value) -> Result<Handle<Image>, String>) -> Result<(Handle<Image>, UVec2), String> {
+    if atlas::is_atlas(src) {
+        return atlas::source(world, src, picture);
+    }
     if let Some(name) = RenderImages::name(src) {
         let image = render(world, &serde_json::Value::String(src.into()))?;
         let (w, h) = world.get_resource::<RenderImages>().and_then(|r| r.0.get(name)).map(|i| i.1).ok_or_else(|| format!("{src}: no render image"))?;
@@ -111,10 +117,13 @@ pub fn spawn_sprite(world: &mut World, e: Entity, t: &Tup, image: Handle<Image>,
             img.sampler = ImageSampler::Descriptor(s.over(raea_sys_sampler::descriptor_of(&img.sampler)));
         }
     }
-    let texture_atlas = (cols > 1 || rows > 1).then(|| {
+    // a picture of an atlas (TextureAtlasBuilder): its `atlas_pick`, or the whole atlas
+    let src = match v.get("src") { Some(V::S(s)) => s.clone(), _ => String::new() };
+    let picked = atlas::pick(world, &src, v.get("atlas_pick").map(|p| p.num().max(0.0) as usize))?;
+    let texture_atlas = picked.or_else(|| (cols > 1 || rows > 1).then(|| {
         let layout = world.resource_mut::<Assets<TextureAtlasLayout>>().add(TextureAtlasLayout::from_grid(UVec2::new(cw, ch), cols, rows, None, None));
         TextureAtlas { layout, index: cell(v, cols * rows) }
-    });
+    }));
     let custom_size = size_of(v, ch as f32 / cw as f32);
     // Bevy's SpriteImageMode::Tiled: the picture repeats across the sprite's size, every stretch_value x its own
     let (tile_x, tile_y) = (num(v, "tile_x", 0.0) > 0.5, num(v, "tile_y", 0.0) > 0.5);
@@ -167,6 +176,11 @@ fn uv_of(v: &BTreeMap<String, V>) -> bevy::math::Affine2 {
 /// `shader` (a <Material> in a Mesh2d, docs/control.feature FC2a), its own Material2d (raea-sys-shader's OwnMaterial).
 pub fn spawn_shape(world: &mut World, e: Entity, t: &Tup, texture: Option<Handle<Image>>) -> Result<(), String> {
     let v = &t.vals;
+    // a Text2d (its `text` spec): Bevy's own, placed as any 2D part
+    if let Some(V::S(spec)) = v.get("text") {
+        world.entity_mut(e).insert((place_of(v), Visibility::default(), Part2d));
+        return text2d::spawn(world, e, spec).map_err(|err| format!("{} {err}", t.id));
+    }
     let (w, h) = (num(v, "w", 100.0), num(v, "h", 100.0));
     // one of Bevy's 2D primitives as raea-sys-mesh reads it (a Mesh2d's <CircularSector>, <Capsule2d>, a ring), or a shape
     let primitive = match v.get("primitive") {
@@ -270,7 +284,8 @@ pub fn sync_2d(frame: Res<FrameRows>, renders: Option<Res<RenderImages>>, mut ma
             }
             let cells = (num(v, "sheet_cols", 1.0).max(1.0) * num(v, "sheet_rows", 1.0).max(1.0)) as u32;
             let at = cell(v, cells);
-            if let Some(a) = s.texture_atlas.as_mut().filter(|a| a.index != at) {
+            // (a sheet's keyed cell; an atlas's picked picture stays as it was spawned)
+            if let Some(a) = s.texture_atlas.as_mut().filter(|a| a.index != at && !v.contains_key("atlas_pick")) {
                 a.index = at;
             }
             // a render image's picture this frame (Bevy's compute_shader_game_of_life swaps its sprite's two each frame)

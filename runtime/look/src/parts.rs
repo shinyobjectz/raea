@@ -95,7 +95,16 @@ pub fn keyed_strings(p: &mut Program, row: &mut BTreeMap<String, V>, id: &str, c
     p.keys.insert((id.to_string(), format!("{col}_k")), ks.iter().enumerate().map(|(f, k)| (f as i64, *k, "step".to_string())).collect());
 }
 
-/// Each frame's `src` (a picture's path, found as staticFile's /media/ is, or a "render:NAME"), for keyed_strings.
+/// Each frame's `src` (a picture's path, found as staticFile's /media/ is, or a "render:NAME"; an "atlas:" its
+/// textures each found so), for keyed_strings.
 pub fn srcs_of(its: &[Item]) -> Vec<String> {
-    its.iter().map(|i| src_path(i.props.get("src").and_then(Value::as_str).unwrap_or(""))).collect()
+    its.iter().map(|i| i.props.get("src").and_then(Value::as_str).unwrap_or("")).map(|s| match s.strip_prefix("atlas:").and_then(|j| serde_json::from_str::<Value>(j).ok()) {
+        Some(mut a) => {
+            if let Some(Value::Array(t)) = a.get_mut("textures") {
+                t.iter_mut().for_each(|p| if let Some(s) = p.as_str() { *p = Value::String(src_path(s)) });
+            }
+            format!("atlas:{a}")
+        }
+        None => src_path(s),
+    }).collect()
 }

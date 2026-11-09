@@ -19,6 +19,7 @@ import { scrollCss, type IgnoreScroll } from "./ui-scroll";
 import { useDebugAttr, type UiDebugOptions } from "./ui-debug";
 import type { TransformValue } from "./core";
 import { InCanvas3D, eulerOf } from "../3d/model";
+import { NativeText2d, type Text2dProps } from "./text2d";
 import { useVideoConfig } from "@raea/app/clock";
 
 type Color = Srgba | LinearRgba | string;
@@ -258,6 +259,8 @@ export interface TextStyleProps {
   font_features?: Record<string, number>;
   /** LetterSpacing: { Px } or { Rem } (of bevy_text's 20 px rem) after every glyph (none by default) */
   letter_spacing?: { Px: number } | { Rem: number };
+  /** TextFont's FontSmoothing: "None" draws the glyphs unantialiased (a <Text2d> inside a Canvas3D only) */
+  font_smoothing?: "AntiAliased" | "None";
 }
 
 /** bevy_text's FontVariationTag: the registered axes' OpenType tags. @bevy bevy_text::FontVariationTag */
@@ -374,9 +377,10 @@ const BREAK: Record<NonNullable<TextProps["linebreak"]>, CSSProperties> = {
 
 /** Bevy's UI text: a Node whose content is its string and its <TextSpan> children, in its TextFont, TextColor,
  *  TextLayout and LineHeight (Bevy's defaults when left out). @bevy bevy_ui::widget::text::Text */
-export function Text({ children, font, font_size, weight, style, font_width, color, line_height, font_variations, font_features, letter_spacing, justify, linebreak, shadow, underline, strikethrough, underline_color, strikethrough_color, text_background_color, ...node }: TextProps) {
+export function Text({ children, font, font_size, weight, style, font_width, color, line_height, font_variations, font_features, letter_spacing, justify, linebreak, shadow, underline, strikethrough, underline_color, strikethrough_color, text_background_color, font_smoothing, ...node }: TextProps) {
   const ui = useContext(InUi);
   const n = nodeCss("Text", node, ui?.back, useContext(UiScaleCx));
+  if (font_smoothing === "None") throw new TypeError("Text: font_smoothing \"None\" is for a <Text2d> inside a Canvas3D (the page's text is always smoothed)");
   const t = textCss("Text", { font, font_size, weight, style, font_width, color, line_height, font_variations, font_features, letter_spacing }, n.back);
   if (justify !== undefined && !["Left", "Center", "Right", "Justified", "Start", "End"].includes(justify)) throw new TypeError(`Text: justify is Left, Center, Right, Justified, Start or End, got ${JSON.stringify(justify)}`);
   if (linebreak !== undefined && !(linebreak in BREAK)) throw new TypeError(`Text: linebreak is WordBoundary, AnyCharacter, WordOrCharacter or NoWrap, got ${JSON.stringify(linebreak)}`);
@@ -423,23 +427,15 @@ export function TextSpan({ children, underline, strikethrough, underline_color, 
 }
 
 
-export interface Text2dProps extends TextStyleProps, TextRunProps {
-  /** its place in Bevy's 2D world: the frame's centre the origin, +Y up, a unit a pixel, turns counterclockwise */
-  transform?: TransformValue;
-  /** how its lines line up with each other (TextLayout's Justify, Left by default) */
-  justify?: TextProps["justify"];
-  /** Bevy's Anchor, as its Vec2: which point of the block sits at its Transform, [-0.5, -0.5] its bottom left to
-   * [0.5, 0.5] its top right ([0, 0], the centre, by default; Anchor::TOP_CENTER is [0, 0.5]) */
-  anchor?: [number, number];
-  children?: ReactNode;
-}
+export type { Text2dProps } from "./text2d";
 
 /** Text in Bevy's 2D world, its block's centre at its Transform (Text2d; Bevy's Anchor::CENTER unless `anchor` says). bevy_text
- *  lays it out as a <Text>'s, so this is that Text, placed on the frame. Put it after the <Canvas3D> in the
- *  <AbsoluteFill>: it draws over the 2D and 3D parts, where Bevy orders it with the 2D ones by z.
+ *  lays it out as a <Text>'s. Inside a <Canvas3D> it is Bevy's own Text2d (text2d.tsx), ordered with the 2D parts by z;
+ *  after it, in the <AbsoluteFill>, it is that Text placed on the frame, over the 2D and 3D parts.
  * @bevy bevy_sprite::text2d::Text2d */
-export function Text2d({ transform, justify, anchor = [0, 0], children, ...text }: Text2dProps) {
-  if (useContext(InCanvas3D)) throw new TypeError("Text2d: put it after the <Canvas3D>, in the <AbsoluteFill>: inside a layered Canvas3D it would be read as a 3D part and not drawn");
+export function Text2d({ transform, justify, anchor = [0, 0], children, bounds, shadow, ...text }: Text2dProps) {
+  if (useContext(InCanvas3D)) return <NativeText2d span={TextSpan} transform={transform} justify={justify} anchor={anchor} bounds={bounds} shadow={shadow} {...text}>{children}</NativeText2d>;
+  if (bounds || shadow || text.font_smoothing === "None") throw new TypeError("Text2d: bounds, shadow and font_smoothing \"None\" are Bevy's own Text2d's: put it inside the <Canvas3D>");
   if (!(Array.isArray(anchor) && anchor.length === 2 && anchor.every(Number.isFinite))) throw new TypeError(`Text2d: anchor is Bevy's Anchor as [x, y] (-0.5 to 0.5), got ${JSON.stringify(anchor)}`);
   const { width, height } = useVideoConfig();
   const [tx, ty] = transform?.translation ?? [0, 0, 0];

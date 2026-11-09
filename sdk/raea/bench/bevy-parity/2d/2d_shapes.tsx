@@ -5,6 +5,7 @@
 // twelve would be, coloured by i / 12. In the bottom left the ROTATE and WIREFRAME feathers checkboxes, unchecked,
 // under helpers/theme.rs basic_example_theme(WHITE), so nothing turns and no wireframe draws; Bevy's default 1280 x 720
 // window and clear colour.
+import type { ReactElement } from "react";
 import { AbsoluteFill, Composition, registerRoot } from "raea";
 import { Canvas3D } from "raea/3d";
 import { Hsla, Srgba } from "raea/color";
@@ -46,7 +47,7 @@ const RINGS = [
 ];
 
 /** a row of shapes spread over X_EXTENT at height y, `n` places wide, each coloured by its place */
-function row(shapes: JSX.Element[], n: number, y: number) {
+function row(shapes: ReactElement[], n: number, y: number) {
   return shapes.map((shape, i) => (
     <Mesh2d key={`${y} ${i}`} transform={Transform.fromXyz(-X_EXTENT / 2 + (i / (n - 1)) * X_EXTENT, y, 0)}>
       {shape}

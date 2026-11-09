@@ -37,9 +37,9 @@ impl Engine {
         #[cfg(feature = "native")]
         let mut rows2d: Vec<(String, serde_json::Value, Entity)> = Vec::new();
         let mut camera = None;
-        // an edit with no 3D rows draws nothing through the 3D pipeline: its camera only clears, so it gets no MSAA
-        // (4x colour and depth targets at full size were most of the start-up memory)
-        let has_3d = has_3d(inserted);
+        // an edit with no 3D or 2D mesh rows draws nothing through a mesh pipeline: its camera only clears, so it gets no
+        // MSAA (4x targets at full size were most of the start-up memory); a 2D one's shares the 2D camera's (sprite)
+        let has_3d = has_3d(inserted) || raea_sys_sprite::has_2d(inserted);
         // cameras first, so UI can target them; otherwise insertion order
         let mut order: Vec<(&Tup, Entity)> = inserted.iter().zip(ents.iter().copied()).collect();
         order.sort_by_key(|(t, _)| t.kind != "camera");

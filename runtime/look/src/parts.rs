@@ -22,9 +22,11 @@ pub fn sheet(p: &mut Program, row: &mut BTreeMap<String, V>, id: &str, its: &[It
     }
 }
 
-/// `color` keyed as col_r, col_g, col_b (`default` where a frame has none)
+/// `color` keyed as col_r, col_g, col_b (`default` where a frame has none); `srgb` ([r, g, b], a Bevy Srgba's
+/// channels) over it, unrounded, as a ColorMaterial's colour reaches the GPU in Bevy
 pub fn tint(p: &mut Program, row: &mut BTreeMap<String, V>, id: &str, its: &[Item], default: &str) {
-    let colors: Vec<[f64; 3]> = its.iter().map(|i| rgb(&hex(i.props.get("color")).unwrap_or(default.into()))).collect();
+    let given = |i: &Item| i.props.get("srgb").and_then(Value::as_array).filter(|a| a.len() == 3).and_then(|a| Some([a[0].as_f64()?, a[1].as_f64()?, a[2].as_f64()?]));
+    let colors: Vec<[f64; 3]> = its.iter().map(|i| given(i).unwrap_or_else(|| rgb(&hex(i.props.get("color")).unwrap_or(default.into())))).collect();
     for (c, name) in ["col_r", "col_g", "col_b"].iter().enumerate() {
         exact(p, row, id, name, &colors.iter().map(|v| v[c]).collect::<Vec<_>>());
     }

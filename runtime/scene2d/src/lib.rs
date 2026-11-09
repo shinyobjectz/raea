@@ -85,8 +85,8 @@ pub fn shapes(tracks: &[Track], p: &mut Program) {
         // its ColorMaterial's texture (a path, or { path, sampler }) and AlphaMode2d ("opaque", "blend", or "mask" with its cutoff)
         let tex = first.get("texture");
         if let Some(t) = tex.and_then(|t| t.as_str().or(t.get("path").and_then(Value::as_str))) { row.insert("texture".into(), V::S(src_path(t))); }
-        // as JSON: the texture's sampler (raea-sys-sampler's), the uv_transform (an Affine2), the mesh's Mesh::ATTRIBUTE_COLOR and its own Material2d
-        for (col, v) in [("texture_sampler", tex.and_then(|t| t.get("sampler"))), ("uv_transform", first.get("uv_transform")), ("vertex_colors", first.get("vertex_colors")), ("shader", first.get("shader"))] { if let Some(v) = v { row.insert(col.into(), V::S(v.to_string())); } }
+        // as JSON: the texture's sampler (raea-sys-sampler's), the uv_transform (an Affine2), the mesh's Mesh::ATTRIBUTE_COLOR, its own Material2d and a Bevy primitive
+        for (col, v) in [("texture_sampler", tex.and_then(|t| t.get("sampler"))), ("uv_transform", first.get("uv_transform")), ("vertex_colors", first.get("vertex_colors")), ("shader", first.get("shader")), ("primitive", first.get("primitive"))] { if let Some(v) = v { row.insert(col.into(), V::S(v.to_string())); } }
         match first.get("alpha_mode") {
             Some(Value::String(a)) => { row.insert("alpha".into(), V::S(a.to_lowercase())); }
             Some(Value::Object(m)) => { row.insert("alpha".into(), V::S("mask".into())); row.insert("alpha_cutoff".into(), V::N(n(m, "Mask", 0.5))); }

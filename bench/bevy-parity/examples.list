@@ -151,3 +151,4 @@ shader_advanced/mesh_shader_intro
 shader_advanced/render_depth_to_texture
 shader_advanced/specialized_mesh_pipeline
 shader_advanced/texture_binding_array
+2d/2d_shapes

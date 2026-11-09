@@ -266,7 +266,7 @@ impl Engine {
         self.app.world_mut().resource_mut::<FrameRows>().parse_looks();
         // a glTF model, and a panorama a live frame showed first (#38), set up before the frame that shows it draws
         if spawned { scene3d::await_models(&mut self.app)?; }
-        raea_sys_post::msaa_for_3d(self.app.world_mut(), has_3d(rows));
+        raea_sys_post::msaa_for_3d(self.app.world_mut(), has_3d(rows) || raea_sys_sprite::has_2d(rows));
         environment::live_rows(&mut self.app, rows, &self.dir)
     }
 

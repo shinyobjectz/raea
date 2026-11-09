@@ -15578,6 +15578,7 @@ dependencies = [
  "bevy",
  "raea-core-program",
  "raea-sys-frame",
+ "raea-sys-mesh",
  "raea-sys-sampler",
  "raea-sys-shader",
  "serde_json",

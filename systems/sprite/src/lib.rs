@@ -168,11 +168,17 @@ fn uv_of(v: &BTreeMap<String, V>) -> bevy::math::Affine2 {
 pub fn spawn_shape(world: &mut World, e: Entity, t: &Tup, texture: Option<Handle<Image>>) -> Result<(), String> {
     let v = &t.vals;
     let (w, h) = (num(v, "w", 100.0), num(v, "h", 100.0));
-    let mut mesh = match v.get("shape") {
-        Some(V::S(s)) if s == "circle" => Mesh::from(Circle::new(w / 2.0)),
-        Some(V::S(s)) if s == "ellipse" => Mesh::from(Ellipse::new(w / 2.0, h / 2.0)),
-        Some(V::S(s)) if s == "triangle" => Mesh::from(Triangle2d::new(Vec2::new(0.0, h / 2.0), Vec2::new(-w / 2.0, -h / 2.0), Vec2::new(w / 2.0, -h / 2.0))),
-        Some(V::S(s)) if s == "polygon" => Mesh::from(RegularPolygon::new(w / 2.0, num(v, "sides", 5.0).max(3.0) as u32)),
+    // one of Bevy's 2D primitives as raea-sys-mesh reads it (a Mesh2d's <CircularSector>, <Capsule2d>, a ring), or a shape
+    let primitive = match v.get("primitive") {
+        Some(V::S(s)) => Some(serde_json::from_str::<serde_json::Map<String, serde_json::Value>>(s).map_err(|e| format!("Shape2D {}: primitive: {e}", t.id))?),
+        _ => None,
+    };
+    let mut mesh = match (&primitive, v.get("shape")) {
+        (Some(p), _) => raea_sys_mesh::primitive_mesh(p).map_err(|e| format!("Shape2D {}: {e}", t.id))?,
+        (None, Some(V::S(s))) if s == "circle" => Mesh::from(Circle::new(w / 2.0)),
+        (None, Some(V::S(s))) if s == "ellipse" => Mesh::from(Ellipse::new(w / 2.0, h / 2.0)),
+        (None, Some(V::S(s))) if s == "triangle" => Mesh::from(Triangle2d::new(Vec2::new(0.0, h / 2.0), Vec2::new(-w / 2.0, -h / 2.0), Vec2::new(w / 2.0, -h / 2.0))),
+        (None, Some(V::S(s))) if s == "polygon" => Mesh::from(RegularPolygon::new(w / 2.0, num(v, "sides", 5.0).max(3.0) as u32)),
         _ => Mesh::from(Rectangle::new(w, h)),
     };
     // per-vertex linear colours (Mesh::ATTRIBUTE_COLOR), which ColorMaterial multiplies its colour and texture by
@@ -202,25 +208,41 @@ pub fn spawn_shape(world: &mut World, e: Entity, t: &Tup, texture: Option<Handle
 }
 
 /// The 2D camera, once the scene has a 2D part (or a plugin's Draws2d): over the 3D camera (one order after it), on its
-/// target, not clearing. When the 3D camera is single-sampled and not Hdr the two share one main texture, which then
-/// holds the 3D and the 2D over it, so the 2D camera's output replaces the target's, as the first camera on a target
-/// does in Bevy, rather than blending the finished frame over itself: a 2D fragment's alpha below 1 (an opaque or
-/// masked Material2d's) then reaches the frame as a Camera2d alone leaves it (shader/shader_material_2d).
-pub fn camera_2d(mut commands: Commands, parts: Query<(), Or<(With<Part2d>, With<Draws2d>)>>, over: Query<(), With<Camera2dOver>>, three: Query<(&Camera, &RenderTarget, &Msaa, Has<bevy::camera::Hdr>), With<Camera3d>>) {
-    if parts.is_empty() || !over.is_empty() {
+/// target, not clearing, with its MSAA (Bevy's 4x unless the 3D needs one sample; a 2D-only edit's 3D camera gets 4x
+/// by `has_2d`, as a lone Camera2d has). When the 3D camera isn't Hdr the two share one main texture, which then holds
+/// the 3D and the 2D over it, so the 2D camera's output replaces the target's, as the first camera on a target does in
+/// Bevy, rather than blending the finished frame over itself: a 2D fragment's alpha below 1 (an opaque or masked
+/// Material2d's) then reaches the frame as a Camera2d alone leaves it (shader/shader_material_2d).
+pub fn camera_2d(mut commands: Commands, parts: Query<(), Or<(With<Part2d>, With<Draws2d>)>>, mut over: Query<&mut Msaa, (With<Camera2dOver>, Without<Camera3d>)>, mut tags: Query<&mut Msaa, (With<raea_sys_frame::TagCamera>, Without<Camera2dOver>, Without<Camera3d>)>, three: Query<(&Camera, &RenderTarget, &Msaa, Has<bevy::camera::Hdr>), With<Camera3d>>) {
+    if parts.is_empty() {
         return;
     }
     let Some((cam, target, msaa, hdr)) = three.iter().max_by_key(|(c, ..)| c.order) else { return };
-    let shared = *msaa == Msaa::Off && !hdr;
+    // the 3D camera's MSAA can change after the 2D camera is made (raea-sys-post msaa_for_3d): it keeps to it, sharing,
+    // and so does the frame tag's Camera2d on the same target, as Bevy makes one 2D depth texture a target
+    for mut m in over.iter_mut().chain(tags.iter_mut()) {
+        if *m != *msaa {
+            *m = *msaa;
+        }
+    }
+    if !over.is_empty() {
+        return;
+    }
+    let shared = !hdr;
     let output_mode = if shared { bevy::camera::CameraOutputMode::Write { blend_state: Some(bevy::render::render_resource::BlendState::REPLACE), clear_color: ClearColorConfig::None } } else { default() };
     commands.spawn((
         Camera2d,
         Camera { order: cam.order + 1, clear_color: ClearColorConfig::None, output_mode, ..default() },
         target.clone(),
         Projection::Orthographic(OrthographicProjection { viewport_origin: Vec2::new(0.0, 1.0), ..OrthographicProjection::default_2d() }),
-        Msaa::Off,
+        *msaa,
         Camera2dOver,
     ));
+}
+
+/// The edit has 2D mesh rows (a Shape2D or a sprite), drawn multisampled as Bevy's Camera2d draws by default.
+pub fn has_2d(rows: &[Tup]) -> bool {
+    rows.iter().any(|t| matches!(t.kind.as_str(), "shape2d" | "sprite"))
 }
 
 /// Each 2D part at its row's place, cell, colour and opacity this frame.

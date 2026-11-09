@@ -41,14 +41,16 @@ fn roots(dir: &Path) -> Vec<(&'static str, PathBuf)> {
 }
 
 /// Every source outside the edit's folder `dir` that its sources import by relative path, and what those import in
-/// turn (each file once, so a cycle ends). The SDK's own files are left out: they come by name (rewrite_into). A file
-/// outside both raea's home and the project's root is refused, naming its importer.
+/// turn (each file once, so a cycle ends). The SDK packages' own files are left out: they come by name
+/// (rewrite_into). A file outside both raea's home and the project's root is refused, naming its importer.
 pub fn outside(dir: &Path) -> R<Vec<Outside>> {
     outside_in(&absolute(dir), &roots(&absolute(dir)))
 }
 
 pub fn outside_in(dir: &Path, roots: &[(&'static str, PathBuf)]) -> R<Vec<Outside>> {
-    let sdk = absolute(&raea_io_home::home().join("sdk"));
+    // the SDK's package sources, which come by name; anything else under sdk/ (a bench's shared helper) is copied
+    let home = raea_io_home::home();
+    let sdk: Vec<PathBuf> = std::iter::once("sdk/raea/src".to_string()).chain(crate::rewrite::sdks().into_iter().map(|(_, d)| d)).map(|d| absolute(&home.join(d))).collect();
     let re = specs();
     let mut seen = BTreeSet::new();
     let mut out = vec![];
@@ -64,7 +66,7 @@ pub fn outside_in(dir: &Path, roots: &[(&'static str, PathBuf)]) -> R<Vec<Outsid
             }
             // one the bundler can't find either: left for it to name
             let Some(t) = resolve(&base, spec) else { continue };
-            if t.starts_with(dir) || t.starts_with(&sdk) || t.components().any(|c| c.as_os_str() == "node_modules") || !seen.insert(t.clone()) {
+            if t.starts_with(dir) || sdk.iter().any(|s| t.starts_with(s)) || t.components().any(|c| c.as_os_str() == "node_modules") || !seen.insert(t.clone()) {
                 continue;
             }
             let Some((name, root)) = roots.iter().find(|(_, r)| t.starts_with(r)) else {

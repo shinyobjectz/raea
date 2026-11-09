@@ -126,6 +126,8 @@ export interface Shape2DProps extends Place2dProps {
   sides?: number;
   /** a CSS colour (white by default); with a texture, it tints it */
   color?: string;
+  /** the colour as a Bevy Srgba's [r, g, b], unrounded, over `color` (a Mesh2d's ColorMaterial gives it) */
+  srgb?: [number, number, number];
   /** a picture on it, mapped by the mesh's UVs (Bevy's ColorMaterial texture), or one with its own sampler (Bevy's
    * load_with_settings: { path, sampler: { wrap: "repeat" } }) */
   texture?: string | { path: string; sampler: SamplerSpec };
@@ -139,6 +141,10 @@ export interface Shape2DProps extends Place2dProps {
   /** its own Material2d in place of the ColorMaterial: the spec a <Material> in a Mesh2d makes (docs/control.feature
    * FC2a); the shape's colour, texture and alpha_mode are then the material's to draw */
   shader?: Record<string, unknown>;
+  /** one of Bevy's 2D primitives in place of `shape`, its reflected fields over Bevy's default: { primitive:
+   * "Capsule2d", radius: 25, half_length: 25 }; a 2D shape given `inner` (the same shape's fields) is Bevy's Ring, or
+   * given `ring: thickness` its to_ring (raea-sys-mesh primitive_mesh). A Mesh2d's primitive child makes it. */
+  primitive?: Record<string, unknown>;
 }
 
 /** bevy_sprite_render's AlphaMode2d */
@@ -167,7 +173,7 @@ export function Shape2D(props: Shape2DProps) {
   const vc = props.vertex_colors;
   if (vc !== undefined && !(Array.isArray(vc) && vc.every((c) => Array.isArray(c) && c.length === 4 && c.every(Number.isFinite)))) throw new TypeError(`Shape2D: vertex_colors is one linear [r, g, b, a] per vertex, got ${JSON.stringify(vc)}`);
   const verts = ({ rect: 4, triangle: 3 } as Record<string, number>)[props.shape ?? "rect"];
-  if (vc !== undefined && verts !== undefined && vc.length !== verts) throw new RangeError(`Shape2D: a ${props.shape ?? "rect"}'s mesh has ${verts} vertices, so vertex_colors has ${verts} colours, got ${vc.length}`);
+  if (vc !== undefined && verts !== undefined && props.primitive === undefined && vc.length !== verts) throw new RangeError(`Shape2D: a ${props.shape ?? "rect"}'s mesh has ${verts} vertices, so vertex_colors has ${verts} colours, got ${vc.length}`);
   const id = useId();
   const [w, h] = props.size ?? [100, 100];
   const round = props.shape === "circle" || props.shape === "ellipse" || props.shape === "polygon";

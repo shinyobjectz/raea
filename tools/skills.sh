@@ -4,7 +4,7 @@
 # links these instead of repeating them, so a verb, a flag, a feed tool or an export changes its reference in the
 # same commit.
 #
-#   tools/skills.sh gen     write skills/skills/raea/reference/{cli,feed,files,sdk,app}.md, and copy the craft guides
+#   tools/skills.sh gen     write skills/skills/raea/reference/{cli,feed,files,sdk,app,platforms}.md, and copy the craft guides
 #                           (sdk/guides/craft, what `raea guide` prints) into the skill (copies() below: bevy/ as 3d/,
 #                           motion.md and motion/, and the router, floor, rubric, modes/ and verbs/ under craft/), so a
 #                           clone of raea-skills reads whole without raea; commit them in raea-skills, then the pointer here
@@ -86,6 +86,34 @@ gen_cli() {
       (if (.flags | length) > 0 then
         ("Flags: " + ([.flags[] | "`\(.flag)`" + (if .values > 0 then " (\(.values))" else "" end)] | join(", ")) + "."), ""
        else empty end))'
+}
+
+gen_platforms() {
+  # the app's publishing guidelines (apps/app src/publish/specs.ts at the recorded commit; it imports nothing)
+  local p; p=$(mktemp -d "${TMPDIR:-/tmp}/skills-platforms.XXXXXX")
+  git -C "$APP" show "$APP_REV:src/publish/specs.ts" > "$p/specs.ts"
+  bun -e '
+    const { SPECS } = await import(process.argv[1] + "/specs.ts")
+    console.log(JSON.stringify(Object.entries(SPECS).filter(([, s]) => s.aspects.length).map(([name, s]) => ({ name, ...s }))))
+  ' "$p" | jq -r --arg head "$HEAD_LINE" '
+    def secs: if . == null then "" elif . >= 3600 and . % 3600 == 0 then "\(. / 3600) h" elif . >= 60 and . % 60 == 0 then "\(. / 60) min" else "\(.) s" end;
+    def size: if . == null then "" elif . >= 1073741824 then "\(. / 1073741824) GB" else "\(. / 1048576) MB" end;
+    def pct: (. * 100 | round | tostring) + "%";
+    $head, "",
+    "# Platforms",
+    "",
+    "What each network the raea app publishes to shows and takes, from the app'"'"'s publishing guidelines (apps/app",
+    "src/publish/specs.ts): the Publish view checks a post against them before it goes. Shapes are w:h, the first the",
+    "one the network is made for. Length is the shortest and longest it takes, and the length its feed favours. The",
+    "safe zone is how much of a vertical frame its own buttons, caption and profile row cover on a phone, from each",
+    "edge: keep text and faces out of it (`raea check --platform` measures it).",
+    "",
+    "| network | shapes | length | favours | file | caption | hashtags | links in caption | safe zone (top, bottom, left, right) |",
+    "|---|---|---|---|---|---|---|---|---|",
+    (.[] | "| \(.name) | \(.aspects | join(", ")) | \(if .minDuration and .maxDuration then "\(.minDuration | secs) to \(.maxDuration | secs)" elif .maxDuration then "up to \(.maxDuration | secs)" else "" end) | \(.sweetSpot | secs) | \(.maxBytes | size) | \(.caption)\(if .graphemes then " graphemes" else " chars" end) | \(if .hashtags then ([(if .hashtags.advice then "\(.hashtags.advice[0])-\(.hashtags.advice[1]) advised" else empty end), (if .hashtags.max then "\(.hashtags.max) max" else empty end)] | join(", ")) elif .topicTags then "\(.topicTags) topic tag" else "" end) | \(if .deadLinks then "not clickable" else "" end) | \(if .safe then "\(.safe.top | pct), \(.safe.bottom | pct), \(.safe.left | pct), \(.safe.right | pct)" else "" end) |"),
+    "",
+    (.[] | select(.notes) | "- \(.name): \(.notes | join(" "))")'
+  rm -rf "$p"
 }
 
 gen_feed() {
@@ -261,7 +289,7 @@ check() {
   fi
   local stale_help=0; help_stale && stale_help=1
   SKILLS_OUT=$tmp/ref SKILLS_COPY_OUT=$tmp/copies R=$R SKIP_CLI=$stale_help "$0" gen-into >/dev/null || { echo "FAIL skills: tools/skills.sh gen failed"; rm -rf "$tmp"; return 1; }
-  for f in cli feed files sdk app; do
+  for f in cli feed files sdk app platforms; do
     [ "$f" = cli ] && [ $stale_help = 1 ] && continue
     if ! diff -q "$tmp/ref/$f.md" "$SK/raea/reference/$f.md" >/dev/null 2>&1; then
       # the shared GitButler tree holds every applied lane's code, so what gen writes there isn't what main + one lane
@@ -414,6 +442,7 @@ case "${1:-}" in
     gen_files > "$OUT/files.md"
     gen_sdk > "$OUT/sdk.md"
     gen_app > "$OUT/app.md"
+    gen_platforms > "$OUT/platforms.md"
     copies | while IFS=$'\t' read -r g c; do mkdir -p "$COPY_OUT/$(dirname "$c")" && cp "$g" "$COPY_OUT/$c"; done
     if [ "$1" = gen ]; then wc -l "$OUT"/*.md; fi
     ;;

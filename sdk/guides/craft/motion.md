@@ -26,6 +26,8 @@ Read the files a task needs with `raea guide motion/NAME`, one or two at a time,
 | meshes, lights, cameras, modelled solids | `motion/3d`, then `bevy` (the 3D library: lights, materials, models, effects, 3D games) |
 | input, rules, scores, sound on game events | `motion/games` |
 | rendering stills or the video, and checking them | `motion/rendering` |
+| the shapes, lengths and platforms it ships to, the files, posting deliverables | `motion/delivery` |
+| an app's interface (its own window, not a composition): every state, built and checked by walking it | `motion/interface` |
 
 ## The core rules
 

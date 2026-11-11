@@ -75,6 +75,18 @@ jobs:
             curl -fsSL "$url" -o "$HOME/.local/share/raea-models/$path"
             echo "$sha  $HOME/.local/share/raea-models/$path" | shasum -a 256 -c -
           done < tools/release/models.tsv
+      # rc3's build left 576 MB of macos-15's 320 GB free, and rc4's dSYMs (#88) ran it out linking raea-page-host
+      # (ld: write() failed, errno=28): the image's other Xcodes and the Android and .NET SDKs go first
+      - name: Room for the build
+        if: runner.os == 'macOS'
+        run: |
+          df -h . | tail -1
+          keep=$(cd "$(xcode-select -p)/../.." && pwd -P)
+          for x in /Applications/Xcode*.app; do [ -L "$x" ] || [ "$(cd "$x" && pwd -P)" = "$keep" ] || sudo rm -rf "$x" & done
+          sudo rm -rf "$HOME/Library/Android" "$HOME/.dotnet" /usr/local/share/dotnet &
+          wait
+          echo "kept $keep"
+          df -h . | tail -1
       - name: Build
         run: |
           feat=$(bash tools/bevy-plugins.sh features sdk/raea/bench/bevy-plugins)

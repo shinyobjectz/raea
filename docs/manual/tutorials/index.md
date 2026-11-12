@@ -12,7 +12,7 @@ to your agent. Take them in order the first time: each one builds on the one bef
 ## Start here
 
 - [Get started with raea](get-started.md): download the app, sign in on raea.io, link your Mac, and land in your first project.
-- [Connect your agent](connect-your-agent.md): bring the AI you already pay for, add agents to your workspace, and meet the Director.
+- [Connect your agent](connect-your-agent.md): bring the AI you already pay for, pick the primary that runs your workspace, and make agents of your own.
 - [A tour of the app](tour.md): what each part of the sidebar is for, from New chat to Settings.
 
 ## Make and review

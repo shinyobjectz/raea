@@ -23,8 +23,8 @@ saved at once, for the whole project.
 
 ## Make one in plain words
 
-To add a controller, press New controller, and say what you want in plain words. The Director builds it from raea's
-field types, and it appears on the page, ready to adjust.
+To add a controller, press New controller, and say what you want in plain words. Your workspace's primary builds it
+from raea's field types, and it appears on the page, ready to adjust.
 
 ## Workflows
 

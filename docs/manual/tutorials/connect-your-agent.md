@@ -1,13 +1,13 @@
 ---
 title: "Connect your agent"
-summary: "Bring the AI you already pay for over ACP, add agents to your workspace with their own instructions, and start work with the Director."
+summary: "Bring the AI you already pay for over ACP, pick the primary that runs your workspace, and make agents of your own when you want them."
 order: 2
 sources: ["apps/app/src/plugins", "apps/app/src/settings/Agents.tsx", "apps/app/src/agent/AgentEditor.tsx", "apps/app/src/acp", "apps/app/src/chat"]
 tutorial: "connect-your-agent"
 ---
 
-raea runs the agent you already use. This tutorial connects one, shows where your workspace's agents live, and
-introduces the Director, the agent you talk to first.
+raea runs the agent you already use. This tutorial connects one, picks the primary that runs your workspace, and
+shows how to make agents of your own when you want them.
 
 ## How raea uses your agent
 
@@ -29,17 +29,25 @@ If your agent isn't listed, choose Your own agent, and give raea the command tha
 over standard input and output will work. raea starts it in the project's folder, so it reads and writes the project's
 files directly.
 
-## Agents in your workspace
+## The primary
 
-Now open Settings, then Agents. Each agent here is a role, such as the Director, a Designer or an Animator, and each one
-says which AI runs it and whether it's signed in. Press New agent to add another. Give it a name, choose what runs it,
-and write its instructions in plain words. Agents belong to the workspace, so every project can call on them.
+Now open Settings, then Agents. The first row is the primary: the AI that runs your workspace. It answers in New chat
+when no project is picked, takes what you write in the Inbox and on the Controllers page, and starts any work you don't
+hand to someone else. Pick any AI you've connected and one of its models, Kimi until you change it. That's all the
+primary is. raea doesn't add a director or a cast of agents on top.
 
-## The Director
+## Choosing in New chat
 
-Every workspace has a Director. It's the agent you talk to in New chat. It reads the whole workspace, makes projects,
-and builds controllers when you ask for them. Write what you want in New chat, pick a project under the box, and the
-Director starts the work there.
+Under New chat's box, one menu says what the chat runs on. The AIs signed in on this computer come first, each with
+its models, and your agents come after them. Type to search. What you pick is for that chat only; the next one starts
+on the primary again.
+
+## Agents of your own
+
+raea ships no agents. When you want one, press New agent. An agent is one of your AIs with more on top: a name you can
+mention with @, the model it runs, instructions in plain words, the tools it may use, and what it may do without
+asking. It's kept in your workspace's folder, so it's still there tomorrow, and every project can call on it. You can
+even make one the primary, if you want a lead that works your way.
 
 ## Agents in a terminal
 

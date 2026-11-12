@@ -18,7 +18,8 @@ menu, or make a new one for each client.
 ## New chat
 
 New chat is where work starts. It's one box. Write what you want made, in your own words, and pick a project under the
-box. The workspace's Director reads it and starts the work, and the session appears in the sidebar.
+box. The workspace's primary, the AI you picked in Settings, reads it and starts the work, and the session appears in
+the sidebar.
 
 ## Inbox
 

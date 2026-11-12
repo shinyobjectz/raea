@@ -35,7 +35,9 @@ fn num(n: &mut String, v: f64) {
 /// With `offsets`, `o` has each element's id, offsetLeft, offsetTop, offsetWidth, offsetHeight (untransformed, from
 /// its offsetParent's padding edge) its offsetParent's id (OFFSET_BODY, OFFSET_NONE), and 1 when it's a non-atomic inline (its client* and scroll* are 0).
 pub fn snapshot_by(doc: &BaseDocument, nodes: &Nodes, id: impl Fn(u64) -> Option<u64>, offsets: bool) -> String {
-    let vp = doc.viewport().window_size;
+    // the viewport in CSS px and the device pixels to one of them: what innerWidth, matchMedia and devicePixelRatio
+    // answer. window_size is in device px, so on a Retina display it is twice the width the page is laid out at.
+    let (vp, dpr) = (doc.viewport().logical_size(), doc.viewport().scale());
     let mut n = String::new();
     let mut o = String::new();
     for (page_id, node) in &nodes.by_id {
@@ -83,9 +85,9 @@ pub fn snapshot_by(doc: &BaseDocument, nodes: &Nodes, id: impl Fn(u64) -> Option
     n.pop();
     o.pop();
     if offsets {
-        format!("{{\"vw\":{},\"vh\":{},\"dpr\":1,\"n\":[{n}],\"o\":[{o}]}}", vp.0, vp.1)
+        format!("{{\"vw\":{},\"vh\":{},\"dpr\":{dpr},\"n\":[{n}],\"o\":[{o}]}}", vp.0, vp.1)
     } else {
-        format!("{{\"vw\":{},\"vh\":{},\"dpr\":1,\"n\":[{n}]}}", vp.0, vp.1)
+        format!("{{\"vw\":{},\"vh\":{},\"dpr\":{dpr},\"n\":[{n}]}}", vp.0, vp.1)
     }
 }
 

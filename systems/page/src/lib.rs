@@ -54,9 +54,9 @@ pub struct Page {
 }
 
 impl Page {
-    /// The page's size in device pixels: its image's size, and the viewport Blitz is given. Blitz's `window_size` is
-    /// in device pixels (it divides by `hidpi_scale` for the CSS viewport), so a page at scale 2 given its size in
-    /// points was laid out in a quarter of its image.
+    /// The page's size in device pixels: its image's size, and the viewport Blitz is given (Blitz's `window_size` is
+    /// in device pixels: it divides by `hidpi_scale` for the CSS viewport). Rounded up, so the image is never short
+    /// of the page: at a fractional scale the CSS viewport can be a fraction of a CSS pixel wider than `size`.
     pub fn px(&self) -> UVec2 {
         (self.size.as_vec2() * self.scale).ceil().as_uvec2().max(UVec2::ONE)
     }

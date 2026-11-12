@@ -60,8 +60,9 @@ pub fn elements(roots: &Roots, docs: &Docs, page: Entity, pick: impl Fn(&serde_j
     use style::values::computed::Overflow;
     let Some(r) = roots.0.iter().find(|r| r.page == page) else { return vec![] };
     let Some(doc) = docs.0.get(&page) else { return vec![] };
-    let vp = doc.viewport().window_size;
-    let window = [0.0, 0.0, vp.0 as f32, vp.1 as f32];
+    // the window in CSS px, as the boxes below are: window_size is in device px (twice these on a Retina display)
+    let vp = doc.viewport().logical_size();
+    let window = [0.0, 0.0, vp.0, vp.1];
     let bounds = |n: NodeId| doc.get_client_bounding_rect(n).map(|b| [b.x as f32, b.y as f32, b.width as f32, b.height as f32]);
     let meets = |a: [f32; 4], b: [f32; 4]| a[0] < b[0] + b[2] && b[0] < a[0] + a[2] && a[1] < b[1] + b[3] && b[1] < a[1] + a[3];
     let focus = doc.get_focussed_node_id();

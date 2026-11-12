@@ -182,3 +182,38 @@ Feature: Agents in the raea app: chats run on a provider, agents are optional te
       And it's kept in the workspace's folder as agents/<id>.json, so it's there after a restart and travels with the
         workspace's repo
       And chats on it run its model with its instructions, as a chat on the bare provider would with none
+
+  Rule: A7. Each AI's own settings, for the AI and for an agent on it
+    # Shane 11-12: "acp allows us to adjust provider/harness specific options?" and "selecting a harness for a custom
+    # agent ... we would need the same settings and options once we select what we pick".
+    # An ACP session reports its config options (session/new configOptions): each has a category (mode, model,
+    # thought_level, model_config, or the AI's own) and is a select or a switch. Claude's: mode, model, effort, fast,
+    # ultracode. Kimi's: model, thinking, mode. raea draws them as reported, so no AI needs code of its own.
+    # Status 11-12: built (raea-feed primary-agents). Page: agent/AgentOptions.tsx, settings/AIOptions.tsx and the
+    # agent editor; host: app-prefs providers (POST /host/onboard ai-prefs), host/acp/hub.ts optionsFor, bridge.ts
+    # useOptions.
+
+    Scenario: A7a. An AI's defaults on this Mac
+      Given Settings → Agents, whose Your AIs lists every AI signed in on this Mac, each saying what's set for it
+      When I open an AI's Options
+      Then I see every setting it reports but its model, grouped as Thinking, Mode and More, each on Default, which names
+        the AI's own value
+      And I can give it environment variables (NAME=value) and extra arguments to start with
+      And what I save is kept on this Mac and reaches every chat on that AI started afterwards: the primary, a chat
+        picked in New chat, and an agent on it that doesn't set its own
+
+    Scenario: A7b. An agent on an AI has the same settings
+      When I pick what an agent runs on in its editor
+      Then the same settings show for that AI, each on Default, which names the value I gave the AI ("Claude's: High")
+        or else the AI's own
+      And what I set is the agent's (launch.options, launch.env, launch.extraArgs), and picking another AI starts them
+        over
+      And a command of my own has no settings to show; only its environment is kept
+
+    Scenario: A7c. Settings layer, and one that no longer applies says so
+      Given the AI's own default, then my defaults for the AI, then the agent's settings, then the chat's model
+      When a session starts
+      Then each setting is the last of those that sets it, applied with session/set_config_option
+      And one the AI no longer reports, or a value it refuses, is skipped with a notice in the chat, never a failure
+      And raea changes no mode for me: Approve everything (Settings → General) already answers the AI's permission asks,
+        so its own bypass or yolo mode, or a plan-only mode, is on only if I pick it

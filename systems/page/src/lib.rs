@@ -53,6 +53,15 @@ pub struct Page {
     pub scale: f32,
 }
 
+impl Page {
+    /// The page's size in device pixels: its image's size, and the viewport Blitz is given. Blitz's `window_size` is
+    /// in device pixels (it divides by `hidpi_scale` for the CSS viewport), so a page at scale 2 given its size in
+    /// points was laid out in a quarter of its image.
+    pub fn px(&self) -> UVec2 {
+        (self.size.as_vec2() * self.scale).ceil().as_uvec2().max(UVec2::ONE)
+    }
+}
+
 /// The time pages' CSS animations and transitions are at, in seconds: a render's frame time (`BlitzPage::at_frame`);
 /// None, the App's clock (live play).
 #[derive(Resource, Default)]
@@ -80,7 +89,8 @@ impl Docs {
 
 /// A document's settings for a page: its viewport, styled on this thread (stylo's own pool would compete with Bevy's).
 pub fn config(at: Page) -> DocumentConfig {
-    let viewport = Viewport { window_size: (at.size.x, at.size.y), hidpi_scale: at.scale, ..default() };
+    let px = at.px();
+    let viewport = Viewport { window_size: (px.x, px.y), hidpi_scale: at.scale, ..default() };
     let mut config = DocumentConfig { viewport: Some(viewport), style_threading: blitz_dom::StyleThreading::Sequential, ..default() };
     // an <iframe> loads its document, parsed by blitz-html, through FrameNet (files under RAEA_PAGE_ROOT only;
     // docs/blitz-bevy.feature B5c, off with RAEA_PAGE_IFRAMES=0)
@@ -95,7 +105,7 @@ pub fn config(at: Page) -> DocumentConfig {
 /// offscreen target), so whatever draws or reads one page draws or reads the other.
 fn size_images(mut commands: Commands, pages: Query<(Entity, &Page, Option<&PageImage>)>, mut images: ResMut<Assets<Image>>) {
     for (e, page, have) in &pages {
-        let px = (page.size.as_vec2() * page.scale).ceil().as_uvec2().max(UVec2::ONE);
+        let px = page.px();
         if have.and_then(|h| images.get(&h.0)).is_some_and(|i| i.size() == px) {
             continue;
         }
@@ -152,9 +162,10 @@ pub fn resolve(mut docs: NonSendMut<Docs>, pages: Query<(Entity, &Page)>, time: 
         let Some(doc) = docs.0.get_mut(&e) else { continue };
         let at = clock.0.unwrap_or_else(|| time.elapsed_secs_f64());
         // a page resized or rescaled (the iPad sets its scale late): its viewport follows, or text lays out off its box
-        if doc.viewport().window_size != (page.size.x, page.size.y) || doc.viewport().hidpi_scale != page.scale {
+        let px = page.px();
+        if doc.viewport().window_size != (px.x, px.y) || doc.viewport().hidpi_scale != page.scale {
             let mut v = doc.viewport().clone();
-            v.window_size = (page.size.x, page.size.y);
+            v.window_size = (px.x, px.y);
             v.hidpi_scale = page.scale;
             doc.set_viewport(v);
         }
@@ -186,7 +197,7 @@ pub fn paint(mut docs: NonSendMut<Docs>, pages: Query<(Entity, &Page, &PageImage
     let mut out = vec![];
     for (e, page, image, straight) in &pages {
         let Some(doc) = docs.0.get_mut(&e) else { continue };
-        let px = (page.size.as_vec2() * page.scale).ceil().as_uvec2().max(UVec2::ONE);
+        let px = page.px();
         // a scene the render world drew last frame, reset: its encoding keeps its capacity (ZeroHeap)
         let mut scene = SPARE.lock().unwrap().pop().unwrap_or_default();
         scene.reset();

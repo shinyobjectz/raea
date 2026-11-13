@@ -27,6 +27,11 @@ The Inbox gathers everything your agents make, across every project, newest firs
 cut, a still, a sound, a board or a game. The number beside the Inbox counts what you haven't seen yet. The Inbox is the
 best place to start your day.
 
+When the Inbox or a feed gets long, fold it up: right-click past its cards, or open its settings, and choose
+Consolidate. Everything but your pins becomes one summary on the timeline, which says how many, from when to when, what
+kinds, who made them and how many are unread. It opens in place to its cards, a search still finds what's inside, and
+Ungroup in its menu puts them back. What comes after shows as ever until you consolidate again.
+
 ## Publish
 
 Publish is where finished work goes out, to the accounts you've connected, such as YouTube, LinkedIn or Bluesky. It
@@ -41,7 +46,9 @@ you publish to, generation services, and computers of your own.
 
 Under Projects, each project is a folder. Open one, and it has three pages. The Feed shows the project's work. The
 Compositions page shows what each piece is made of. And Controllers holds the project's settings, which every agent
-works to. In the Feed, the Agents button lists the project's agents, and what each one is working on.
+works to. In the Feed, the Agents button lists the project's agents, and what each one is working on. While an agent
+works, a stop button sits beside it, in that list, beside its status in the Feed's chat and on the message it's
+answering in the Inbox. Press it to stop that agent.
 
 ## Chats and Settings
 

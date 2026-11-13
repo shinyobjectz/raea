@@ -44,7 +44,7 @@
 - Keep an interior under about 50 m across. A bounce ray that goes 50 m without hitting anything counts as sky, so a
   bigger hall gets sky light in its bounce.
 - Put every light in the tree from the first frame, and change brightness with the sky, the glows and the exposure
-  rather than the sun's `illuminance`. As of raea 0.1.1:
+  rather than the sun's `illuminance`. As of raea 0.1.2:
   - a `DirectionalLight` that appears after the first frame lights nothing directly;
   - the traced sun keeps its first frame's strength (its direction does follow);
   - one `--at` render that jumps more than about 4.5 s between two frames loses the traced sun for every frame

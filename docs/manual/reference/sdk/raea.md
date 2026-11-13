@@ -323,7 +323,7 @@ function useSong(map: SongMap, options?: UseSongOptions): SongMoment & { song: S
 
 ### `useVideoConfig`
 
-The settings of the composition being rendered (a Sequence's width and height win inside it).
+The settings of the composition being rendered (inside a Sequence, its width, height and length win).
 
 ```ts
 function useVideoConfig(): VideoConfig

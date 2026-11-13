@@ -72,7 +72,7 @@ function useLocalTime(caller: string): LocalTime
 
 ### `useVideoConfig`
 
-The settings of the composition being rendered (a Sequence's width and height win inside it).
+The settings of the composition being rendered (inside a Sequence, its width, height and length win).
 
 ```ts
 function useVideoConfig(): VideoConfig
@@ -115,6 +115,7 @@ The local time a subtree sees: its own frame, and the composition frame its fram
 | `origin` (required) | `number` | the composition frame the subtree's frame 0 falls on |
 | `width` (required) | `number` | width and height a Sequence overrides for its children |
 | `height` (required) | `number` | in px, what the Sequence gives its children |
+| `duration` (required) | `number` | frames the subtree runs for from its frame 0, which useVideoConfig reports as durationInFrames: a Sequence's own length cut where its parent's ends, a Loop's one pass, the composition's at the root |
 
 ### `Perception`
 

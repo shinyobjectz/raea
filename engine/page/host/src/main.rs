@@ -97,7 +97,10 @@ fn main() {
     );
     // on screen, bevy_winit's event loop is the runner (a ScheduleRunner here replaced it: no window, 11-04)
     if !a.window && !app.is_plugin_added::<ScheduleRunnerPlugin>() {
-        app.add_plugins(ScheduleRunnerPlugin::run_loop(Duration::from_secs_f64(1.0 / 60.0)));
+        // 60 frames a second, as most screens; RAEA_PAGE_FPS stands in for another screen's rate (a 120 Hz one, to
+        // measure how a 60 fps video plays where the window draws twice a frame)
+        let fps = std::env::var("RAEA_PAGE_FPS").ok().and_then(|v| v.parse::<f64>().ok()).filter(|f| (1.0..=480.0).contains(f)).unwrap_or(60.0);
+        app.add_plugins(ScheduleRunnerPlugin::run_loop(Duration::from_secs_f64(1.0 / fps)));
     }
     app.add_plugins(HostPlugin { size: a.size, double_click: Duration::from_millis(500), picking })
         .add_plugins(brp::plugins(brp::port(), |r| r))

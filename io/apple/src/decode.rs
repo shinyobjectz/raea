@@ -213,13 +213,7 @@ impl Decoder {
                 let mut rgba = vec![0u8; w * h * 4];
                 for y in 0..h {
                     let row = std::slice::from_raw_parts(base.add(y * bpr), w * 4);
-                    let dst = &mut rgba[y * w * 4..(y + 1) * w * 4];
-                    for x in 0..w {
-                        dst[x * 4] = row[x * 4 + 2];
-                        dst[x * 4 + 1] = row[x * 4 + 1];
-                        dst[x * 4 + 2] = row[x * 4];
-                        dst[x * 4 + 3] = if self.alpha { row[x * 4 + 3] } else { 255 };
-                    }
+                    crate::convert::bgra_to_rgba(row, &mut rgba[y * w * 4..(y + 1) * w * 4], self.alpha);
                 }
                 rgba
             });

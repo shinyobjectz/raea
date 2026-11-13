@@ -434,3 +434,5 @@ pub fn menu_items(d: &BaseDocument, menu: NodeId) -> Vec<NodeId> {
 
 /// Everything about an element made again (blitz-dom's ALL_DAMAGE, crate-private there): what loading an image does.
 pub const ALL_DAMAGE: style::selector_parser::RestyleDamage = style::selector_parser::RestyleDamage::from_bits_retain(0b_0000_0000_1110_1111);
+/// Only what an element is painted with changed, its box as it was: a video's next frame, the same size as its last.
+pub const REPAINT_DAMAGE: style::selector_parser::RestyleDamage = style::selector_parser::RestyleDamage::REPAINT;

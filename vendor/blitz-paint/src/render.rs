@@ -1516,8 +1516,19 @@ fn halve(src: &RasterImageData) -> RasterImageData {
     RasterImageData::new(w, h, Arc::new(out))
 }
 
-/// The level of `image` to sample when it is drawn at `scale` of its size: the image itself, or a halving of it
-fn mip_level(image: &RasterImageData, scale: f64) -> RasterImageData {
+/// raea: an image's halvings handed over ready made (each half the last, the first half the image): a video's frame,
+/// halved on its decoder's thread. Kept while the image lives, as the ones made here are.
+pub fn preload_mips(image: &RasterImageData, levels: Vec<RasterImageData>) {
+    MIPS.with_borrow_mut(|mips| {
+        mips.retain(|_, (weak, _)| weak.upgrade().is_some());
+        mips.insert(image.data.id(), (image.data.downgrade(), Some(levels)));
+    });
+}
+
+/// The level of `image` to sample when it is drawn at `scale` of its size: the image itself, or a halving of it.
+/// `make`: halvings not there yet are made now (an img's, once); without it only the ones handed over are used (a
+/// video's frame is a new picture each time: nothing is halved for it on the page's thread).
+fn mip_level(image: &RasterImageData, scale: f64, make: bool) -> RasterImageData {
     let mut want = 0;
     while scale * f64::from(1u32 << (want + 1)) <= 1.0 && image.width >> (want + 1) >= 1 && image.height >> (want + 1) >= 1 {
         want += 1;
@@ -1526,6 +1537,12 @@ fn mip_level(image: &RasterImageData, scale: f64) -> RasterImageData {
         return image.clone();
     }
     MIPS.with_borrow_mut(|mips| {
+        if !make {
+            return match mips.get(&image.data.id()) {
+                Some((_, Some(levels))) if !levels.is_empty() => levels[want.min(levels.len()) - 1].clone(),
+                _ => image.clone(),
+            };
+        }
         mips.retain(|_, (weak, _)| weak.upgrade().is_some());
         // an all-zero image is a placeholder whose blob keys a GPU texture's override (raea-page's views, filters):
         // drawn as is, or the override is lost
@@ -2385,10 +2402,12 @@ impl ElementCx<'_, '_> {
                 }
             }
             // raea: a minified <img> is drawn from its halving nearest its drawn size (mip_level); a <video>'s frames
-            // are each a new picture, so they're drawn as they come, as raea's GPU-texture videos are
+            // are each a new picture, so one is drawn from the halvings it came with (preload_mips), as it comes
+            // when it came with none
             let outer = self.transform.determinant().abs().sqrt();
-            let mip = quality != peniko::ImageQuality::Low && self.element.name.local == local_name!("img");
-            let level = if mip { mip_level(image, x_scale.min(y_scale) * outer) } else { image.clone() };
+            let img = self.element.name.local == local_name!("img");
+            let mip = quality != peniko::ImageQuality::Low && (img || self.element.name.local == local_name!("video"));
+            let level = if mip { mip_level(image, x_scale.min(y_scale) * outer, img) } else { image.clone() };
             let (lx, ly) = (image.width as f64 / level.width as f64, image.height as f64 / level.height as f64);
             let image = &level;
             let transform = self

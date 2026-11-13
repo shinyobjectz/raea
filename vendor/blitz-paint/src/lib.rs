@@ -36,6 +36,8 @@ pub struct TilePattern {
     pub tile: kurbo::Size,
 }
 
+pub use render::preload_mips;
+
 /// raea: the node whose box or text the paint calls going out now draw (a glyph run, the element its text is in), for
 /// a painter that tells nodes apart: the layer pass's ID scene (raea-sys-layers, docs/review.feature R2b). None outside
 /// paint_scene.

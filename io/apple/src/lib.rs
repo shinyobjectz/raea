@@ -4,6 +4,7 @@
 #![cfg(target_vendor = "apple")]
 
 mod audio;
+mod convert;
 mod decode;
 mod encode;
 mod vt;

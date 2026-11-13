@@ -12,7 +12,10 @@ pub mod stream {
     /// where a playing source has got to, that it played to its end, or its failure.
     pub enum Msg {
         Meta { w: u32, h: u32, duration: f64 },
-        Frame(f64, raea_io_media::Frame),
+        /// a frame to show now (the first, a seek's), with its halvings when they're asked for (`Cmd::Halvings`)
+        Frame(f64, raea_io_media::Frame, Halvings),
+        /// a playing video's frame, decoded ahead of its time: the frame at this time, to show at this moment
+        Due(f64, raea_io_media::Frame, std::time::Instant, Halvings),
         /// a playing source's time (an audio one's, which has no frames; a video's when paused)
         Time(f64),
         /// playing from this time: the sound is on its way
@@ -20,6 +23,35 @@ pub mod stream {
         /// played to its end (a looping source starts again instead)
         Ended(f64),
         Fail(String),
+    }
+
+    /// A frame's halvings, largest first: each a 2x2 mean of the one before (width, height, RGBA). A frame drawn at
+    /// under half its size is drawn from one of them, so a 4K frame in a small player is neither sampled across
+    /// four of its pixels at a time (it shimmers) nor sent whole to the GPU for every frame.
+    pub type Halvings = Vec<(u32, u32, Vec<u8>)>;
+
+    /// `n` halvings of an RGBA picture (fewer once a side is a pixel).
+    pub fn halvings(w: u32, h: u32, rgba: &[u8], n: u8) -> Halvings {
+        let mut out: Halvings = Vec::new();
+        for _ in 0..n {
+            let (sw, sh, src) = out.last().map_or((w, h, rgba), |(w, h, px)| (*w, *h, px.as_slice()));
+            if sw < 2 || sh < 2 {
+                break;
+            }
+            let (dw, dh) = ((sw / 2) as usize, (sh / 2) as usize);
+            let stride = sw as usize * 4;
+            let mut px = vec![0u8; dw * dh * 4];
+            for (y, row) in px.chunks_exact_mut(dw * 4).enumerate() {
+                let (top, bottom) = (&src[2 * y * stride..][..dw * 8], &src[(2 * y + 1) * stride..][..dw * 8]);
+                for ((d, a), b) in row.chunks_exact_mut(4).zip(top.chunks_exact(8)).zip(bottom.chunks_exact(8)) {
+                    for c in 0..4 {
+                        d[c] = ((a[c] as u16 + a[c + 4] as u16 + b[c] as u16 + b[c + 4] as u16 + 2) / 4) as u8;
+                    }
+                }
+            }
+            out.push((dw as u32, dh as u32, px));
+        }
+        out
     }
 
     /// What the element asks of its decoder. Play plays from `at` on the source's clock (its sound's, when it has
@@ -31,6 +63,9 @@ pub mod stream {
         Muted(bool),
         /// the element's volume, 0..1: the sound's gain while it isn't muted
         Volume(f32),
+        /// how many halvings each frame should come with from here on (the page counts them from the size the
+        /// video is drawn at; 0 while it is drawn at half its size or more)
+        Halvings(u8),
     }
 
     pub struct Stream {
@@ -133,7 +168,7 @@ pub mod stream {
         let i = dec.info().clone();
         let _ = tx.send(Msg::Meta { w: i.width, h: i.height, duration: i.duration });
         let _ = tx.send(match dec.frame_at(0.0) {
-            Ok(f) => Msg::Frame(0.0, f),
+            Ok(f) => Msg::Frame(0.0, f, Vec::new()),
             Err(e) => Msg::Fail(e),
         });
         Some(crate::media_play::Source::Video(dec))

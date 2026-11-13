@@ -314,7 +314,13 @@ pub fn iframes() -> bool {
     std::env::var_os("RAEA_PAGE_IFRAMES").is_none_or(|v| v != "0")
 }
 
-pub use ops::ALL_DAMAGE;
+pub use ops::{ALL_DAMAGE, REPAINT_DAMAGE};
+
+/// A picture's halvings handed to the painter ready made (blitz-paint preload_mips): a video's frame is then drawn
+/// from the one nearest its drawn size. On the page's thread, where it is painted.
+pub fn preload_mips(image: &blitz_dom::node::RasterImageData, levels: Vec<(u32, u32, Vec<u8>)>) {
+    blitz_paint::preload_mips(image, levels.into_iter().map(|(w, h, px)| blitz_dom::node::RasterImageData::new(w, h, std::sync::Arc::new(px))).collect());
+}
 
 /// A document for a page `w` x `h` on its own entity: html, head and a body with no margin and no background (the
 /// page is drawn over 3D and video), which is the root the composition's elements go in. (host.rs opens a root's so.)

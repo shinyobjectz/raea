@@ -9,7 +9,7 @@ use std::path::Path;
 use std::sync::mpsc::{Receiver, RecvTimeoutError, Sender};
 use std::time::{Duration, Instant};
 
-use crate::media_html::stream::{Cmd, Msg, halvings};
+use crate::media_html::stream::{Cmd, Msg, sent};
 use crate::media_sound::Sound;
 
 /// What was opened: a video's decoder, or an audio source's samples.
@@ -132,7 +132,7 @@ impl<'a> Player<'a> {
                     }
                     Cmd::Halvings(n) => {
                         // paused, the picture showing is sent again with what it is now drawn from
-                        if n > self.halvings && self.clock.is_none() && seek.is_none() {
+                        if n != self.halvings && self.clock.is_none() && seek.is_none() {
                             seek = self.still;
                         }
                         self.halvings = n;
@@ -196,19 +196,19 @@ impl<'a> Player<'a> {
         !self.looping && self.duration.is_finite() && self.cursor as f64 / self.fps >= self.duration - 0.5 / self.fps
     }
 
-    /// How far ahead of the clock frames are decoded: two frames, 50 ms at the least; and nearing a loop's end 150 ms,
-    /// since going back to the start is a seek (70 ms measured) that must be over before the first frame is due. No
-    /// more than 200 MB of frames wait at once (a 4K frame is 33 MB).
+    /// How far ahead of the clock frames are decoded: a quarter second, which rides out a decode that stalls (a
+    /// reader starting again, a busy machine: 40 to 85 ms seen) and the seek back to a loop's start (70 ms). No more
+    /// than 128 MB of frames wait at once, 200 nearing a loop's end, and never fewer than two frames: a 4K frame
+    /// sent whole is 33 MB (three wait), sent as the halving it is drawn from 8 or 2 (the quarter second).
     fn lead(&self) -> f64 {
         let frame = 1.0 / self.fps;
         let bytes = match &self.source {
-            Source::Video(d) => (d.info().width as f64 * d.info().height as f64 * 4.0).max(1.0),
+            Source::Video(d) => (d.info().width as f64 * d.info().height as f64 * 4.0 / 4f64.powi(self.halvings as i32)).max(1.0),
             Source::Audio(_) => 1.0,
         };
-        let most = (200e6 / bytes).floor().max(2.0) * frame;
-        let near_wrap = self.looping && self.duration.is_finite() && self.duration - self.cursor as f64 * frame < 0.25;
-        let want = if near_wrap || self.lap > 0.0 { 0.15 } else { (2.0 * frame).max(0.05) };
-        want.min(most)
+        let near_wrap = self.looping && self.duration.is_finite() && (self.lap > 0.0 || self.duration - self.cursor as f64 * frame < 0.25);
+        let most = ((if near_wrap { 200e6 } else { 128e6 }) / bytes).floor().max(2.0) * frame;
+        most.min(0.25)
     }
 
     /// The clock's time now.
@@ -265,7 +265,7 @@ impl<'a> Player<'a> {
                 self.still = Some(t);
                 let n = self.halvings;
                 tx.send(dec.frame_at(t).map_or_else(Msg::Fail, |f| {
-                    let halves = halvings(f.width, f.height, &f.rgba, n);
+                    let (f, halves) = sent(f, n);
                     Msg::Frame(t, f, halves)
                 }))
                 .is_ok()
@@ -313,10 +313,7 @@ impl<'a> Player<'a> {
                 let Source::Video(dec) = &mut self.source else { return true };
                 // asked for mid-frame: a source whose frames aren't exactly on fps's grid gives the frame showing then
                 let n = self.halvings;
-                let got = dec.frame_at(at + 0.5 * frame).map(|f| {
-                    let halves = halvings(f.width, f.height, &f.rgba, n);
-                    (f, halves)
-                });
+                let got = dec.frame_at(at + 0.5 * frame).map(|f| sent(f, n));
                 let took = began.elapsed();
                 let due = began + Duration::from_secs_f64(due_in.max(0.0));
                 self.cursor += 1;
@@ -365,6 +362,23 @@ mod tests {
         ok.then_some(p)
     }
 
+    /// A halving's pixel is the mean of the four it stands for; an odd last row or column is left out; a picture a
+    /// pixel wide has none; and a frame is sent whole when none are asked for.
+    #[test]
+    fn halvings_are_means_of_four() {
+        use crate::media_html::stream::{halvings, sent};
+        let px: Vec<u8> = (0..5 * 3 * 4).map(|i| (i * 3) as u8).collect();
+        let h = halvings(5, 3, &px, 3);
+        assert_eq!(h.iter().map(|(w, h, p)| (*w, *h, p.len())).collect::<Vec<_>>(), vec![(2, 1, 8)]);
+        let mean = |x: usize, c: usize| ((px[x * 4 + c] as u16 + px[(x + 1) * 4 + c] as u16 + px[(5 + x) * 4 + c] as u16 + px[(5 + x + 1) * 4 + c] as u16 + 2) / 4) as u8;
+        assert_eq!(h[0].2, vec![mean(0, 0), mean(0, 1), mean(0, 2), mean(0, 3), mean(2, 0), mean(2, 1), mean(2, 2), mean(2, 3)]);
+        let f = raea_io_media::Frame { pts: 0.0, width: 5, height: 3, rgba: px.clone() };
+        let (whole, none) = sent(f.clone(), 0);
+        assert!(whole.rgba == px && none.is_empty());
+        let (size, one) = sent(f, 1);
+        assert!(size.rgba.is_empty() && (size.width, size.height) == (5, 3) && one == vec![h[0].clone()]);
+    }
+
     /// Played on the wall's clock (RAEA_AUDIO_MUTE=1: no device), a video's frames come as they fall due and it ends
     /// at its end; a seek answers with the frame at exactly its time; looping, it goes round; paused, it stops.
     #[test]
@@ -405,16 +419,22 @@ mod tests {
         st.ask(Cmd::Seek(0.5));
         assert!(matches!(next(&st, Duration::from_secs(2)), Some(Msg::Frame(t, ..)) if t == 0.5));
 
+        let looped = Instant::now();
         st.ask(Cmd::Play { at: 0.5, looping: true });
-        let (mut wrapped, mut last, until) = (false, 0.5, Instant::now() + Duration::from_millis(1200));
+        let (mut wrapped, mut last, mut laps, until) = (false, 0.5, 0.0, Instant::now() + Duration::from_millis(2300));
         while Instant::now() < until {
             match next(&st, Duration::from_millis(200)) {
                 Some(Msg::Due(t, _, due, _)) => {
                     // the first frame of the next lap is sent before the last frame of this one has gone
                     if t < last {
                         wrapped = true;
+                        laps += 1.0;
                         assert!(due > Instant::now(), "the loop's first frame came after it was due");
                     }
+                    // round the loop a frame is still due when the clock is at its time: half a second of play
+                    // to the end, then a second a lap
+                    let on_clock = due.duration_since(looped).as_secs_f64();
+                    assert!((on_clock - (t - 0.5 + laps)).abs() < 0.06, "lap {laps}: the frame at {t} is due {on_clock} s after play");
                     last = t;
                 }
                 Some(Msg::Ended(_)) => panic!("a looping source doesn't end"),
@@ -424,16 +444,14 @@ mod tests {
         assert!(wrapped, "looping went round");
 
         st.ask(Cmd::Pause);
-        // paused, asked for halvings: the picture showing comes again with them, each half the one before
+        // paused, asked for two halvings: the picture showing comes again as its size and its second halving
         while next(&st, Duration::from_millis(300)).is_some() {}
         st.ask(Cmd::Halvings(2));
         match next(&st, Duration::from_secs(2)) {
             Some(Msg::Frame(_, f, halves)) => {
                 assert_eq!((f.width, f.height), (160, 90));
-                assert_eq!(halves.iter().map(|(w, h, px)| (*w, *h, px.len())).collect::<Vec<_>>(), vec![(80, 45, 80 * 45 * 4), (40, 22, 40 * 22 * 4)]);
-                // a level's pixel is the mean of the four it stands for
-                let mean = |c: usize| ((f.rgba[c] as u16 + f.rgba[4 + c] as u16 + f.rgba[160 * 4 + c] as u16 + f.rgba[160 * 4 + 4 + c] as u16 + 2) / 4) as u8;
-                assert_eq!(&halves[0].2[..4], &[mean(0), mean(1), mean(2), mean(3)]);
+                assert!(f.rgba.is_empty(), "the frame's own pixels stay behind");
+                assert_eq!(halves.iter().map(|(w, h, px)| (*w, *h, px.len())).collect::<Vec<_>>(), vec![(40, 22, 40 * 22 * 4)]);
             }
             _ => panic!("no frame with its halvings"),
         }

@@ -38,7 +38,7 @@ pub struct Media {
     duration: f64,
     /// the latest frame: width, height, pixels
     frame: Option<(u32, u32, Arc<Vec<u8>>)>,
-    /// its halvings, until they go to the painter with it
+    /// what it is drawn from when it came as its size alone (its halving), until that goes to the painter with it
     halves: Halvings,
     /// how many halvings its decoder is asked to send with each frame
     halvings: u8,

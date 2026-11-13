@@ -12,7 +12,8 @@ pub mod stream {
     /// where a playing source has got to, that it played to its end, or its failure.
     pub enum Msg {
         Meta { w: u32, h: u32, duration: f64 },
-        /// a frame to show now (the first, a seek's), with its halvings when they're asked for (`Cmd::Halvings`)
+        /// a frame to show now (the first, a seek's). Asked for halvings (`Cmd::Halvings`), it comes as its size and
+        /// the halving it is drawn from, its own pixels left behind
         Frame(f64, raea_io_media::Frame, Halvings),
         /// a playing video's frame, decoded ahead of its time: the frame at this time, to show at this moment
         Due(f64, raea_io_media::Frame, std::time::Instant, Halvings),
@@ -25,9 +26,10 @@ pub mod stream {
         Fail(String),
     }
 
-    /// A frame's halvings, largest first: each a 2x2 mean of the one before (width, height, RGBA). A frame drawn at
-    /// under half its size is drawn from one of them, so a 4K frame in a small player is neither sampled across
-    /// four of its pixels at a time (it shimmers) nor sent whole to the GPU for every frame.
+    /// Halvings of a frame, largest first: each a 2x2 mean of the one before (width, height, RGBA). A frame drawn at
+    /// under half its size is drawn from one, so a 4K frame in a small player is neither sampled across four of
+    /// its pixels at a time (it shimmers) nor sent whole to the GPU for every frame; and since the one it is drawn
+    /// from is all that is sent, a quarter second of 4K frames waiting is 30 to 120 MB where whole it would be 500.
     pub type Halvings = Vec<(u32, u32, Vec<u8>)>;
 
     /// `n` halvings of an RGBA picture (fewer once a side is a pixel).
@@ -57,6 +59,15 @@ pub mod stream {
         out
     }
 
+    /// A frame as it is sent when `n` halvings are asked for: whole with none; else its size, and the nth halving
+    /// alone (the one it is drawn from).
+    pub fn sent(f: raea_io_media::Frame, n: u8) -> (raea_io_media::Frame, Halvings) {
+        match halvings(f.width, f.height, &f.rgba, n).pop() {
+            Some(last) => (raea_io_media::Frame { rgba: Vec::new(), ..f }, vec![last]),
+            None => (f, Vec::new()),
+        }
+    }
+
     /// What the element asks of its decoder. Play plays from `at` on the source's clock (its sound's, when it has
     /// sound and a device): frames as they fall due, each `Frame` news, and `Ended` at its end unless `looping`.
     pub enum Cmd {
@@ -66,8 +77,8 @@ pub mod stream {
         Muted(bool),
         /// the element's volume, 0..1: the sound's gain while it isn't muted
         Volume(f32),
-        /// how many halvings each frame should come with from here on (the page counts them from the size the
-        /// video is drawn at; 0 while it is drawn at half its size or more)
+        /// how many times each frame should be halved from here on (the page counts them from the size the video is
+        /// drawn at; 0 while it is drawn at over half its size)
         Halvings(u8),
     }
 

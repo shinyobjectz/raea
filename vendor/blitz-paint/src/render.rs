@@ -1516,8 +1516,9 @@ fn halve(src: &RasterImageData) -> RasterImageData {
     RasterImageData::new(w, h, Arc::new(out))
 }
 
-/// raea: an image's halvings handed over ready made (each half the last, the first half the image): a video's frame,
-/// halved on its decoder's thread. Kept while the image lives, as the ones made here are.
+/// raea: halvings of an image handed over ready made, largest first: a video's frame, halved on its decoder's thread.
+/// Not every halving need be there, and the image itself may come without its pixels (only its size): it is then
+/// drawn from these alone (video_level). Kept while the image lives, as the ones made here are.
 pub fn preload_mips(image: &RasterImageData, levels: Vec<RasterImageData>) {
     MIPS.with_borrow_mut(|mips| {
         mips.retain(|_, (weak, _)| weak.upgrade().is_some());
@@ -1525,24 +1526,43 @@ pub fn preload_mips(image: &RasterImageData, levels: Vec<RasterImageData>) {
     });
 }
 
-/// The level of `image` to sample when it is drawn at `scale` of its size: the image itself, or a halving of it.
-/// `make`: halvings not there yet are made now (an img's, once); without it only the ones handed over are used (a
-/// video's frame is a new picture each time: nothing is halved for it on the page's thread).
-fn mip_level(image: &RasterImageData, scale: f64, make: bool) -> RasterImageData {
+/// How many times `image` is halved to be sampled at `scale` of its size: the most that leaves it at least the
+/// size it is drawn.
+fn halvings_at(image: &RasterImageData, scale: f64) -> usize {
     let mut want = 0;
     while scale * f64::from(1u32 << (want + 1)) <= 1.0 && image.width >> (want + 1) >= 1 && image.height >> (want + 1) >= 1 {
         want += 1;
     }
+    want
+}
+
+/// A video's frame as it is drawn at `scale` of its size: nothing is halved for it here (it is a new picture each
+/// time), so of the halvings it came with (preload_mips) the smallest still at least the size mip_level would
+/// sample, else the largest. The frame itself when it came with none, or is drawn at over half its size and has
+/// its pixels.
+fn video_level(image: &RasterImageData, scale: f64) -> RasterImageData {
+    let whole = image.data.data().len() >= image.width as usize * image.height as usize * 4;
+    let want = halvings_at(image, scale);
+    if want == 0 && whole {
+        return image.clone();
+    }
+    MIPS.with_borrow(|mips| match mips.get(&image.data.id()) {
+        Some((_, Some(levels))) if !levels.is_empty() => {
+            let least = (image.width >> want).max(1);
+            levels.iter().rev().find(|l| l.width >= least).unwrap_or(&levels[0]).clone()
+        }
+        _ => image.clone(),
+    })
+}
+
+/// The level of `image` to sample when it is drawn at `scale` of its size: the image itself, or a halving of it,
+/// made now if it isn't there yet (an img's, once).
+fn mip_level(image: &RasterImageData, scale: f64) -> RasterImageData {
+    let want = halvings_at(image, scale);
     if want == 0 {
         return image.clone();
     }
     MIPS.with_borrow_mut(|mips| {
-        if !make {
-            return match mips.get(&image.data.id()) {
-                Some((_, Some(levels))) if !levels.is_empty() => levels[want.min(levels.len()) - 1].clone(),
-                _ => image.clone(),
-            };
-        }
         mips.retain(|_, (weak, _)| weak.upgrade().is_some());
         // an all-zero image is a placeholder whose blob keys a GPU texture's override (raea-page's views, filters):
         // drawn as is, or the override is lost
@@ -2405,9 +2425,17 @@ impl ElementCx<'_, '_> {
             // are each a new picture, so one is drawn from the halvings it came with (preload_mips), as it comes
             // when it came with none
             let outer = self.transform.determinant().abs().sqrt();
-            let img = self.element.name.local == local_name!("img");
-            let mip = quality != peniko::ImageQuality::Low && (img || self.element.name.local == local_name!("video"));
-            let level = if mip { mip_level(image, x_scale.min(y_scale) * outer, img) } else { image.clone() };
+            let level = if self.element.name.local == local_name!("video") {
+                video_level(image, x_scale.min(y_scale) * outer)
+            } else if quality != peniko::ImageQuality::Low && self.element.name.local == local_name!("img") {
+                mip_level(image, x_scale.min(y_scale) * outer)
+            } else {
+                image.clone()
+            };
+            // a frame that came as its size alone, and nothing to draw it from: nothing is drawn
+            if level.data.data().len() < level.width as usize * level.height as usize * 4 {
+                return;
+            }
             let (lx, ly) = (image.width as f64 / level.width as f64, image.height as f64 / level.height as f64);
             let image = &level;
             let transform = self

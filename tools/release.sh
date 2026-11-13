@@ -170,12 +170,17 @@ copy sdk/react/tw/node_modules/tailwindcss "$stage/share/raea/sdk/react/tw/node_
 mkdir -p "$stage/share/raea/models/beat-this"
 cp ~/.local/share/raea-models/beat-this/beat_this_small0.onnx "$stage/share/raea/models/beat-this/"
 # the agent skill (raea: raea-skills at the commit REF pins), which the installer copies into
-# ~/.claude/skills; raea-work (sdk/skills, work.raea.io's showcase pages) is internal and stays out, and _template is
-# raea-skills' start of a new skill
+# ~/.claude/skills; raea-work (sdk/skills, work.raea.io's showcase pages) is internal and stays out. Only the skill
+# folders (each with its SKILL.md) ship: raea-skills' skills/ is also its Claude plugin, whose manifest, hooks, README
+# and icon would land in ~/.claude/skills as clutter, and _template is raea-skills' start of a new skill
 skills=$(mktemp -d)
 skills_at "$skills" || exit 1
-rm -rf "$skills/skills/_template"
-cp -R "$skills/skills" "$stage/share/raea/skills"
+mkdir -p "$stage/share/raea/skills"
+for s in "$skills"/skills/*/SKILL.md; do
+  s=${s%/SKILL.md}
+  case ${s##*/} in _*) continue ;; esac
+  cp -R "$s" "$stage/share/raea/skills/"
+done
 # the runtime's packages, as installed here
 copy sdk/react/js/node_modules "$stage/share/raea/sdk/react/js"
 rm -rf "$stage/share/raea/tools/tokensynth/__pycache__" "$skills"

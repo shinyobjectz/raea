@@ -115,11 +115,11 @@ function StopsAt(props: { end: number; children?: ReactNode }) {
 }
 
 /** The same LocalTime object as last render when nothing in it changed (a Freeze's subtree, a held frame). */
-function useStableTime(frame: number, origin: number, width: number, height: number): LocalTime {
+function useStableTime(frame: number, origin: number, width: number, height: number, duration: number): LocalTime {
   const r = useRef<LocalTime | null>(null);
   const p = r.current;
-  if (p && p.frame === frame && p.origin === origin && p.width === width && p.height === height) return p;
-  return (r.current = { frame, origin, width, height });
+  if (p && p.frame === frame && p.origin === origin && p.width === width && p.height === height && p.duration === duration) return p;
+  return (r.current = { frame, origin, width, height, duration });
 }
 
 /** Shifts time by `from` and shows its children only for `durationInFrames` frames. */
@@ -149,7 +149,12 @@ export function Sequence(props: SequenceProps) {
   const p = r.current;
   const w = width ?? parent.width;
   const h = height ?? parent.height;
-  const time: LocalTime = p && p.frame === f - from && p.origin === parent.origin + from && p.width === w && p.height === h ? p : (r.current = { frame: f - from, origin: parent.origin + from, width: w, height: h });
+  // its length: its own, cut where its parent's ends (unbounded, what's left of the parent's)
+  const d = Math.min(durationInFrames, parent.duration - from);
+  const time: LocalTime =
+    p && p.frame === f - from && p.origin === parent.origin + from && p.width === w && p.height === h && p.duration === d
+      ? p
+      : (r.current = { frame: f - from, origin: parent.origin + from, width: w, height: h, duration: d });
   const base = timeBase(pbase.origin + from, pbase.freeze === null ? null : pbase.freeze - from);
   // no box: the new time around the children here, as Shifted would put it (a game's sound cues, a component less each)
   if (layout === "none" && style === undefined && className === undefined) {
@@ -259,7 +264,11 @@ export function Loop(props: LoopProps) {
   const lf = f - pass * durationInFrames;
   const lo = parent.origin + pass * durationInFrames;
   const p = r.current;
-  const time: LocalTime = p && p.frame === lf && p.origin === lo && p.width === parent.width && p.height === parent.height ? p : (r.current = { frame: lf, origin: lo, width: parent.width, height: parent.height });
+  // its children's length is one pass
+  const time: LocalTime =
+    p && p.frame === lf && p.origin === lo && p.width === parent.width && p.height === parent.height && p.duration === durationInFrames
+      ? p
+      : (r.current = { frame: lf, origin: lo, width: parent.width, height: parent.height, duration: durationInFrames });
   const base = timeBase(pbase.origin + pass * durationInFrames, pbase.freeze === null ? null : pbase.freeze - pass * durationInFrames);
   return (
     <Shifted owner="Loop" time={time} base={base} layout={layout} style={style} className={className} label={name} stops={lo + durationInFrames}>
@@ -280,7 +289,7 @@ export function Freeze(props: FreezeProps) {
   checkFinite("Freeze", "frame", props.frame);
   const parent = useLocalTime("Freeze");
   const pbase = useContext(TimeBaseContext);
-  const time = useStableTime(props.frame, parent.origin, parent.width, parent.height);
+  const time = useStableTime(props.frame, parent.origin, parent.width, parent.height, parent.duration);
   return (
     <TimeBaseContext.Provider value={timeBase(pbase.origin, props.frame)}>
       <LocalTimeContext.Provider value={time}>{props.children}</LocalTimeContext.Provider>

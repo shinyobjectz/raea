@@ -89,3 +89,17 @@ fn a_project_s_own_tsconfig_is_not_in_the_work_copy() {
     assert!(d.join("from/tsconfig.json").exists());
     let _ = std::fs::remove_dir_all(&d);
 }
+
+#[test]
+fn an_edit_s_sources_leave_out_hidden_folders_and_packages() {
+    let d = std::env::temp_dir().join(format!("raea-bundle-sources-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&d);
+    for f in ["a.tsx", "parts/b.ts", ".git/hooks/c.js", "node_modules/pkg/d.js", "target/e.ts", "out/f.json"] {
+        std::fs::create_dir_all(d.join(f).parent().unwrap()).unwrap();
+        std::fs::write(d.join(f), "").unwrap();
+    }
+    let mut got = sources(&d).unwrap();
+    got.sort();
+    assert_eq!(got, vec![PathBuf::from("a.tsx"), PathBuf::from("parts/b.ts")]);
+    let _ = std::fs::remove_dir_all(&d);
+}

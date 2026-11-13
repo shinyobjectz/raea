@@ -89,7 +89,11 @@ pub fn export_cache(tsx: &Path, js: &Path, out: &Path, args: &[String]) -> Optio
     // never a stale export)
     let text = String::from_utf8_lossy(&bundle);
     let made: std::collections::HashSet<PathBuf> = std::fs::read_to_string(root.join("outputs.list")).unwrap_or_default().lines().map(PathBuf::from).collect();
-    files.retain(|p| !made.contains(&std::fs::canonicalize(p).unwrap_or_else(|_| p.clone())) || p.file_stem().is_some_and(|n| text.contains(&*n.to_string_lossy())));
+    // (a file is one of them only if its name is one of theirs, or it is a link to one: only those are resolved, where
+    // every file under the edit's folder was, thousands of them before a render's first frame)
+    let names: std::collections::HashSet<&std::ffi::OsStr> = made.iter().filter_map(|m| m.file_name()).collect();
+    let may_be_made = |p: &Path| p.file_name().is_some_and(|n| names.contains(n)) || p.symlink_metadata().is_ok_and(|m| m.file_type().is_symlink());
+    files.retain(|p| !may_be_made(p) || !made.contains(&std::fs::canonicalize(p).unwrap_or_else(|_| p.clone())) || p.file_stem().is_some_and(|n| text.contains(&*n.to_string_lossy())));
     // absolute media paths the bundle names (an import from outside the edit's folder becomes its path)
     for q in text.split('"').skip(1).step_by(2) {
         if q.starts_with('/') && q.len() < 4096 && Path::new(q).extension().and_then(|x| x.to_str()).is_some_and(|x| MEDIA_EXTS.contains(&x.to_ascii_lowercase().as_str())) {
@@ -99,6 +103,11 @@ pub fn export_cache(tsx: &Path, js: &Path, out: &Path, args: &[String]) -> Optio
     files.push(std::env::current_exe().ok().and_then(|e| std::fs::canonicalize(e).ok())?);
     files.sort();
     files.dedup();
+    // the optimized copies there are, listed once. Asking each media file for its own (raea_io_media::mezz::has and
+    // ranges) read the file's first and last MiB and listed this folder again, for every picture, sound and video
+    // under the edit's folder: 492 files in one real project and 2,417 in another, before a render's first frame.
+    // Only a video has copies, and with none in the folder no file has one
+    let copies: Vec<String> = std::fs::read_dir(raea_io_media::mezz::dir()).map(|d| d.flatten().map(|e| e.file_name().to_string_lossy().into_owned()).collect()).unwrap_or_default();
     for p in &files {
         eat(p.as_os_str().as_encoded_bytes());
         match std::fs::metadata(p) {
@@ -110,13 +119,16 @@ pub fn export_cache(tsx: &Path, js: &Path, out: &Path, args: &[String]) -> Optio
         }
         // which file its decoders read: a video's optimized copy, once complete, changes the pixels without touching
         // the source (raea_io_media::mezz)
-        if MEDIA_EXTS.contains(&p.extension().and_then(|x| x.to_str()).unwrap_or("").to_ascii_lowercase().as_str()) {
-            if raea_io_media::mezz::has(p) {
+        let video = matches!(p.extension().and_then(|x| x.to_str()).unwrap_or("").to_ascii_lowercase().as_str(), "mp4" | "mov" | "m4v");
+        if video && !copies.is_empty() && let Some(fp) = raea_io_media::mezz::fingerprint(p) {
+            if copies.iter().any(|n| n.strip_prefix(fp.as_str()).is_some_and(|rest| rest.starts_with('.') && !rest.contains("partial"))) {
                 eat(b"mezz");
             }
             // its range copies too: the frames inside them come from the copies
-            for r in raea_io_media::mezz::ranges(p) {
-                eat(format!("mezz@{}-{}", r.first, r.last).as_bytes());
+            if copies.iter().any(|n| n.strip_prefix(fp.as_str()).is_some_and(|rest| rest.starts_with('@'))) {
+                for r in raea_io_media::mezz::ranges(p) {
+                    eat(format!("mezz@{}-{}", r.first, r.last).as_bytes());
+                }
             }
         }
     }

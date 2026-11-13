@@ -55,6 +55,7 @@ pub fn render(args: &[String]) -> R<String> {
         unsafe { std::env::set_var("RAEA_SOURCE_STAMPS", "1") };
     }
     bundle_composition(&tsx, &js, &o, None)?;
+    raea_runtime_react::startup_mark("the composition bundled");
     let wanted = match (flag(args, "--frame"), flag(args, "--at")) {
         (Some(f), _) => Some(vec![f.parse().map_err(|_| "--frame takes a frame number")?]),
         (_, Some(at)) => Some(at.split(',').map(|f| f.trim().parse::<i64>().map_err(|_| "--at takes frame numbers".to_string())).collect::<R<_>>()?),
@@ -91,6 +92,7 @@ pub fn render(args: &[String]) -> R<String> {
     };
     // a whole video made from these same inputs before is the export: cloned from the cache, not rendered again
     let cache = if wanted.is_none() && !raea_sys_layers::on() { export_cache(&tsx, &js, &out, args) } else { None };
+    raea_runtime_react::startup_mark("the export cache looked up");
     let manifest = MANIFEST.lock().unwrap().clone();
     if let Some(c) = &cache {
         // with --manifest, the manifest kept beside the export comes back too

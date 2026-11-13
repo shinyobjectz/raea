@@ -126,8 +126,20 @@ pub fn sources(root: &Path) -> R<Vec<PathBuf>> {
     let mut stack = vec![root.to_path_buf()];
     while let Some(d) = stack.pop() {
         for e in std::fs::read_dir(&d).map_err(|e| format!("{}: {e}", d.display()))?.flatten() {
+            // what copy_dir leaves out is no source of the edit's: a project's .git, node_modules and target were
+            // walked whole here, each entry asked what it is (2 s before a render's first frame in a project of ten
+            // thousand files, bundle cached or not)
+            let name = e.file_name();
+            if name.to_string_lossy().starts_with('.') || name == "node_modules" || name == "target" {
+                continue;
+            }
             let p = e.path();
-            if p.is_dir() {
+            // the entry's own kind, without another stat; a link is followed
+            let dir = match e.file_type() {
+                Ok(t) if !t.is_symlink() => t.is_dir(),
+                _ => p.is_dir(),
+            };
+            if dir {
                 stack.push(p);
             } else if matches!(p.extension().and_then(|x| x.to_str()), Some("ts" | "tsx" | "js" | "jsx" | "mjs")) {
                 out.push(p.strip_prefix(root).unwrap().to_path_buf());

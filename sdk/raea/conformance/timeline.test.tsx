@@ -99,6 +99,17 @@ describe("useVideoConfig and AbsoluteFill", () => {
     at(0, <Sequence width={540} height={960}><Read /></Sequence>);
     expect(cfg).toMatchObject({ width: 540, height: 960 });
   });
+  test("inside a Sequence, durationInFrames is the Sequence's", () => {
+    const d: Record<string, number> = {};
+    function Read({ id }: { id: string }) { d[id] = useVideoConfig().durationInFrames; return null; }
+    at(15, <Sequence from={10} durationInFrames={20}><Read id="own" /></Sequence>);
+    at(15, <Sequence from={10}><Read id="open" /></Sequence>);
+    at(275, <Sequence from={250} durationInFrames={100}><Read id="cut" /></Sequence>);
+    at(45, <Sequence from={30} durationInFrames={40}><Sequence from={5}><Read id="nested" /></Sequence></Sequence>);
+    at(5, <Loop durationInFrames={12}><Read id="loop" /></Loop>);
+    at(5, <Freeze frame={2}><Read id="freeze" /></Freeze>);
+    expect(d).toEqual({ own: 20, open: 290, cut: 50, nested: 35, loop: 12, freeze: 300 });
+  });
   test("AbsoluteFill renders its children", () => {
     at(3, <AbsoluteFill style={{ background: "black" }}><Probe id="a" /></AbsoluteFill>);
     expect(seen.a).toBe(3);

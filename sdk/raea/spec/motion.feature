@@ -21,7 +21,9 @@ Feature: raea, the behaviour of its API
       And defaultProps are JSON-like values handed to the component as its props
     Scenario: What a component can ask
       Then `useVideoConfig()` returns {id, width, height, fps, durationInFrames, defaultProps} of the composition it is
-        rendered in (a Sequence given width and height reports those to its children instead)
+        rendered in (a Sequence given width and height reports those to its children instead, and inside a
+        Sequence durationInFrames is the Sequence's: its own, cut short where its parent's ends; a Loop's children
+        get one pass)
       And `useCurrentFrame()` returns the frame being rendered, measured from the start of the nearest enclosing
         Sequence (the composition's frame outside any Sequence)
     Scenario: AbsoluteFill

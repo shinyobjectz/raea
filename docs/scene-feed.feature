@@ -283,9 +283,12 @@ Feature: Scene: a feed item that is raea 3D looked at from inside
       And each comment in a scene tells the agent its point in the scene's space, the part and where it is written
 
   Rule: SF8. Open
+    # Status 11-13: SF8e done for 0.1.3 (Shane: the scene feed ships in 0.1.3, not 0.1.4). raea-feed #10 merged
+    # (24b2eb5) with raea-skills #58 (faa9938: collaborate.md's row, reference/feed.md regenerated), and raea pins it
+    # (#133, 2cb213634); SKILLS_STRICT=1 tools/skills.sh check passes against the app at raea-feed main.
+    @done
     Scenario: SF8e. Taught to agents
       # feed_post's type list is in the generated skills reference. Teaching `scene` is a change to raea-skills
       # (skills/raea/collaborate.md's "When you need to..." table, and reference/feed.md regenerated), which is public
-      # and merges by PR: it goes with the merge of raea-feed's branch scene, at Shane's word. Until then L1 is
-      # untouched, since raea-feed main has not changed
+      # and merges by PR, with the merge of raea-feed's branch scene
       Then the raea skill says when to post a scene and what the person can do with it

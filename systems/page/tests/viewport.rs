@@ -2,16 +2,10 @@
 //! Blitz is given the viewport in device px, which it divides by the scale. Given the size in CSS px, a page at
 //! scale 2 was laid out in a quarter of its image (2026-11-12, issue 119).
 use bevy::math::UVec2;
-use blitz_dom::{BaseDocument, LocalName, QualName, ns};
+mod common;
+use blitz_dom::BaseDocument;
+use common::{attr, q};
 use raea_sys_page::{Page, config};
-
-fn q(local: &str) -> QualName {
-    QualName { prefix: None, ns: ns!(html), local: LocalName::from(local) }
-}
-
-fn attr(local: &str, v: &str) -> blitz_dom::Attribute {
-    blitz_dom::Attribute { name: QualName { prefix: None, ns: ns!(), local: LocalName::from(local) }, value: v.into() }
-}
 
 /// The box of a `width: 100vw; height: 100vh` element in a page: the CSS viewport as layout sees it.
 fn full(at: Page) -> (f64, f64) {

@@ -1,13 +1,7 @@
 //! Custom properties set in an element's style attribute reach its children's var() (p12-css/var-inherit).
+mod common;
 use blitz_dom::{BaseDocument, DocumentConfig, LocalName, QualName, ns};
-
-fn q(local: &str) -> QualName {
-    QualName { prefix: None, ns: ns!(html), local: LocalName::from(local) }
-}
-
-fn attr(local: &str, v: &str) -> blitz_dom::Attribute {
-    blitz_dom::Attribute { name: QualName { prefix: None, ns: ns!(), local: LocalName::from(local) }, value: v.into() }
-}
+use common::{attr, q};
 
 #[test]
 fn inline_custom_properties_inherit() {

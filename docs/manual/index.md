@@ -44,6 +44,13 @@ The raea skill (`raea skill` prints it) is the short version of the same loop; t
 - [3D scenes](guides/3d.md): cameras, lights, meshes and materials in TSX, drawn by Bevy.
 - [Apps on the web target or native](guides/apps.md): a React file that runs as a desktop app.
 
+## Fingerprint
+
+- [Fingerprint: teach raea your eye](fingerprint/index.md): what raea learns about good work from your notes, on your Mac.
+- [Train your fingerprint](fingerprint/train.md): your renders, notes and marks, and a box on the part of a sound you mean.
+- [Check a cut with it](fingerprint/check.md): score a cut before it's posted, and check that a fix really fixed it.
+- [Projects and teams](fingerprint/projects.md): which fingerprint judges a project, and keeping one with it for the team.
+
 ## Reference
 
 - [The CLI](reference/cli.md): a page for each of the 43 `raea` verbs, with its forms, where it runs and what each flag does.

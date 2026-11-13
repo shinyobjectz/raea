@@ -34,7 +34,10 @@ pub mod stream {
     pub fn halvings(w: u32, h: u32, rgba: &[u8], n: u8) -> Halvings {
         let mut out: Halvings = Vec::new();
         for _ in 0..n {
-            let (sw, sh, src) = out.last().map_or((w, h, rgba), |(w, h, px)| (*w, *h, px.as_slice()));
+            let (sw, sh, src) = match out.last() {
+                Some(last) => (last.0, last.1, last.2.as_slice()),
+                None => (w, h, rgba),
+            };
             if sw < 2 || sh < 2 {
                 break;
             }

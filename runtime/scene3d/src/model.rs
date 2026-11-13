@@ -340,9 +340,13 @@ pub fn await_models(_app: &mut App) -> Result<(), String> {
 #[cfg(not(target_arch = "wasm32"))]
 pub fn await_models(app: &mut App) -> Result<(), String> {
     let mut t0 = bevy::platform::time::Instant::now();
+    let t_all = t0;
     let mut most = 0usize;
     // the cameras off while models load, so the draws are binned once, whole (#48): raea-sys-post's views.rs
     let mut off: Option<Vec<Entity>> = None;
+    // RAEA_MODELS_TRACE=1: each wait that ran an update says how many and for which models (a render's frame time)
+    let trace = std::env::var("RAEA_MODELS_TRACE").as_deref() == Ok("1");
+    let mut pumped = 0usize;
     loop {
         let world = app.world_mut();
         if let Some(e) = world.resource_mut::<Error>().0.take() {
@@ -367,8 +371,17 @@ pub fn await_models(app: &mut App) -> Result<(), String> {
         }
         if waiting == 0 {
             if let Some(cams) = off { raea_sys_post::views::on(app, cams); }
+            if trace && pumped > 0 {
+                eprintln!("raea models: waited {pumped} update(s), {:.1} ms", t_all.elapsed().as_secs_f64() * 1e3);
+            }
             return Ok(());
         }
+        if trace && pumped == 0 {
+            let mut q = app.world_mut().query::<&Model3d>();
+            let who: Vec<String> = q.iter(app.world()).filter(|m| !(matches!(m.state, ModelState::Ready { .. }) && m.settled())).map(|m| format!("{} ({}; surfaces {}, toon {}, shaders {})", m.id, match m.state { ModelState::Loading => "loading", ModelState::Spawned(_) => "spawned", ModelState::Ready { .. } => "ready" }, m.surfaces.len(), m.toon.len(), m.shaders.len())).take(4).collect();
+            eprintln!("raea models: waiting on {waiting}: {}", who.join("; "));
+        }
+        pumped += 1;
         if done > most {
             most = done;
             t0 = bevy::platform::time::Instant::now();

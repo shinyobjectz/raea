@@ -74,34 +74,52 @@ Feature: The timeline SDK (0.1.5): CapCut's timeline, on the composition, in the
   Status, 11-13 (the first day). On raea main: sdk/timeline (model, ops with inverses, compound clips, keys and
   bezier easing, speed curves, freeze frames and reversed footage, snapping, the frame store's decisions, live
   playback's mapping, readers and writers for a composition's sequences (its footage and sound, its text, its
-  effects, a recording), a film's scenes and a sound's tracks, the palette a plugin adds to; 65 tests), and in
+  effects, a recording, a project's file), a film's scenes and a sound's tracks, the palette a plugin adds to; 77
+  tests), and in
   sdk/video <Nudge keys>, <Transition in out> (fade, slide, wipe, zoom), <Effect kind amount in out> (blur, mono,
   sepia, vivid, faded, contrast, bright, dark, invert, hue: a filter on the picture under it) and a <Video>'s or
   an <Audio>'s speedCurve (the mixer carries its sound through the changing rate as one voice). In raea-feed, draft
-  PR #19: the new timeline is the timeline (localStorage raea.timeline-sdk = 0 brings the old strip back); 28 browser
-  tests in Chrome; of the 27 that can run in a headless raea window (all but the voice test, which there would ask
-  for this Mac's microphone) 22 pass, among them a composition's every edit, freeze and reverse, mirror and crop,
-  effects, groups and compounds, the posted item's, a plugin's effect, text style, tool and snap grid, saved curves,
-  Settings' kept frames and a composition's sound taken out. Of the other five, two stop at the runner (a route
-  answered late, a reload in the middle of a test), two are Chrome's alone (TL9c calls the page's own module, TL10d's
-  film holds the host's answers), and TL4c's film test stops at its last check (which sound played from where, read
-  through an init-script hook the window can't install):
-    built      TL0a-d, TL1a-c (a plugin's lane as a row under the tracks; collapse and the top edge's resize),
+  PR #19: the new timeline is the timeline (localStorage raea.timeline-sdk = 0 brings the old strip back); 34 browser
+  tests in Chrome, all passing; of the 33 that can run in a headless raea window (all but the voice test, which there
+  would ask for this Mac's microphone) 31 pass, among them a composition's every edit, freeze and reverse, mirror and
+  crop, effects, groups and compounds, the posted item's, a plugin's effect, text style, tool and snap grid, saved
+  curves, Settings' kept frames, both kinds of sound taken out, the switcher, the export range, media added and the
+  Option keys. The other two are Chrome's alone (TL9c calls the page's own module, TL10d's film holds the host's
+  answers). The window runner (blitz/pw.mjs) answers routes one at a time in the order asked, keeps a reload's
+  address and each test's storage, and has keyboard down and up, toBeFocused and waitForResponse. The timeline's keys
+  follow the pointer over it, not :hover, which raea's window doesn't match for a script, so there they only worked
+  after a click in the timeline:
+    built      TL0a-d, TL1a-b, TL1c (the switcher on the left of each track, picking what its clips show: the
+               frames, the energy, the waveform, the spectrogram, the words said, with Transcribe offered until
+               there are words; only what the film has is offered, each clip draws its own stretch of the film,
+               and the choice is kept by the track's kind for the next film; a sound in Listen the same; a clip
+               of one of the project's files, a sound track's or one added from Media, draws its own file's
+               loudness, read once on the host (/host/asset-peaks); a plugin's lane as a row under the tracks;
+               collapse and the top edge's resize),
                TL1d (the poster on the main track's head: a click makes the playhead's frame the poster),
-               TL2a-e, TL3a-g, TL3h (freeze and reverse played live from the film's own frames; mirror,
+               TL2a-e, TL2f (I and O in either order, Shift+X around the picked clips, its ends dragged on the
+               ruler, Option+X or the × beside Export clearing it; kept with the item; Export says the span and
+               the host cuts only it with raea media trim, raea's encoder signing it as every export: a real
+               render's 1 s to 2.5 s came out 1.5 s, 90 frames and its sound), TL3a-g (and TL3b's Option-drag,
+               leaving the clip and putting a copy down), TL3h (freeze and reverse played live from the film's own
+               frames; mirror,
                rotate and crop shown on the player at once, as are a clip's keyed scale, place, turn and opacity),
-               TL3i, TL4a-b, TL4c (and a clip's own sound taken out with Cmd+Shift+S: the SDK's extract
+               TL3i, TL3j (Media in the bar, Cmd+I: the project's footage, stills and sounds, each added at the
+               playhead as long as its file, a still 3 s; on a film cut here footage and stills go over the
+               picture, drawn on the player where they are on, a sound on a sound track), TL4a-b, TL4c (and a clip's own sound taken out with Cmd+Shift+S: the SDK's extract
                operation, a sound clip over the same span from the same place in the file, the footage marked
                muted; in a composition the host mutes the <Video> and writes an <Audio> of its file beside it, read
                back as clips; in a film cut here the player is silent over that footage and the sound plays from
                its place in the film wherever it is moved), TL5a-b, TL5c (and a curve shaped by hand saved by name for the workspace: kept as
-               timeline/curves.json in its folder, a preset in every timeline there, forgotten by its ×), TL6a-b,
+               timeline/curves.json in its folder, a preset in every timeline there, forgotten by its ×), TL6a-b
+               (and Option on a clip's edge changing its speed, Cmd+R to the speed, Shift+B to its curve),
                TL7a, TL7b for raea's ten effects (an effect is a clip of its own,
                shown on the player where it is on), TL7c (text added with T or in a style from the bar, drawn over a
                film where it is on, renamed by a double-click, a caption split at the caret with Enter; raea's
                four text styles and a plugin's, as data), a plugin's effects as data (timeline.effects in its manifest: parts
                of CSS filter functions, drawn by <Effect parts> and by the preview alike), TL8a
-               (waveform, level line, fades), TL8b's beats as ticks that edges snap to, each turned off by a
+               (waveform, level line, fades; Cmd+. and Cmd+, step the level by 0.1 dB, or key it at the
+               playhead when it is keyed), TL8b's beats as ticks that edges snap to, each turned off by a
                click, TL8c (Record from the playhead, the picture playing; the recording a clip named by what was
                said, its file in the project's attachments), TL11a for easings, speed curves, transitions, effects, text styles, tools (presets put
                on the picked clips) and snap grids as data (a clip let go 6 px past a plugin grid's mark lands on
@@ -124,7 +142,10 @@ Feature: The timeline SDK (0.1.5): CapCut's timeline, on the composition, in the
                speed curve for a sequence that holds footage, split in two with it (TL6a-b), a transition on a cut
                (TL7a), an effect as a sequence holding an <Effect>, its kind and amount (TL7b), a sequence of
                words as a text clip, its words rewritten, words added as a new sequence (TL7c), a <Video>'s or an
-               <Audio>'s level (TL8a), a recording as a sequence holding an <Audio> of its file (TL8c); each
+               <Audio>'s level (TL8a), a recording as a sequence holding an <Audio> of its file (TL8c), a
+               project's file as a sequence holding a <Video>, <Img> or <Audio> of it, named by its path in
+               the composition's media folder (cloned into media/added/ first when it is elsewhere in the
+               project), in at the nearest cut with the main track moving on and the composition growing (TL3j); each
                written into the working version the moment it is made, its draft played over the picture (TL9a,
                TL10d), finished and posted on Send with the agent told (TL9b). A scene's sequences: move, trim,
                split, delete written into the scene's own file, which the stage opens again (TL14c). A sound's
@@ -237,6 +258,14 @@ Feature: The timeline SDK (0.1.5): CapCut's timeline, on the composition, in the
       When I press M
       Then a marker is at the playhead (on the picked clip if one is picked, else on the timeline), which I can name,
         colour, drag and delete, and which edges snap to
+
+    Scenario: TL2f. A range marked for export
+      When I press I at one place and O at another (in either order), or Shift+X with a clip picked (CapCut's
+        "select an area by clip"; capcut.com/help/export-clip-of-video)
+      Then the span between them is marked on the ruler, its ends dragged, and Option+X clears it
+      And an export of the item renders only that span, all its tracks; with none marked it is the whole timeline
+      And the range is how the timeline is seen, not an edit: it isn't sent, and it is kept with the item's timeline
+        until it is cleared, so a later export isn't cut short without it showing
 
   Rule: TL3. Clips: pick, move, trim, split, delete
     Scenario: TL3a. Picking

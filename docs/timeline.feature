@@ -60,11 +60,11 @@ Feature: The timeline SDK (0.1.5): CapCut's timeline, on the composition, in the
       temperature, tint, fade, vignette, grain. Audio: volume, fades, noise reduction, voice changer. Text: font,
       style, effects, bubbles, animation, and its words read aloud.
       Here 11-14: Basic but stabilise (TL3h, TL5), Mask, chroma key and Blend (TL7f) with the key's colour picked from
-      the picture (TL7h), Animation (TL7d, TL7e), Speed (TL6), Audio's volume and fades (TL8a), Text's words, styles
-      and captions (TL7c), Adjust as effect clips over a span (TL7b, raea's ten) and as the clip's own twelve sliders
-      (TL7g), every number of these keyed (TL5a). Not yet: stabilise, auto and brushed cutout, Retouch, noise
-      reduction, the voice changer, text read aloud, a mask's handles dragged on the picture (its values are typed and
-      slid in the row), and a vignette on a file from Media laid over the film (its other adjustments are drawn).
+      the picture (TL7h) and the mask's handles dragged there (TL7i), Animation (TL7d, TL7e), Speed (TL6), Audio's
+      volume and fades (TL8a), Text's words, styles and captions (TL7c), Adjust as effect clips over a span (TL7b,
+      raea's ten) and as the clip's own twelve sliders (TL7g, on the film and on a file from Media over it), every
+      number of these keyed (TL5a). Not yet: stabilise, auto and brushed cutout, Retouch, noise reduction, the voice
+      changer, and text read aloud.
 
   The model this file sets:
     1. One timeline model, in an SDK (sdk/timeline, TypeScript, no React, no DOM): tracks, clips, keys, markers, and
@@ -94,16 +94,17 @@ Feature: The timeline SDK (0.1.5): CapCut's timeline, on the composition, in the
   CapCut's twelve adjustments as one SVG filter and a vignette layer), <Transition in out combo> (fade, slide, wipe, zoom; a Combo's seven waves), <Effect kind amount in out> (blur, mono,
   sepia, vivid, faded, contrast, bright, dark, invert, hue: a filter on the picture under it) and a <Video>'s or
   an <Audio>'s speedCurve (the mixer carries its sound through the changing rate as one voice). In raea-feed, draft
-  PR #19: the new timeline is the timeline (localStorage raea.timeline-sdk = 0 brings the old strip back); 41 browser
-  tests in Chrome, all passing; in a headless raea window 39 of the 41 pass and two skip themselves there with their
+  PR #19: the new timeline is the timeline (localStorage raea.timeline-sdk = 0 brings the old strip back); 43 browser
+  tests in Chrome, all passing; in a headless raea window 41 of the 43 pass and two skip themselves there with their
   reason (the voice test, which would ask for this Mac's microphone, and TL10d, whose film the window decodes itself,
   so no route can hold its data), among them TL9c, an agent's edits, a composition's every edit, freeze and reverse, mirror and
   crop, effects, groups and compounds, the posted item's, a plugin's effect, text style, tool and snap grid, saved
   curves, Settings' kept frames, both kinds of sound taken out, the switcher, the export range, media added, the
   Option keys, captions made from what is said, a clip's In, Out and Combo, and its mask, blend and chroma key (whose
   sliders are a track of their own, as the volume's is: the window doesn't move a range input), their numbers and the
-  crop's sides keyed (TL5a), its own Adjust (TL7g), and its key's colour picked from the picture (TL7h: read from the
-  clip's file by the host, since the window has no canvas to read). The window runner (blitz/pw.mjs) answers routes one at a time in the order asked, keeps a reload's
+  crop's sides keyed (TL5a), its own Adjust (TL7g), its key's colour picked from the picture (TL7h: read from the
+  clip's file by the host, since the window has no canvas to read), its mask's handles dragged there (TL7i), and a file
+  from Media over the film with its own vignette and its key's colour picked from its own file. The window runner (blitz/pw.mjs) answers routes one at a time in the order asked, keeps a reload's
   address and each test's storage, and has keyboard down and up, toBeFocused and waitForResponse. The timeline's keys
   follow the pointer over it, not :hover, which raea's window doesn't match for a script, so there they only worked
   after a click in the timeline:
@@ -161,8 +162,10 @@ Feature: The timeline SDK (0.1.5): CapCut's timeline, on the composition, in the
                Adjust sliders, one SVG filter after its key and a vignette layer, by sdk/video adjust.ts in the
                preview and in <Nudge adjust>; raea's renderer within 0.4% RMSE of Chrome on a probe), TL7h (the
                key's colour picked from the picture: a press on the film or a file over it, undone through its
-               placement, read by the host from the clip's file where the player is, a small patch's mean), a
-               plugin's effects as data (timeline.effects in its manifest: parts
+               placement, read by the host from the clip's file where the player is, a small patch's mean), TL7i
+               (the mask's outline and CapCut's handles on the picture through the clip's placement: move, width,
+               height, corner, turn, feather, round; a drag shown as it moves and one edit when let go, keyed
+               numbers keyed), a plugin's effects as data (timeline.effects in its manifest: parts
                of CSS filter functions, drawn by <Effect parts> and by the preview alike), TL8a
                (waveform, level line, fades; Cmd+. and Cmd+, step the level by 0.1 dB, or key it at the
                playhead when it is keyed), TL8b's beats as ticks that edges snap to, each turned off by a
@@ -485,7 +488,8 @@ Feature: The timeline SDK (0.1.5): CapCut's timeline, on the composition, in the
       Given a clip of footage or a still picked
       When I adjust it (CapCut's Adjust tab: brightness, contrast, saturation, exposure, sharpen, highlights, shadows,
         temperature, tint, fade, vignette, grain), each a slider from as shot, keyed as any number is (TL5a)
-      Then the picture shows it at once, under the effects over it, after its chroma key
+      Then the picture shows it at once, under the effects over it, after its chroma key; a file from Media over the
+        film shows its own, its vignette over its own picture where that sits in the frame
       And in a composition it is the sequence's <Nudge adjust>, written and read back: its tone one curve read through
         a table, its colour two colour matrices, sharpen a convolution, grain a noise whose seed is the frame, and a
         vignette a darkening laid over the part's frame; raea's renderer draws them as Chrome does (11-14 probe: tone,
@@ -502,6 +506,17 @@ Feature: The timeline SDK (0.1.5): CapCut's timeline, on the composition, in the
       And Esc, or pick again, stops picking and keeps the clip picked
       And the picture is read by the host from the file, not from the screen (raea's window has no canvas to read),
         so it is the same colour in raea's window and in Chrome
+
+    Scenario: TL7i. A mask's handles dragged on the picture
+      Given a clip with a mask picked, its mask panel open and the playhead on it
+      Then the mask's outline is drawn on the picture where it is, through the clip's placement, with CapCut's
+        handles at a constant size: the shape itself to move it, an edge's for its width or its height, a corner's for
+        both in proportion, a turn handle under it, a feather handle over it that runs out as the edge softens, and a
+        rectangle's corner rounding along its top edge (a line has its turn and feather; a mirror's band its height)
+      When I drag one
+      Then the picture's mask follows as it moves and it is one edit when let go, the panel's numbers with it: a number
+        keyed (TL5a) takes a key at the playhead, the rest a still value
+      And a press on them leaves no comment and doesn't play
 
   Rule: TL8. Sound
     Scenario: TL8a. The waveform, the volume line and fades

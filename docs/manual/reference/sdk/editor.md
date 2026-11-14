@@ -868,8 +868,8 @@ One step of an SVG filter: its tag and its attributes, so React and the DOM can 
 
 | Field | Type | What it is |
 | --- | --- | --- |
-| `tag` (required) | `"feComponentTransfer" \| "feFuncR" \| "feFuncG" \| "feFuncB" \| "feColorMatrix" \| "feConvol…` | – |
-| `attrs` (required) | `Record<string, string>` | – |
+| `tag` (required) | `"feComponentTransfer" \| "feFuncR" \| "feFuncG" \| "feFuncB" \| "feColorMatrix" \| "feConvol…` | the SVG filter primitive (or a component transfer's function) it is |
+| `attrs` (required) | `Record<string, string>` | its attributes as SVG writes them (in, in2, result, values,...) |
 | `children` | `FilterStep[]` | a component transfer's functions |
 
 ### `Frames`

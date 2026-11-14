@@ -57,7 +57,9 @@ export function toneAt(a: Adjust, v: number): number {
 
 /** One step of an SVG filter: its tag and its attributes, so React and the DOM can each make it. */
 export interface FilterStep {
+  /** the SVG filter primitive (or a component transfer's function) it is */
   tag: "feComponentTransfer" | "feFuncR" | "feFuncG" | "feFuncB" | "feColorMatrix" | "feConvolveMatrix" | "feTurbulence" | "feComposite";
+  /** its attributes as SVG writes them (in, in2, result, values, ...) */
   attrs: Record<string, string>;
   /** a component transfer's functions */
   children?: FilterStep[];

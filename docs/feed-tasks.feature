@@ -127,3 +127,31 @@ Feature: Feed tasks: the graph view's layering, the to-do list, and sessions sta
     Scenario: FT3d. It ties to the to-do list
       Then a brief's task that @names the session, and an edit on an item it posted, are its tasks
       And the bubble names them, and the to-do list shows the session on them with what it last did
+
+    # Status 11-13 (FT3e, FT3f): built for 0.1.4 in raea-feed #25, stacked on #24; neither merged, both wait for Shane.
+    # Shane 11-13, on the cards: "even if i started the chat or session out of raea app i can open up the chat in a
+    # raea chat ui ... show what agent is working on what or any subagents and feel more like i can click to see more
+    # and less rows of info". Checked: e2e/outside.spec.ts 3 of 3 in Chrome, with the host's answers given by the
+    # spec; host/outside-chat.test.ts and host/outside.test.ts on files written as Claude Code writes them;
+    # bridge-resume.test.ts on a test agent that offers fork. Not checked: a fork through the real claude-agent-acp.
+    # Left: other harnesses' transcripts (only Claude Code's is read), and an image a prompt carried.
+    Scenario: FT3e. Open chat opens it as a chat in raea
+      When I press Open chat on its bubble
+      Then its conversation so far opens as one of the workspace's chats: my prompts, its replies and thinking, its
+        tool calls with their results and diffs, and its plan, read from its transcript (the newest 6 MB, saying so
+        when older messages were left out)
+      And a line at the top says where it was started and what writing there does
+      And while it is still open where it runs, what it says next shows in the chat as it says it
+      And opening it starts no agent
+      When I write in that chat
+      Then the agent carries it on in the folder it ran in: a copy of it (forked) while it is still open there, so the
+        one there goes on by itself, or the session itself (resumed) when it has ended
+      And from then on it is raea's chat, and following stops
+
+    Scenario: FT3f. Its bubble says who is on what, folded until I open it
+      Then folded, the bubble says what the session is on (its own title, or the name it was given), what it is
+        doing now, and the subagents it has running
+      When I click the bubble or More, which names what more there is
+      Then it opens to its last message, its plan, its subagents (the running ones with the call each is on, then
+        the latest done, with how many more are done) and the notes of mine it has
+      And Less, or another click, folds it again

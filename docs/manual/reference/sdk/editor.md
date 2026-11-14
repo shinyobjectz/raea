@@ -18,10 +18,10 @@ built, edited and undone.
 <!-- generated:begin by tools/manual-ref/sdk.ts from the SDK's exports and doc comments; edit outside this block -->
 
 ```ts
-import { ahead, apply, applyAll, bezier } from "raea/editor"
+import { ahead, animStyle, apply, applyAll } from "raea/editor"
 ```
 
-`raea/editor` exports 52 functions, 14 values, 33 types. Bevy's counterpart: `raea's own; Bevy has no timeline editor`. Source: [sdk/raea/src/editor.ts](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/src/editor.ts).
+`raea/editor` exports 53 functions, 14 values, 35 types. Bevy's counterpart: `raea's own; Bevy has no timeline editor`. Source: [sdk/raea/src/editor.ts](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/src/editor.ts).
 
 ## Functions
 
@@ -32,6 +32,15 @@ at most `chunk` frames, then what is before it.
 
 ```ts
 function ahead(length: number, kept: Range[], playhead: number, chunk: number): Range[]
+```
+
+### `animStyle`
+
+The clip's style `into` frames from its start, coming in by its In and going out by its Out, each over no more
+of it than it has. Empty when neither plays there.
+
+```ts
+function animStyle(c: Clip, into: number): EdgeStyle
 ```
 
 ### `apply`
@@ -472,7 +481,7 @@ function without(ranges: Range[], cut: Range[]): Range[]
 
 ### `CODE_KINDS`
 
-The transitions a composition's <Transition> draws (sdk/video transition.tsx).
+The transitions a composition's <Transition> draws (sdk/video edges.ts).
 
 ### `CURVES`
 
@@ -536,6 +545,15 @@ What one plugin adds.
 | `tools` | `Preset[]` | tools of its own: presets put on the picked clips |
 | `snaps` | `SnapGrid[]` | marks edges snap to: grids in seconds |
 
+### `Anim`
+
+How a clip comes in or goes out on its own: a transition's kind over its own first or last frames.
+
+| Field | Type | What it is |
+| --- | --- | --- |
+| `kind` (required) | `string` | fade, slide, wipe, zoom or a plugin's (TRANSITIONS) |
+| `length` (required) | `Frames` | how many of the clip's frames it takes |
+
 ### `Applied`
 
 ```ts
@@ -569,6 +587,8 @@ A span of something on a track: footage, a sound, words, a composition's sequenc
 | `volume` | `number` | sound: its level, 1 as recorded |
 | `fadeIn` | `Frames` | sound: how long it fades in from its start |
 | `fadeOut` | `Frames` | sound: how long it fades out to its end |
+| `enter` | `Anim` | the picture or words: how it comes in over its first frames (TL7d, CapCut's In animation) |
+| `exit` | `Anim` | the picture or words: how it goes out over its last frames (TL7d, CapCut's Out animation) |
 | `at` | `string` | its element in the code |
 | `markers` | `Marker[]` | markers on the clip itself, in frames from its start |
 | `inside` | `{ kind: TrackKind; clip: Clip }[]` | a compound clip: the clips it holds, each with the kind of track it came from, their starts in frames from this clip's own start |
@@ -593,6 +613,16 @@ bezier's two handles [x1, y1, x2, y2] as CSS writes them.
 ```ts
 type Ease = "linear" | "hold" | [number, number, number, number]
 ```
+
+### `EdgeStyle`
+
+What an edge does to the part at a frame: a move, a fade and a cut-away, as CSS writes them.
+
+| Field | Type | What it is |
+| --- | --- | --- |
+| `transform` | `string` | a move or a scale |
+| `opacity` | `number` | how much of it shows, 0 to 1 |
+| `clipPath` | `string` | how much of it is covered |
 
 ### `EffectInfo`
 

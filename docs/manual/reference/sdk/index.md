@@ -61,7 +61,7 @@ Footage, pictures, sound, words and colour, and the timeline they are edited on.
 | [`raea/image`](image.md) | Pictures on the page and in the world, and texture atlases packed from them. | 3 components, 1 class, 5 types |
 | [`raea/asset`](asset.md) | Files the project holds and assets made for it: staticFile, generated sound and music, and glTF bytes. | 9 functions, 1 value, 8 types |
 | [`raea/color`](color.md) | Bevy's colour types: Srgba, LinearRgba, Hsla, Oklab, Oklch and the rest, with their conversions. | 2 functions, 7 classes |
-| [`raea/editor`](editor.md) | The timeline the feed edits a film, a scene or a sound on, as data: tracks, clips, keys and markers, every edit an operation with its inverse, a film's scenes read in (fromRender) and its cut read back out as segments (segmentsOf). No React and no DOM: an agent's script, the app's host and a test use the same model the app's timeline does. | 52 functions, 14 values, 33 types |
+| [`raea/editor`](editor.md) | The timeline the feed edits a film, a scene or a sound on, as data: tracks, clips, keys and markers, every edit an operation with its inverse, a film's scenes read in (fromRender) and its cut read back out as segments (segmentsOf). No React and no DOM: an agent's script, the app's host and a test use the same model the app's timeline does. | 53 functions, 14 values, 35 types |
 
 ## 3D
 

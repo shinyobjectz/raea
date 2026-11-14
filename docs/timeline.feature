@@ -60,12 +60,12 @@ Feature: The timeline SDK (0.1.5): CapCut's timeline, on the composition, in the
       temperature, tint, fade, vignette, grain. Audio: volume, fades, noise reduction, voice changer. Text: font,
       style, effects, bubbles, animation, and its words read aloud.
       Here 11-14: Basic (TL3h, TL5) with stabilise (TL7k, a film's footage; a composition's not yet), auto cutout
-      of a person or the subject (TL7l, a film's footage, on a Mac) and a custom one brushed on the picture (TL7m), Mask, chroma key and Blend (TL7f) with the key's colour picked from
+      of a person or the subject (TL7l, a film's footage, on a Mac) and a custom one brushed on the picture (TL7m), Retouch (TL7n: smooth, brighten, slim face and bigger eyes, a film's footage or a file from Media, on a Mac), Mask, chroma key and Blend (TL7f) with the key's colour picked from
       the picture (TL7h) and the mask's handles dragged there (TL7i), Animation (TL7d, TL7e), Speed (TL6), Audio's
       volume and fades (TL8a) and its noise reduction and voice changer (TL8d, a film's sounds; a composition's
       not yet), Text's words, styles and captions (TL7c) and its words read aloud (TL7j), Adjust as effect clips
       over a span (TL7b, raea's ten) and as the clip's own twelve sliders (TL7g, on the film and on a file from Media
-      over it), every number of these keyed (TL5a). Not yet: Retouch.
+      over it), every number of these keyed (TL5a).
 
   The model this file sets:
     1. One timeline model, in an SDK (sdk/timeline, TypeScript, no React, no DOM): tracks, clips, keys, markers, and
@@ -95,8 +95,8 @@ Feature: The timeline SDK (0.1.5): CapCut's timeline, on the composition, in the
   CapCut's twelve adjustments as one SVG filter and a vignette layer), <Transition in out combo> (fade, slide, wipe, zoom; a Combo's seven waves), <Effect kind amount in out> (blur, mono,
   sepia, vivid, faded, contrast, bright, dark, invert, hue: a filter on the picture under it) and a <Video>'s or
   an <Audio>'s speedCurve (the mixer carries its sound through the changing rate as one voice). In raea-feed, draft
-  PR #19: the new timeline is the timeline (localStorage raea.timeline-sdk = 0 brings the old strip back); 48 browser
-  tests in Chrome, all passing; in a headless raea window 46 of the 48 pass and two skip themselves there with their
+  PR #19: the new timeline is the timeline (localStorage raea.timeline-sdk = 0 brings the old strip back); 49 browser
+  tests in Chrome, all passing; in a headless raea window 47 of the 49 pass and two skip themselves there with their
   reason (the voice test, which would ask for this Mac's microphone, and TL10d, whose film the window decodes itself,
   so no route can hold its data), among them TL9c, an agent's edits, a composition's every edit, freeze and reverse, mirror and
   crop, effects, groups and compounds, the posted item's, a plugin's effect, text style, tool and snap grid, saved
@@ -109,7 +109,7 @@ Feature: The timeline SDK (0.1.5): CapCut's timeline, on the composition, in the
   read aloud onto a sound track (TL7j), and a sound's noise reduced and its voice changed (TL8d: its menu is made
   again after each try, since the window keeps a picked option shown when the clip's didn't change), footage held
   steady (TL7k), footage cut out (TL7l; its pixels are compared in Chrome only, which can screenshot an
-  element) and cut out by what is brushed over it (TL7m: the strokes painted with the window's own pointer). The window runner (blitz/pw.mjs) answers routes one at a time in the order asked, keeps a reload's
+  element) and cut out by what is brushed over it (TL7m: the strokes painted with the window's own pointer), and footage retouched (TL7n: the copy put in the clip's place at the playhead's second and wearing its mask; that it has the frame and the film's picture goes are checked in Chrome only, which plays the copy). The window runner (blitz/pw.mjs) answers routes one at a time in the order asked, keeps a reload's
   address and each test's storage, and has keyboard down and up, toBeFocused and waitForResponse. The timeline's keys
   follow the pointer over it, not :hover, which raea's window doesn't match for a script, so there they only worked
   after a click in the timeline:
@@ -206,6 +206,24 @@ Feature: The timeline SDK (0.1.5): CapCut's timeline, on the composition, in the
                0.2502; on two subjects side by side a stroke on either kept only it, both kept both, an erase took
                one out, a stroke on the sky said nothing is under it; a real clip 90 frames in 11.9 s, the cat
                followed through all of them; the strokes kept in the clip's props as JSON, there to brush again),
+               TL7n (footage retouched, CapCut's Retouch: four sliders, smooth, brighten, slim face and bigger eyes, set
+               then applied; the host reads each frame of the part the clip shows (`raea media still`, as wide as the
+               picture up to 1280 px), finds its faces and their landmarks with Vision's face landmarks (up to 4 a
+               frame) and retouches them with Core Image through osascript's JavaScript: the skin a mask of the jaw's
+               line closed by an arc over the forehead, less the eyes, brows and lips, feathered; smooth a blur
+               blended in only where the picture differs little from it, so a lash line or a nostril stays sharp;
+               brighten an exposure lift through the mask; bigger eyes a bump at each eye; slim a warp kernel drawing
+               the cheeks and jaw toward the face's middle. Two Core Image traps found on the way: an image read
+               straight from a bitmap comes out blank from a render with a warp kernel in it (the mask is made from
+               its TIFF data), and a blur under a warp whose region callback is JavaScript renders without the
+               blur's branch (what is under the warp is made pixels first). Frames go to `raea media encode` with
+               the part's own sound (`raea media audio`) under them, signed, as media/retouch/<file>-<key>.mp4, in
+               runs of 48 split over two Vision processes; no face in the clip is said and nothing kept. The player
+               shows the copy over a film's picture in its box, wearing the look copied off it as it changes, and
+               hides the film's picture only once the copy has the frame under the playhead (a copy loading shows
+               the film as shot); a clip coming on within a second has its copy loaded ahead; a file from Media plays
+               the copy, which carries its sound, instead of its file. On a 720 x 1280 talking-head clip 90 frames
+               in 10.9 s, a face found on every one; asked again, the kept copy in 24 ms),
                TL11a for easings, speed curves, transitions, effects, text styles, tools (presets put
                on the picked clips) and snap grids as data (a clip let go 6 px past a plugin grid's mark lands on
                it, under a browser test with the plugin installed; each e2e run now starts with no plugins
@@ -601,6 +619,20 @@ Feature: The timeline SDK (0.1.5): CapCut's timeline, on the composition, in the
         kept as TL7l keeps its mattes; nothing under what I kept is said, and the strokes stay to brush again
       And the player wears them as TL7l says, and Brushed opened again shows the strokes it was cut out by
       And the agent is told when it was brushed, its strokes, and where the mattes are (TL9b)
+
+    Scenario: TL7n. Footage retouched
+      Given a footage clip picked in a film cut here, a person's face in it
+      When I open its Retouch (CapCut's Retouch) and set smooth, brighten, slim face and bigger eyes, and apply
+      Then the host finds the faces on each frame of the part of its file the clip shows and retouches them (the
+        skin smoothed with its edges kept, brightened, the cheeks and jaw drawn in, the eyes made bigger), and keeps
+        the frames, with that part's own sound under them, as one copy of the project's, named by its source, part
+        and amounts, so the same retouch asked again is read, not made
+      And the player shows the copy in the clip's place, in step with the playhead and wearing everything the clip's
+        picture wears (its placement, mask, cutout, Adjust); the clip's picture goes only once the copy has the frame
+        under the playhead, and a clip coming on next has its copy loaded before it does
+      And applied again with other amounts it is a new copy; off, the picture as shot; what goes wrong (not a Mac, no
+        face in it, longer than a minute) is said beside the sliders, and nothing changes
+      And the agent is told the amounts, and where the copy is and the part of the file it holds (TL9b)
 
   Rule: TL8. Sound
     Scenario: TL8a. The waveform, the volume line and fades

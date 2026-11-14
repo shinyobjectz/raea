@@ -7,6 +7,7 @@ import { apply, type Op } from "./ops"
 import { EFFECTS, type EffectPart, type TextStyle, textStyleError } from "./registry"
 import { COMBO_KINDS, TRANSITION_KINDS } from "@raea/video/edges"
 import { CUTOUT_PROPS, cutoutError, cutoutOf, cutoutProps, KEY_PROPS, MASK_PROPS, type Blend, type ChromaKey, type Mask } from "./cutout"
+import { ADJUST_KINDS, ADJUST_PROP_LIST, ADJUST_PROPS, adjustError, adjustOf, type Adjust } from "./adjust"
 
 /** A text clip's style, kept in its props as JSON: read back when it is well formed. */
 export function textStyleOf(v: unknown): TextStyle | undefined {
@@ -100,6 +101,8 @@ export interface SeqLook {
   blend?: Blend
   /** a colour taken out of it (TL7f) */
   chroma?: ChromaKey
+  /** its own Adjust, each kind not 0 (TL7g) */
+  adjust?: Adjust
 }
 const CROPS = ["cropLeft", "cropTop", "cropRight", "cropBottom"]
 /** The host's edit to a sequence: its new span, a split, a delete. */
@@ -150,6 +153,7 @@ export const KEY_NAMES: Record<string, string> = {
   ...Object.fromEntries((["x", "y", "w", "h", "rotate", "feather", "round"] as const).map((k) => [MASK_PROPS[k], `mask.${k}`])),
   ...Object.fromEntries((["strength", "shadow"] as const).map((k) => [KEY_PROPS[k], `chroma.${k}`])),
   ...Object.fromEntries(CROPS.map((k) => [k, `crop.${k.slice(4).toLowerCase()}`])),
+  ...Object.fromEntries(ADJUST_KINDS.map((k) => [ADJUST_PROPS[k], `adjust.${k}`])),
 }
 /** The clip props a sequence keys. */
 export const KEYABLE = Object.keys(KEY_NAMES)
@@ -162,6 +166,7 @@ const lookProps = (l: SeqLook): Record<string, Value | boolean> => ({
   ...(l.mirror && { mirror: true }),
   ...(l.crop && Object.fromEntries(CROPS.map((k, n) => [k, l.crop![n]]))),
   ...((l.mask || l.blend || l.chroma) && cutoutProps(l)),
+  ...(l.adjust && Object.fromEntries(Object.entries(l.adjust).map(([k, v]) => [ADJUST_PROPS[k as keyof Adjust], v]))),
 })
 // the edits to later elements first (an edit that adds or removes an element moves the places after it)
 const later = (a: SeqEdit, b: SeqEdit) => ("i" in b ? b.i : 0) - ("i" in a ? a.i : 0)
@@ -314,19 +319,20 @@ export function seqEdits(t: Timeline, op: Op): SeqEdit[] | { why: string } {
         if (amount !== undefined && !(typeof amount === "number" && amount >= 0 && amount <= 1)) return { why: "an effect's amount runs from 0 to 1" }
         return each([op.id], (r) => ({ op: "fx", i: r.i, ...(effect !== undefined && { kind: String(effect) }), ...(amount !== undefined && { amount: Math.round((amount as number) * 1000) / 1000 }) }))
       }
-      // how a sequence is placed (moved, scaled, turned, faded, mirrored, cropped, masked, blended, keyed): its <Nudge>'s still props
+      // how a sequence is placed (moved, scaled, turned, faded, mirrored, cropped, masked, blended, keyed, adjusted): its <Nudge>'s still props
       if (only.length === 1 && only[0] === "props" && find(t, op.id)?.clip.kind !== "effect") {
-        const bad = Object.keys(op.set.props!).filter((k) => !KEYED.includes(k) && k !== "mirror" && !CROPS.includes(k) && !CUTOUT_PROPS.includes(k))
-        if (bad.length) return { why: `a sequence is placed by its ${[...KEYED, "mirror", "crop", "mask", "blend", "chroma"].join(", ")}: ${bad.join(", ")} ${bad.length > 1 ? "are" : "is"} its own code's` }
+        const bad = Object.keys(op.set.props!).filter((k) => !KEYED.includes(k) && k !== "mirror" && !CROPS.includes(k) && !CUTOUT_PROPS.includes(k) && !ADJUST_PROP_LIST.includes(k))
+        if (bad.length) return { why: `a sequence is placed by its ${[...KEYED, "mirror", "crop", "mask", "blend", "chroma", "adjust"].join(", ")}: ${bad.join(", ")} ${bad.length > 1 ? "are" : "is"} its own code's` }
         const after = apply(t, op)
         if (!after.ok) return { why: after.why }
         const p = find(after.timeline, op.id)?.clip.props ?? {}
         const num = (k: string) => (typeof p[k] === "number" && Number.isFinite(p[k]) ? Math.round((p[k] as number) * 1000) / 1000 : undefined)
         if ((num("scale") ?? 1) <= 0) return { why: "a scale is above 0" }
-        const cut = cutoutError(p)
+        const cut = cutoutError(p) ?? adjustError(p)
         if (cut) return { why: cut }
         const crop = CROPS.map((k) => Math.min(0.9, Math.max(0, num(k) ?? 0))) as [number, number, number, number]
-        const look: SeqLook = { ...Object.fromEntries(KEYED.flatMap((k) => (num(k) === undefined ? [] : [[k, num(k)]]))), ...(p.mirror === true && { mirror: true }), ...(crop.some((v) => v > 0) && { crop }), ...cutoutOf(p) }
+        const adjust = adjustOf(p)
+        const look: SeqLook = { ...Object.fromEntries(KEYED.flatMap((k) => (num(k) === undefined ? [] : [[k, num(k)]]))), ...(p.mirror === true && { mirror: true }), ...(crop.some((v) => v > 0) && { crop }), ...cutoutOf(p), ...(Object.keys(adjust).length && { adjust }) }
         return each([op.id], (r) => ({ op: "nudge", i: r.i, look }))
       }
       // its In and Out animations (TL7d) and its Combo (TL7e): its <Transition>'s edges, as a cut's transition writes them

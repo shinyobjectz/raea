@@ -18,12 +18,46 @@ built, edited and undone.
 <!-- generated:begin by tools/manual-ref/sdk.ts from the SDK's exports and doc comments; edit outside this block -->
 
 ```ts
-import { ahead, animStyle, apply, applyAll } from "raea/editor"
+import { ADJUST_KINDS, ADJUST_PROP_LIST, ADJUST_PROPS, adjustError } from "raea/editor"
 ```
 
-`raea/editor` exports 59 functions, 24 values, 42 types. Bevy's counterpart: `raea's own; Bevy has no timeline editor`. Source: [sdk/raea/src/editor.ts](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/src/editor.ts).
+`raea/editor` exports 63 functions, 28 values, 45 types. Bevy's counterpart: `raea's own; Bevy has no timeline editor`. Source: [sdk/raea/src/editor.ts](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/src/editor.ts).
 
 ## Functions
+
+### `adjustError`
+
+What is wrong with a clip's adjustment props as they stand, or undefined: a value out of its range.
+
+```ts
+function adjustError(props?: Props): string | undefined
+```
+
+### `adjustLook`
+
+How the editor's preview draws a clip's adjustment on its picture, as <Nudge adjust> draws it: its SVG filter's
+id and steps (to put beside the picture), and its vignette's background (a layer over the picture). A wrong one
+draws nothing rather than throwing in the editor.
+
+```ts
+function adjustLook(props: Props | undefined, seed?: number): { filter?: { id: string; steps: FilterStep[]; } | undefined; vignette?: string; }
+```
+
+### `adjustOf`
+
+A clip's adjustment read from its props: the kinds that aren't 0.
+
+```ts
+function adjustOf(props?: Props): Partial<Record<"saturation" | "fade" | "brightness" | "contrast" | "exposure" | "sharpen" | "highlights" | "shadows" | "temperature" | "tint" | "vignette" | "grain", number>>
+```
+
+### `adjustProps`
+
+An adjustment as a clip's props, to three places: every kind, 0 for what it hasn't got, so a set puts it whole.
+
+```ts
+function adjustProps(a: Partial<Record<"saturation" | "fade" | "brightness" | "contrast" | "exposure" | "sharpen" | "highlights" | "shadows" | "temperature" | "tint" | "vignette" | "grain", number>>): Props
+```
 
 ### `ahead`
 
@@ -533,6 +567,20 @@ function without(ranges: Range[], cut: Range[]): Range[]
 
 ## Values
 
+### `ADJUST_KINDS`
+
+### `ADJUST_PROP_LIST`
+
+The clip props an adjustment is held in.
+
+### `ADJUST_PROPS`
+
+Each adjustment as a clip's prop: brightness is adjustBrightness.
+
+### `ADJUSTS`
+
+CapCut's Adjust, in its order: each from -1 to 1 (0 as shot), but sharpen, fade, vignette and grain, from 0.
+
 ### `BLEND_KINDS`
 
 ### `BLENDS`
@@ -638,6 +686,22 @@ What one plugin adds.
 | `texts` | `TextStyle[]` | text styles of its own (TL7c, TL11a) |
 | `tools` | `Preset[]` | tools of its own: presets put on the picked clips |
 | `snaps` | `SnapGrid[]` | marks edges snap to: grids in seconds |
+
+### `Adjust`
+
+A part's adjustments, each 0 (or left out) as shot: brightness, contrast, saturation, exposure, highlights,
+shadows, temperature (warm above 0) and tint (magenta above 0) from -1 to 1; sharpen, fade, vignette and grain from
+0 to 1.
+
+```ts
+type Adjust = Partial<Record<AdjustKind, number>>
+```
+
+### `AdjustKind`
+
+```ts
+type AdjustKind = (typeof ADJUSTS)[number]["kind"]
+```
 
 ### `Anim`
 
@@ -798,6 +862,16 @@ from `from` (amount 0, where it changes nothing) to `to` (amount 1), with its un
 type EffectPart = [fn: string, from: number, to: number, unit?: string]
 ```
 
+### `FilterStep`
+
+One step of an SVG filter: its tag and its attributes, so React and the DOM can each make it.
+
+| Field | Type | What it is |
+| --- | --- | --- |
+| `tag` (required) | `"feComponentTransfer" \| "feFuncR" \| "feFuncG" \| "feFuncB" \| "feColorMatrix" \| "feConvol…` | – |
+| `attrs` (required) | `Record<string, string>` | – |
+| `children` | `FilterStep[]` | a component transfer's functions |
+
 ### `Frames`
 
 A count of frames, always whole.
@@ -926,6 +1000,7 @@ A sequence's still placement: its <Nudge>'s props (sdk/video nudge.tsx). `crop` 
 | `mask` | `Mask` | what of it is seen: a shape in shares of the frame |
 | `blend` | `Blend` | how it is drawn over what is under it, normal when not said |
 | `chroma` | `ChromaKey` | a colour taken out of it |
+| `adjust` | `Adjust` | its own Adjust, each kind not 0 |
 
 ### `SeqRow`
 

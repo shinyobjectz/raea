@@ -61,9 +61,10 @@ Feature: The timeline SDK (0.1.5): CapCut's timeline, on the composition, in the
       style, effects, bubbles, animation, and its words read aloud.
       Here 11-14: Basic but stabilise (TL3h, TL5), Mask, chroma key and Blend (TL7f), Animation (TL7d, TL7e), Speed
       (TL6), Audio's volume and fades (TL8a), Text's words, styles and captions (TL7c), Adjust as effect clips over a
-      span (TL7b, raea's ten). Not yet: stabilise, auto and brushed cutout, the key colour picked from the picture,
-      Retouch, Adjust as the clip's own sliders, noise reduction, the voice changer, text read aloud, and a mask's
-      handles dragged on the picture (its values are typed and slid in the row).
+      span (TL7b, raea's ten) and as the clip's own twelve sliders (TL7g), every number of these keyed (TL5a). Not
+      yet: stabilise, auto and brushed cutout, the key colour picked from the picture, Retouch, noise reduction, the
+      voice changer, text read aloud, a mask's handles dragged on the picture (its values are typed and slid in the
+      row), and a vignette on a file from Media laid over the film (its other adjustments are drawn).
 
   The model this file sets:
     1. One timeline model, in an SDK (sdk/timeline, TypeScript, no React, no DOM): tracks, clips, keys, markers, and
@@ -86,21 +87,22 @@ Feature: The timeline SDK (0.1.5): CapCut's timeline, on the composition, in the
   Status, 11-13 (the first day). On raea main: sdk/timeline (model, ops with inverses, compound clips, keys and
   bezier easing, speed curves, freeze frames and reversed footage, snapping, the frame store's decisions, live
   playback's mapping, readers and writers for a composition's sequences (its footage and sound, its text, its
-  effects, a recording, a project's file), a film's scenes and a sound's tracks, the palette a plugin adds to; 77
+  effects, a recording, a project's file), a film's scenes and a sound's tracks, the palette a plugin adds to, a clip's cutout and Adjust; 106
   tests), and in
-  sdk/video <Nudge keys mask blend chroma> (keys for the placement and, by a dotted name, a mask's, a key's and a
-  crop's numbers; cutout.ts: a mask's six shapes, CSS's blend modes, a chroma key), <Transition in out combo> (fade, slide, wipe, zoom; a Combo's seven waves), <Effect kind amount in out> (blur, mono,
+  sdk/video <Nudge keys mask blend chroma adjust> (keys for the placement and, by a dotted name, a mask's, a key's, a
+  crop's and an adjustment's numbers; cutout.ts: a mask's six shapes, CSS's blend modes, a chroma key; adjust.ts:
+  CapCut's twelve adjustments as one SVG filter and a vignette layer), <Transition in out combo> (fade, slide, wipe, zoom; a Combo's seven waves), <Effect kind amount in out> (blur, mono,
   sepia, vivid, faded, contrast, bright, dark, invert, hue: a filter on the picture under it) and a <Video>'s or
   an <Audio>'s speedCurve (the mixer carries its sound through the changing rate as one voice). In raea-feed, draft
-  PR #19: the new timeline is the timeline (localStorage raea.timeline-sdk = 0 brings the old strip back); 39 browser
-  tests in Chrome, all passing; in a headless raea window 37 of the 39 pass and two skip themselves there with their
+  PR #19: the new timeline is the timeline (localStorage raea.timeline-sdk = 0 brings the old strip back); 40 browser
+  tests in Chrome, all passing; in a headless raea window 38 of the 40 pass and two skip themselves there with their
   reason (the voice test, which would ask for this Mac's microphone, and TL10d, whose film the window decodes itself,
   so no route can hold its data), among them TL9c, an agent's edits, a composition's every edit, freeze and reverse, mirror and
   crop, effects, groups and compounds, the posted item's, a plugin's effect, text style, tool and snap grid, saved
   curves, Settings' kept frames, both kinds of sound taken out, the switcher, the export range, media added, the
   Option keys, captions made from what is said, a clip's In, Out and Combo, and its mask, blend and chroma key (whose
   sliders are a track of their own, as the volume's is: the window doesn't move a range input), their numbers and the
-  crop's sides keyed (TL5a). The window runner (blitz/pw.mjs) answers routes one at a time in the order asked, keeps a reload's
+  crop's sides keyed (TL5a), and its own Adjust (TL7g). The window runner (blitz/pw.mjs) answers routes one at a time in the order asked, keeps a reload's
   address and each test's storage, and has keyboard down and up, toBeFocused and waitForResponse. The timeline's keys
   follow the pointer over it, not :hover, which raea's window doesn't match for a script, so there they only worked
   after a click in the timeline:

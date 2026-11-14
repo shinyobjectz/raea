@@ -61,10 +61,10 @@ Feature: The timeline SDK (0.1.5): CapCut's timeline, on the composition, in the
       style, effects, bubbles, animation, and its words read aloud.
       Here 11-14: Basic but stabilise (TL3h, TL5), Mask, chroma key and Blend (TL7f) with the key's colour picked from
       the picture (TL7h) and the mask's handles dragged there (TL7i), Animation (TL7d, TL7e), Speed (TL6), Audio's
-      volume and fades (TL8a), Text's words, styles and captions (TL7c) and its words read aloud (TL7j), Adjust as
-      effect clips over a span (TL7b, raea's ten) and as the clip's own twelve sliders (TL7g, on the film and on a
-      file from Media over it), every number of these keyed (TL5a). Not yet: stabilise, auto and brushed cutout,
-      Retouch, noise reduction, and the voice changer.
+      volume and fades (TL8a) and its noise reduction and voice changer (TL8d, a film's sounds; a composition's
+      not yet), Text's words, styles and captions (TL7c) and its words read aloud (TL7j), Adjust as effect clips
+      over a span (TL7b, raea's ten) and as the clip's own twelve sliders (TL7g, on the film and on a file from Media
+      over it), every number of these keyed (TL5a). Not yet: stabilise, auto and brushed cutout, and Retouch.
 
   The model this file sets:
     1. One timeline model, in an SDK (sdk/timeline, TypeScript, no React, no DOM): tracks, clips, keys, markers, and
@@ -94,8 +94,8 @@ Feature: The timeline SDK (0.1.5): CapCut's timeline, on the composition, in the
   CapCut's twelve adjustments as one SVG filter and a vignette layer), <Transition in out combo> (fade, slide, wipe, zoom; a Combo's seven waves), <Effect kind amount in out> (blur, mono,
   sepia, vivid, faded, contrast, bright, dark, invert, hue: a filter on the picture under it) and a <Video>'s or
   an <Audio>'s speedCurve (the mixer carries its sound through the changing rate as one voice). In raea-feed, draft
-  PR #19: the new timeline is the timeline (localStorage raea.timeline-sdk = 0 brings the old strip back); 44 browser
-  tests in Chrome, all passing; in a headless raea window 42 of the 44 pass and two skip themselves there with their
+  PR #19: the new timeline is the timeline (localStorage raea.timeline-sdk = 0 brings the old strip back); 45 browser
+  tests in Chrome, all passing; in a headless raea window 43 of the 45 pass and two skip themselves there with their
   reason (the voice test, which would ask for this Mac's microphone, and TL10d, whose film the window decodes itself,
   so no route can hold its data), among them TL9c, an agent's edits, a composition's every edit, freeze and reverse, mirror and
   crop, effects, groups and compounds, the posted item's, a plugin's effect, text style, tool and snap grid, saved
@@ -104,8 +104,9 @@ Feature: The timeline SDK (0.1.5): CapCut's timeline, on the composition, in the
   sliders are a track of their own, as the volume's is: the window doesn't move a range input), their numbers and the
   crop's sides keyed (TL5a), its own Adjust (TL7g), its key's colour picked from the picture (TL7h: read from the
   clip's file by the host, since the window has no canvas to read), its mask's handles dragged there (TL7i), and a file
-  from Media over the film with its own vignette and its key's colour picked from its own file, and a text's words
-  read aloud onto a sound track (TL7j). The window runner (blitz/pw.mjs) answers routes one at a time in the order asked, keeps a reload's
+  from Media over the film with its own vignette and its key's colour picked from its own file, a text's words
+  read aloud onto a sound track (TL7j), and a sound's noise reduced and its voice changed (TL8d: its menu is made
+  again after each try, since the window keeps a picked option shown when the clip's didn't change). The window runner (blitz/pw.mjs) answers routes one at a time in the order asked, keeps a reload's
   address and each test's storage, and has keyboard down and up, toBeFocused and waitForResponse. The timeline's keys
   follow the pointer over it, not :hover, which raea's window doesn't match for a script, so there they only worked
   after a click in the timeline:
@@ -173,7 +174,12 @@ Feature: The timeline SDK (0.1.5): CapCut's timeline, on the composition, in the
                (waveform, level line, fades; Cmd+. and Cmd+, step the level by 0.1 dB, or key it at the
                playhead when it is keyed), TL8b's beats as ticks that edges snap to, each turned off by a
                click, TL8c (Record from the playhead, the picture playing; the recording a clip named by what was
-               said, its file in the project's attachments), TL11a for easings, speed curves, transitions, effects, text styles, tools (presets put
+               said, its file in the project's attachments), TL8d (a sound's noise reduced and its voice
+               changed: host/dsp.ts in TypeScript, an FFT and Hann overlap-add, the noise's floor from the quietest
+               tenth, a phase vocoder for pitch, biquads for the bands, a delay line for the echo; on made sounds hiss
+               down 16 dB with the tone within 0.04 dB, 3 minutes in 2.3 s; on a real voice the chipmunk moves its
+               spectral centroid x1.46 and deep x0.77, each setting 25-73 ms for 1.2 s, kept under media/voice and
+               read again in under 1 ms), TL11a for easings, speed curves, transitions, effects, text styles, tools (presets put
                on the picked clips) and snap grids as data (a clip let go 6 px past a plugin grid's mark lands on
                it, under a browser test with the plugin installed; each e2e run now starts with no plugins
                installed, since an earlier run's grids had stayed approved and snapped a run whose plugin had none),
@@ -545,6 +551,20 @@ Feature: The timeline SDK (0.1.5): CapCut's timeline, on the composition, in the
     Scenario: TL8c. A voice recorded onto the timeline
       When I press record and speak
       Then the take is a sound clip from the playhead on a sound track, and a file in the project
+
+    Scenario: TL8d. A sound's noise reduced and its voice changed
+      Given a sound clip picked in a film cut here (a recording, a sound file of the project's, or the film's own
+        sound taken out of its footage)
+      When I press reduce noise, or pick a voice (CapCut's voice changer: chipmunk, deep, robot, telephone,
+        megaphone, echo), or both
+      Then the host makes a copy of the clip's own sound, never of a copy, with that done to it (its steady noise
+        found in its quietest tenth and turned down per frequency; the voice by a phase vocoder, a filter or a delay),
+        mono and as long as its own, kept under the project's media/voice by its file, size, time and settings, so
+        asking again is the kept file
+      And the clip plays the copy from where it played its own, and says so with a mark on it
+      And both turned off, it plays its own sound again
+      And what goes wrong (no sound here, longer than 20 minutes) is said beside the controls, and nothing changes
+      And the agent is told what was done and the file it now plays (TL9b)
 
   Rule: TL9. An edit is an edit, and the agent gets it as one
     Scenario: TL9a. Applied at once, to the working version

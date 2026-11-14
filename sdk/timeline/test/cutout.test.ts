@@ -1,7 +1,7 @@
 // A clip's mask, blend and chroma key (docs/timeline.feature TL7f): its props, the preview's look, and a
 // composition's <Nudge mask blend chroma>.
 import { describe, expect, test } from "bun:test"
-import { CUTOUT_PROPS, cutoutError, cutoutLook, cutoutOf, cutoutProps, fromSequences, maskPlain, seqEdits } from "../src"
+import { CUTOUT_PROPS, cutoutError, cutoutLook, cutoutOf, cutoutProps, fromSequences, KEY_NAMES, maskPlain, propsAt, seqEdits } from "../src"
 
 describe("TL7f: a clip's cutout is its props", () => {
   test("read from props: a mask when its kind is one, a blend other than normal, a key when it has a colour", () => {
@@ -64,5 +64,29 @@ describe("TL7f: in a composition it is the sequence's <Nudge mask blend chroma>"
     const had = fromSequences([{ ...row, look: { scale: 1.2, mask: { kind: "circle" }, blend: "screen", chroma: { color: "#0f0" } } }], 30)
     expect(seqEdits(had, { op: "set", id: "seq-0", set: { props: { mask: "none", blend: "normal", keyColor: "" } } })).toEqual([{ op: "nudge", i: 0, look: { scale: 1.2 } }])
     expect(seqEdits(t, { op: "set", id: "seq-0", set: { props: { keyColor: "#808080" } } })).toEqual({ why: "a chroma key's colour needs a hue to key by: #808080 is grey" })
+  })
+})
+
+describe("TL5a: a mask's, a key's and a crop's numbers are keyed like the placement", () => {
+  const row = { i: 0, name: "Sequence", label: "First scene", from: 0, to: 90, lane: 0 }
+
+  test("the clip's props as they stand at a frame: each keyed one at its value there", () => {
+    const clip = { props: { mask: "circle", maskX: 0.5, maskFeather: 0 }, keys: { maskX: [{ at: 0, value: 0.2 }, { at: 30, value: 0.8 }] } }
+    expect(propsAt(clip, 15)).toEqual({ mask: "circle", maskX: 0.5, maskFeather: 0 })
+    expect(propsAt(clip, 15).maskX).toBeCloseTo(0.5)
+    expect(propsAt(clip, 0).maskX).toBe(0.2)
+    expect(propsAt({ props: { scale: 2 } }, 10)).toEqual({ scale: 2 })
+  })
+
+  test("a key on a mask's feather, a key's strength or a crop's side is its <Nudge keys> by a dotted name, and read back", () => {
+    expect(KEY_NAMES.maskFeather).toBe("mask.feather")
+    expect(KEY_NAMES.keyStrength).toBe("chroma.strength")
+    expect(KEY_NAMES.cropLeft).toBe("crop.left")
+    const t = fromSequences([{ ...row, look: { mask: { kind: "circle" } } }], 30)
+    expect(seqEdits(t, { op: "key", id: "seq-0", prop: "maskFeather", at: 10, value: 0.4 })).toEqual([{ op: "keys", i: 0, keys: { "mask.feather": [[10, 0.4]] } }])
+    const read = fromSequences([{ ...row, look: { mask: { kind: "circle" } }, keys: { "mask.x": [[0, 0.2], [30, 0.8, "hold"]], "crop.top": [[5, 0.1]] } }], 30)
+    expect(read.tracks[0].clips[0].keys).toEqual({ maskX: [{ at: 0, value: 0.2 }, { at: 30, value: 0.8, ease: "hold" }], cropTop: [{ at: 5, value: 0.1 }] })
+    // written back whole, by the same names
+    expect(seqEdits(read, { op: "unkey", id: "seq-0", prop: "cropTop", at: 5 })).toEqual([{ op: "keys", i: 0, keys: { "mask.x": [[0, 0.2], [30, 0.8, "hold"]] } }])
   })
 })

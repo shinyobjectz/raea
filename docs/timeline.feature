@@ -88,17 +88,19 @@ Feature: The timeline SDK (0.1.5): CapCut's timeline, on the composition, in the
   playback's mapping, readers and writers for a composition's sequences (its footage and sound, its text, its
   effects, a recording, a project's file), a film's scenes and a sound's tracks, the palette a plugin adds to; 77
   tests), and in
-  sdk/video <Nudge keys mask blend chroma> (cutout.ts: a mask's six shapes, CSS's blend modes, a chroma key), <Transition in out combo> (fade, slide, wipe, zoom; a Combo's seven waves), <Effect kind amount in out> (blur, mono,
+  sdk/video <Nudge keys mask blend chroma> (keys for the placement and, by a dotted name, a mask's, a key's and a
+  crop's numbers; cutout.ts: a mask's six shapes, CSS's blend modes, a chroma key), <Transition in out combo> (fade, slide, wipe, zoom; a Combo's seven waves), <Effect kind amount in out> (blur, mono,
   sepia, vivid, faded, contrast, bright, dark, invert, hue: a filter on the picture under it) and a <Video>'s or
   an <Audio>'s speedCurve (the mixer carries its sound through the changing rate as one voice). In raea-feed, draft
-  PR #19: the new timeline is the timeline (localStorage raea.timeline-sdk = 0 brings the old strip back); 38 browser
-  tests in Chrome, all passing; in a headless raea window 36 of the 38 pass and two skip themselves there with their
+  PR #19: the new timeline is the timeline (localStorage raea.timeline-sdk = 0 brings the old strip back); 39 browser
+  tests in Chrome, all passing; in a headless raea window 37 of the 39 pass and two skip themselves there with their
   reason (the voice test, which would ask for this Mac's microphone, and TL10d, whose film the window decodes itself,
   so no route can hold its data), among them TL9c, an agent's edits, a composition's every edit, freeze and reverse, mirror and
   crop, effects, groups and compounds, the posted item's, a plugin's effect, text style, tool and snap grid, saved
   curves, Settings' kept frames, both kinds of sound taken out, the switcher, the export range, media added, the
   Option keys, captions made from what is said, a clip's In, Out and Combo, and its mask, blend and chroma key (whose
-  sliders are a track of their own, as the volume's is: the window doesn't move a range input). The window runner (blitz/pw.mjs) answers routes one at a time in the order asked, keeps a reload's
+  sliders are a track of their own, as the volume's is: the window doesn't move a range input), their numbers and the
+  crop's sides keyed (TL5a). The window runner (blitz/pw.mjs) answers routes one at a time in the order asked, keeps a reload's
   address and each test's storage, and has keyboard down and up, toBeFocused and waitForResponse. The timeline's keys
   follow the pointer over it, not :hover, which raea's window doesn't match for a script, so there they only worked
   after a click in the timeline:
@@ -387,6 +389,10 @@ Feature: The timeline SDK (0.1.5): CapCut's timeline, on the composition, in the
         declares as a number, a colour or a point)
       Then that property has a key there; changing the value at another frame adds a key there
       And between two keys the value follows the first key's ease; before the first and after the last it holds
+      And the numbers inside a mask (its centre, size, turn, feather, corners), a chroma key (strength, shadow) and a
+        crop (each side) have their keys beside them in their panels, as the placement's are in the row, and the
+        picture follows them as it plays; in a composition they are the <Nudge keys> of a dotted name ("mask.feather",
+        "chroma.strength", "crop.left"), a curve that overshoots held inside what the value can be
 
     Scenario: TL5b. Keys on the clip
       Then a clip with keys shows them as diamonds along it (Option+K shows or hides a row a property)
@@ -467,6 +473,16 @@ Feature: The timeline SDK (0.1.5): CapCut's timeline, on the composition, in the
         says; a grey, which has no hue to key by, is refused in words
       And in a composition each is a prop of the sequence's <Nudge> (mask, blend, chroma), written and read back,
         and raea's renderer draws them as the preview does
+
+    Scenario: TL7g. A clip's own Adjust
+      Given a clip of footage or a still picked
+      When I adjust it (CapCut's Adjust tab: brightness, contrast, saturation, exposure, sharpen, highlights, shadows,
+        temperature, tint, fade, vignette, grain), each a slider from as shot, keyed as any number is (TL5a)
+      Then the picture shows it at once, under the effects over it, after its chroma key
+      And in a composition it is the sequence's <Nudge adjust>, written and read back: its tone one curve read through
+        a table, its colour two colour matrices, sharpen a convolution, grain a noise whose seed is the frame, and a
+        vignette a darkening laid over the part's frame; raea's renderer draws them as Chrome does (11-14 probe: tone,
+        colour, sharpen and vignette within 0.4% RMSE of Chrome, grain the same strength, its noise its own)
       And Send tells the agent the mask, the blend and the key as they now stand
 
   Rule: TL8. Sound

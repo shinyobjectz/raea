@@ -21,7 +21,7 @@ built, edited and undone.
 import { ahead, animStyle, apply, applyAll } from "raea/editor"
 ```
 
-`raea/editor` exports 58 functions, 22 values, 42 types. Bevy's counterpart: `raea's own; Bevy has no timeline editor`. Source: [sdk/raea/src/editor.ts](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/src/editor.ts).
+`raea/editor` exports 59 functions, 24 values, 42 types. Bevy's counterpart: `raea's own; Bevy has no timeline editor`. Source: [sdk/raea/src/editor.ts](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/src/editor.ts).
 
 ## Functions
 
@@ -370,6 +370,15 @@ The speed at each of `n` places along the clip's own time (the line drawn over t
 function profile(curve: SpeedPoint[], source: number, n: number): number[]
 ```
 
+### `propsAt`
+
+A clip's props as they stand `frame` frames from its start: each keyed one at its value there, the rest as set
+(what a mask's, a key's or a crop's look is drawn from while its numbers are keyed, TL5a).
+
+```ts
+function propsAt(clip: { props?: Record<string, boolean | Value> | undefined; keys?: Record<string, Key[]> | undefined; }, frame: number): Record<string, boolean | Value>
+```
+
 ### `readAdds`
 
 A plugin's additions as written in its manifest, checked: what is well formed, and why the rest isn't.
@@ -557,13 +566,22 @@ The easing presets raea registers; a plugin adds its own beside them.
 
 ### `FASTEST`
 
+### `KEY_NAMES`
+
+What a sequence's <Nudge> can key, as a clip's prop and its <Nudge keys> name: the placement, and the
+numbers inside its mask, its chroma key and its crop ("mask.x" for maskX).
+
 ### `KEY_PROPS`
 
 A chroma key's values as a clip's props.
 
+### `KEYABLE`
+
+The clip props a sequence keys.
+
 ### `KEYED`
 
-The properties a sequence's <Nudge> can key (sdk/video nudge.tsx).
+A sequence's <Nudge> placement, as still values and as keys (sdk/video nudge.tsx).
 
 ### `MASK_KINDS`
 

@@ -18,6 +18,7 @@
     "./transition": "./src/transition.tsx",
     "./edges": "./src/edges.ts",
     "./cutout": "./src/cutout.ts",
+    "./adjust": "./src/adjust.ts",
     "./words": "./src/words.tsx",
     "./region": "./src/region.tsx",
     "./overlay": "./src/overlay.tsx",

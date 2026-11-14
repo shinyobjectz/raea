@@ -76,6 +76,16 @@ export function valueAt(keys: Key[] | undefined, frame: Frames): Value | undefin
   return mix(a.value, b.value, eased(a.ease, (frame - a.at) / (b.at - a.at)))
 }
 
+/** A clip's props as they stand `frame` frames from its start: each keyed one at its value there, the rest as set
+ *  (what a mask's, a key's or a crop's look is drawn from while its numbers are keyed, TL5a). */
+export function propsAt(clip: { props?: Record<string, Value | boolean>; keys?: Record<string, Key[]> }, frame: Frames): Record<string, Value | boolean> {
+  const keyed = Object.entries(clip.keys ?? {}).flatMap(([p, ks]) => {
+    const v = valueAt(ks, frame)
+    return v === undefined ? [] : [[p, v] as const]
+  })
+  return { ...clip.props, ...Object.fromEntries(keyed) }
+}
+
 /** The keys either side of a cut at `frame` (TL3d: a split clip's keys stay at their frames): the left clip's, and
  *  the right clip's in its own frames. A cut between two keys puts a key of the value there on both sides, so each
  *  half moves as the whole did up to the cut. */

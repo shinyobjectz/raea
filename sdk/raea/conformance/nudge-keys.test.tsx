@@ -38,6 +38,44 @@ describe("a keyed property's value at a frame", () => {
   });
 });
 
+describe("the numbers inside a mask, a key and a crop, keyed by a dotted name (TL5a)", () => {
+  const at = (el: JSX.Element, frame: number) => renderFrame(el, { ...opts, frame });
+  const mask = { kind: "circle" as const, x: 0.5, y: 0.5, w: 0.3, h: 0.5 };
+  // the mask image's SVG, decoded
+  const svg = (html: string) => decodeURIComponent(/mask-image:url\(&quot;data:image\/svg\+xml,([^&]*)&quot;\)/.exec(html)?.[1] ?? "");
+
+  test("a mask moves and softens over time, its still kind kept", () => {
+    const el = (frame: number) => at(<Nudge mask={mask} keys={{ "mask.x": [[0, 0.25], [30, 0.75]], "mask.feather": [[0, 0], [30, 0.4]] }}><div>hi</div></Nudge>, frame);
+    // 0.25 of 1920 at the first frame, the middle halfway, 0.75 at the last
+    expect(svg(el(0))).toContain('cx="480"');
+    expect(svg(el(15))).toContain('cx="960"');
+    expect(svg(el(30))).toContain('cx="1440"');
+    expect(svg(el(0))).not.toContain("feGaussianBlur");
+    expect(svg(el(30))).toContain('stdDeviation="21.6"');
+  });
+
+  test("a key's strength over time is a filter of its own each frame", () => {
+    const el = (frame: number) => at(<Nudge chroma={{ color: "#00ff00" }} keys={{ "chroma.strength": [[0, 0.2], [10, 0.8]] }}><div>hi</div></Nudge>, frame);
+    expect(el(0)).toContain("raea-key-00ff00-20-20");
+    expect(el(10)).toContain("raea-key-00ff00-80-20");
+  });
+
+  test("a crop's side over time, the others as still", () => {
+    const el = (frame: number) => at(<Nudge crop={[0, 0.1, 0, 0]} keys={{ "crop.left": [[0, 0], [20, 0.5]] }}><div>hi</div></Nudge>, frame);
+    expect(el(10)).toContain("clip-path:inset(10% 0% 0% 25%)");
+  });
+
+  test("a curve that overshoots stays inside what the value can be", () => {
+    const el = at(<Nudge mask={mask} keys={{ "mask.feather": [[0, 0, [0.3, 1.8, 0.6, 1]], [30, 1]] }}><div>hi</div></Nudge>, 12);
+    expect(svg(el)).toContain('stdDeviation="54"');
+  });
+
+  test("keys for a mask with no mask, or a name it hasn't, fail", () => {
+    expect(() => at(<Nudge keys={{ "mask.x": [[0, 0.2]] }}><div>hi</div></Nudge>, 0)).toThrow(/need a mask/);
+    expect(() => at(<Nudge keys={{ "mask.kind": [[0, 1]] } as never}><div>hi</div></Nudge>, 0)).toThrow(/keys are for/);
+  });
+});
+
 describe("a placed part mirrored and cropped (docs/timeline.feature TL3h)", () => {
   const at = (el: JSX.Element) => renderFrame(el, { ...opts, frame: 0 });
 

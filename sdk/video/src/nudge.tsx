@@ -2,19 +2,36 @@
 // or faded part back to the composition as one <Nudge x y scale rotate opacity> around the element that holds it (the
 // timeline also writes mirror and crop, docs/timeline.feature TL3h, and a mask, a blend and a chroma key, TL7f); the
 // next change to the same part re-writes that line.
-import { cloneElement, isValidElement, type CSSProperties, type ReactElement, type ReactNode } from "react";
+import { cloneElement, createElement, isValidElement, type CSSProperties, type ReactElement, type ReactNode } from "react";
 import { useCurrentFrame, useVideoConfig } from "@raea/app/clock";
 import { Easing } from "@raea/math/easing";
+import { ADJUST_KINDS, ADJUSTS, adjustError, adjustId, adjustSteps, vignetteStyle, type Adjust, type FilterStep } from "./adjust";
 import { BLEND_KINDS, chromaError, chromaId, chromaMatrix, maskStyle, type Blend, type ChromaKey, type Mask } from "./cutout";
 import { AbsoluteFill } from "./timeline";
 
+export { ADJUSTS, type Adjust, type AdjustKind } from "./adjust";
 export { BLENDS, MASK_KINDS, type Blend, type ChromaKey, type Mask, type MaskKind } from "./cutout";
 
 /** A property's value at a frame, and how it leaves for the next key: a straight line (the default), no travel
  *  ("hold": it stays, then jumps), or a cubic bezier's two handles [x1, y1, x2, y2] as CSS writes them. The timeline
  *  writes these (docs/timeline.feature TL5d). */
 export type NudgeKey = [frame: number, value: number, ease?: "linear" | "hold" | [number, number, number, number]];
-export type NudgeProp = "x" | "y" | "scale" | "rotate" | "opacity";
+/** What a <Nudge> keys: its placement, and the numbers inside its mask, its chroma key and its crop, by a dotted
+ *  name ("mask.feather" is the mask's feather; a mask or key it keys must be given, as the still kind and colour). */
+export const NUDGE_KEYED = [
+  "x", "y", "scale", "rotate", "opacity",
+  "mask.x", "mask.y", "mask.w", "mask.h", "mask.rotate", "mask.feather", "mask.round",
+  "chroma.strength", "chroma.shadow",
+  "crop.left", "crop.top", "crop.right", "crop.bottom",
+  ...ADJUST_KINDS.map((k) => `adjust.${k}` as const),
+] as const;
+export type NudgeProp = (typeof NUDGE_KEYED)[number];
+const CROP_SIDES = ["left", "top", "right", "bottom"] as const;
+const KEY_RANGE: Partial<Record<NudgeProp, [number, number]>> = {
+  opacity: [0, 1], "mask.w": [0, Infinity], "mask.h": [0, Infinity], "mask.feather": [0, 1], "mask.round": [0, 1],
+  "chroma.strength": [0, 1], "chroma.shadow": [0, 1], "crop.left": [0, 0.9], "crop.top": [0, 0.9], "crop.right": [0, 0.9], "crop.bottom": [0, 0.9],
+  ...Object.fromEntries(ADJUSTS.map((a) => [`adjust.${a.kind}`, [a.min, 1]])),
+};
 
 /** A keyed property's value at `frame`: before its first key and after its last it holds; between two it follows
  *  the first one's ease. */
@@ -53,8 +70,12 @@ export interface NudgeProps {
   blend?: Blend;
   /** a colour taken out of it, as a green screen is: { color, strength, shadow } */
   chroma?: ChromaKey;
+  /** its brightness, contrast, saturation, exposure, sharpen, highlights, shadows, temperature, tint, fade, vignette
+   *  and grain, each 0 as shot (sdk/video adjust.ts, TL7g) */
+  adjust?: Adjust;
   /** any of the above over time: its keys, each [frame, value, ease?], in frames from where this part's time starts
-   *  (its <Sequence>'s first frame). A keyed property's still value is ignored. */
+   *  (its <Sequence>'s first frame), by the names in NUDGE_KEYED ("mask.x", "chroma.strength", "crop.left" for what
+   *  is inside a mask, a key or a crop). A keyed property's still value is ignored. */
   keys?: Partial<Record<NudgeProp, NudgeKey[]>>;
   /** the part it places: an element, or a component, which moves inside a full-frame layer */
   children?: ReactNode;
@@ -69,8 +90,26 @@ export function Nudge({ keys, ...still }: NudgeProps) {
 
 function Keyed({ keys, children, ...still }: NudgeProps & { keys: NonNullable<NudgeProps["keys"]> }) {
   const frame = useCurrentFrame();
-  const now: Partial<Record<NudgeProp, number>> = {};
-  for (const [prop, ks] of Object.entries(keys) as [NudgeProp, NudgeKey[] | undefined][]) if (ks?.length) now[prop] = keyedAt(ks, frame);
+  const now: Omit<NudgeProps, "keys" | "children"> = {};
+  for (const [prop, ks] of Object.entries(keys) as [NudgeProp, NudgeKey[] | undefined][]) {
+    if (!ks?.length) continue;
+    if (!NUDGE_KEYED.includes(prop)) throw new RangeError(`Nudge: keys are for ${NUDGE_KEYED.join(", ")}, got ${JSON.stringify(prop)}`);
+    // a curve that overshoots stays inside what the value can be
+    const [lo, hi] = KEY_RANGE[prop] ?? [-Infinity, Infinity];
+    const v = Math.min(hi, Math.max(lo, keyedAt(ks, frame)));
+    const [whole, part] = prop.split(".") as [string, string | undefined];
+    if (!part) (now as Record<string, number>)[whole] = v;
+    else if (whole === "crop") {
+      const crop = [...(now.crop ?? still.crop ?? [0, 0, 0, 0])] as [number, number, number, number];
+      crop[CROP_SIDES.indexOf(part as (typeof CROP_SIDES)[number])] = v;
+      now.crop = crop;
+    } else {
+      // a mask's or a key's number: the still one holds its kind or colour; an adjustment's start as shot
+      const own = (now[whole as "mask" | "chroma" | "adjust"] ?? still[whole as "mask" | "chroma" | "adjust"] ?? (whole === "adjust" ? {} : undefined)) as Record<string, unknown> | undefined;
+      if (!own) throw new RangeError(`Nudge: keys for ${prop} need a ${whole} to key`);
+      (now as Record<string, unknown>)[whole] = { ...own, [part]: v };
+    }
+  }
   return <Placed {...still} {...now}>{children}</Placed>;
 }
 
@@ -89,8 +128,23 @@ function KeyFilter({ chroma }: { chroma: ChromaKey }) {
   );
 }
 
-function Placed({ x = 0, y = 0, scale = 1, rotate = 0, opacity = 1, mirror = false, crop, mask, blend, chroma, children }: Omit<NudgeProps, "keys">) {
+/** An adjustment's SVG filter (adjust.ts), beside the part it adjusts. */
+function AdjustFilter({ id, steps }: { id: string; steps: FilterStep[] }) {
+  const made = (s: FilterStep, i: number): ReactElement => createElement(s.tag, { key: i, ...s.attrs }, ...(s.children ?? []).map(made));
+  return (
+    <svg width={0} height={0} style={{ position: "absolute" }} aria-hidden>
+      <defs>
+        <filter id={id} colorInterpolationFilters="sRGB" x="0" y="0" width="1" height="1">
+          {steps.map(made)}
+        </filter>
+      </defs>
+    </svg>
+  );
+}
+
+function Placed({ x = 0, y = 0, scale = 1, rotate = 0, opacity = 1, mirror = false, crop, mask, blend, chroma, adjust, children }: Omit<NudgeProps, "keys">) {
   const { width, height } = useVideoConfig();
+  const frame = useCurrentFrame();
   for (const [k, v] of Object.entries({ x, y, scale, rotate, opacity }))
     if (!Number.isFinite(v)) throw new RangeError(`Nudge: ${k} must be a finite number, got ${v}`);
   if (scale <= 0) throw new RangeError(`Nudge: scale must be above 0, got ${scale}`);
@@ -106,14 +160,21 @@ function Placed({ x = 0, y = 0, scale = 1, rotate = 0, opacity = 1, mirror = fal
   if (blend !== undefined && !BLEND_KINDS.includes(blend)) throw new RangeError(`Nudge: blend is one of ${BLEND_KINDS.join(", ")}, got ${JSON.stringify(blend)}`);
   const keyError = chroma && chromaError(chroma);
   if (keyError) throw new RangeError(`Nudge: ${keyError}`);
+  const adjustWrong = adjust && adjustError(adjust);
+  if (adjustWrong) throw new RangeError(`Nudge: ${adjustWrong}`);
   // the mask, laid over the frame's shape, and the blend: CSS on the part, so they move with it
   const cutout: CSSProperties = { ...(mask ? (maskStyle(mask, width, height) as CSSProperties) : {}), ...(blend && blend !== "normal" ? { mixBlendMode: blend } : {}) };
-  const keyed = chroma ? `url(#${chromaId(chroma)})` : undefined;
-  const placed = (filter?: CSSProperties["filter"]): CSSProperties => ({ ...(cut ? { clipPath: cut } : {}), ...cutout, ...(keyed ? { filter: filter ? `${keyed} ${filter}` : keyed } : {}) });
-  const withKey = (el: ReactNode) => (chroma ? <><KeyFilter chroma={chroma} />{el}</> : el);
+  // its adjustment's filter (the grain's seed the frame, so it lives) and its vignette
+  const steps = adjust ? adjustSteps(adjust, frame) : [];
+  const tuned = steps.length ? adjustId(adjust!, frame) : undefined;
+  const vignette = adjust?.vignette ? vignetteStyle(adjust.vignette) : undefined;
+  // the key first, then the adjustment, then the part's own filter: CapCut keys the screen before it grades
+  const own = [chroma && `url(#${chromaId(chroma)})`, tuned && `url(#${tuned})`].filter(Boolean).join(" ") || undefined;
+  const placed = (filter?: CSSProperties["filter"]): CSSProperties => ({ ...(cut ? { clipPath: cut } : {}), ...cutout, ...(own ? { filter: filter ? `${own} ${filter}` : own } : {}) });
+  const withKey = (el: ReactNode) => (chroma || tuned ? <>{chroma && <KeyFilter chroma={chroma} />}{tuned && <AdjustFilter id={tuned} steps={steps} />}{el}</> : el);
   // a mask is laid over the frame, so a masked part is placed in a full-frame layer, as a component is, and the mask
-  // moves with it; on an element's own box it would be squeezed into that box
-  if (isValidElement(children) && typeof children.type === "string" && !mask) {
+  // moves with it; on an element's own box it would be squeezed into that box. A vignette is a layer over that frame.
+  if (isValidElement(children) && typeof children.type === "string" && !mask && !vignette) {
     const style = ((children.props as { style?: CSSProperties }).style ?? {}) as CSSProperties;
     const own = typeof style.opacity === "number" ? style.opacity : style.opacity === undefined ? 1 : Number(style.opacity);
     return withKey(cloneElement(children as ReactElement<{ style?: CSSProperties }>, {
@@ -125,5 +186,10 @@ function Placed({ x = 0, y = 0, scale = 1, rotate = 0, opacity = 1, mirror = fal
       },
     }));
   }
-  return withKey(<AbsoluteFill style={{ ...(move ? { transform: move } : {}), ...(fade !== 1 ? { opacity: fade } : {}), ...placed() }}>{children}</AbsoluteFill>);
+  return withKey(
+    <AbsoluteFill style={{ ...(move ? { transform: move } : {}), ...(fade !== 1 ? { opacity: fade } : {}), ...placed() }}>
+      {children}
+      {vignette && <AbsoluteFill style={vignette} />}
+    </AbsoluteFill>,
+  );
 }

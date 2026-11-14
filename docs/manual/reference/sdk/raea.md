@@ -194,7 +194,8 @@ component, whose box it can't reach, or a part with a mask, is placed inside a f
 | `mask` | `Mask` | what of it is seen: a shape in shares of the frame (line, mirror, circle, rect, heart, star), turned, feathered or inverted (sdk/video cutout.ts, TL7f) |
 | `blend` | `Blend` | how it is drawn over what is under it: screen, multiply, overlay and the rest of CSS's blend modes |
 | `chroma` | `ChromaKey` | a colour taken out of it, as a green screen is: { color, strength, shadow } |
-| `keys` | `Partial<Record<NudgeProp, NudgeKey[]>>` | any of the above over time: its keys, each [frame, value, ease?], in frames from where this part's time starts (its <Sequence>'s first frame). A keyed property's still value is ignored. |
+| `adjust` | `Adjust` | its brightness, contrast, saturation, exposure, sharpen, highlights, shadows, temperature, tint, fade, vignette and grain, each 0 as shot (sdk/video adjust.ts, TL7g) |
+| `keys` | `Partial<Record<NudgeProp, NudgeKey[]>>` | any of the above over time: its keys, each [frame, value, ease?], in frames from where this part's time starts (its <Sequence>'s first frame), by the names in NUDGE_KEYED ("mask.x", "chroma.strength", "crop.left" for what is inside a mask, a key or a crop). A keyed property's still value is ignored. |
 | `children` | `ReactNode` | the part it places: an element, or a component, which moves inside a full-frame layer |
 
 ### `Overlay`

@@ -6,7 +6,7 @@ import { type Clip, type Ease, empty, end, find, type Frames, type Key, type Tim
 import { apply, type Op } from "./ops"
 import { EFFECTS, type EffectPart, type TextStyle, textStyleError } from "./registry"
 import { COMBO_KINDS, TRANSITION_KINDS } from "@raea/video/edges"
-import { CUTOUT_PROPS, cutoutError, cutoutOf, cutoutProps, type Blend, type ChromaKey, type Mask } from "./cutout"
+import { CUTOUT_PROPS, cutoutError, cutoutOf, cutoutProps, KEY_PROPS, MASK_PROPS, type Blend, type ChromaKey, type Mask } from "./cutout"
 
 /** A text clip's style, kept in its props as JSON: read back when it is well formed. */
 export function textStyleOf(v: unknown): TextStyle | undefined {
@@ -141,8 +141,19 @@ export type SeqEdit =
 
 /** The transitions a composition's <Transition> draws (sdk/video edges.ts). */
 export const CODE_KINDS: string[] = TRANSITION_KINDS
-/** The properties a sequence's <Nudge> can key (sdk/video nudge.tsx). */
+/** A sequence's <Nudge> placement, as still values and as keys (sdk/video nudge.tsx). */
 export const KEYED = ["x", "y", "scale", "rotate", "opacity"]
+/** What a sequence's <Nudge> can key, as a clip's prop and its <Nudge keys> name (TL5a): the placement, and the
+ *  numbers inside its mask, its chroma key and its crop ("mask.x" for maskX). */
+export const KEY_NAMES: Record<string, string> = {
+  ...Object.fromEntries(KEYED.map((k) => [k, k])),
+  ...Object.fromEntries((["x", "y", "w", "h", "rotate", "feather", "round"] as const).map((k) => [MASK_PROPS[k], `mask.${k}`])),
+  ...Object.fromEntries((["strength", "shadow"] as const).map((k) => [KEY_PROPS[k], `chroma.${k}`])),
+  ...Object.fromEntries(CROPS.map((k) => [k, `crop.${k.slice(4).toLowerCase()}`])),
+}
+/** The clip props a sequence keys. */
+export const KEYABLE = Object.keys(KEY_NAMES)
+const PROP_OF: Record<string, string> = Object.fromEntries(Object.entries(KEY_NAMES).map(([p, n]) => [n, p]))
 
 const seqId = (i: number) => `seq-${i}`
 // a sequence's placement as its clip's props (the crop a prop a side, as a film's clip has it)
@@ -163,7 +174,7 @@ export function fromSequences(rows: SeqRow[], fps: number): Timeline {
   const media = rows.filter((r) => r.media)
   rows = rows.filter((r) => !r.media)
   const lanes = [...new Set(rows.map((r) => r.lane))].sort((a, b) => a - b)
-  const clipsOf = (lane: number): Clip[] => rows.filter((r) => r.lane === lane).sort((a, b) => a.from - b.from).map((r) => ({ id: seqId(r.i), kind: r.effect ? "effect" : r.text === undefined ? "sequence" : "text", name: r.effect ? (EFFECTS.find((e) => e.kind === r.effect!.kind)?.title ?? r.effect.kind) : (r.text ?? r.label ?? r.name), ...(r.effect && { props: { effect: r.effect.kind, amount: r.effect.amount, ...(r.effect.parts && { parts: JSON.stringify(r.effect.parts) }) } }), ...(r.look && Object.keys(r.look).length && { props: lookProps(r.look) }), start: r.from, length: Math.max(1, r.to - r.from), ...(r.locked && { locked: r.locked }), ...(r.speed && r.speed !== 1 && { speed: r.speed }), ...(r.curve?.length && r.shows && { curve: r.curve.map(([at, speed]) => ({ at, speed })), shows: r.shows }), ...(r.keys && Object.keys(r.keys).length && { keys: Object.fromEntries(Object.entries(r.keys).map(([p, ks]) => [p, ks.map(([at, value, ease]): Key => ({ at, value, ...(ease !== undefined && { ease }) }))])) }) }))
+  const clipsOf = (lane: number): Clip[] => rows.filter((r) => r.lane === lane).sort((a, b) => a.from - b.from).map((r) => ({ id: seqId(r.i), kind: r.effect ? "effect" : r.text === undefined ? "sequence" : "text", name: r.effect ? (EFFECTS.find((e) => e.kind === r.effect!.kind)?.title ?? r.effect.kind) : (r.text ?? r.label ?? r.name), ...(r.effect && { props: { effect: r.effect.kind, amount: r.effect.amount, ...(r.effect.parts && { parts: JSON.stringify(r.effect.parts) }) } }), ...(r.look && Object.keys(r.look).length && { props: lookProps(r.look) }), start: r.from, length: Math.max(1, r.to - r.from), ...(r.locked && { locked: r.locked }), ...(r.speed && r.speed !== 1 && { speed: r.speed }), ...(r.curve?.length && r.shows && { curve: r.curve.map(([at, speed]) => ({ at, speed })), shows: r.shows }), ...(r.keys && Object.keys(r.keys).length && { keys: Object.fromEntries(Object.entries(r.keys).map(([p, ks]) => [PROP_OF[p] ?? p, ks.map(([at, value, ease]): Key => ({ at, value, ...(ease !== undefined && { ease }) }))])) }) }))
   const first = lanes.length ? clipsOf(lanes[0]) : []
   const gapless = first.length > 0 && first.every((c, n) => c.start === (n ? end(first[n - 1]) : 0))
   const tracks: Track[] = lanes.map((lane, n) => ({ id: n === 0 && gapless ? "main" : `overlay-${lane}`, kind: n === 0 && gapless ? "main" : "overlay", clips: clipsOf(lane) }))
@@ -356,7 +367,7 @@ export function seqEdits(t: Timeline, op: Op): SeqEdit[] | { why: string } {
     case "unkey":
     case "moveKey":
     case "ease": {
-      if (!KEYED.includes(op.prop)) return { why: `a sequence keys its ${KEYED.join(", ")}: ${op.prop} is its own code's` }
+      if (!KEYABLE.includes(op.prop)) return { why: `a sequence keys its ${KEYED.join(", ")} and the numbers of its mask, key and crop: ${op.prop} is its own code's` }
       if (op.op === "key" && typeof op.value !== "number") return { why: `${op.prop} is a number` }
       const r = row(op.id)
       if (!r) return { why: "that isn't one of the composition's sequences" }
@@ -364,7 +375,7 @@ export function seqEdits(t: Timeline, op: Op): SeqEdit[] | { why: string } {
       const after = apply(t, op)
       if (!after.ok) return { why: after.why }
       const keys = find(after.timeline, op.id)?.clip.keys ?? {}
-      return [{ op: "keys", i: r.i, keys: Object.fromEntries(Object.entries(keys).filter(([p]) => KEYED.includes(p)).map(([p, ks]) => [p, ks.map((k): [number, number, Ease?] => (k.ease === undefined || k.ease === "linear" ? [k.at, k.value as number] : [k.at, k.value as number, k.ease]))])) }]
+      return [{ op: "keys", i: r.i, keys: Object.fromEntries(Object.entries(keys).filter(([p]) => KEYABLE.includes(p)).map(([p, ks]) => [KEY_NAMES[p], ks.map((k): [number, number, Ease?] => (k.ease === undefined || k.ease === "linear" ? [k.at, k.value as number] : [k.at, k.value as number, k.ease]))])) }]
     }
     case "add": {
       // an effect put on the picture: a new sequence of its own, holding an <Effect>

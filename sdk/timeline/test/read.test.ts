@@ -169,7 +169,7 @@ describe("TL0c: a timeline is read from a composition", () => {
     expect(seqEdits(keyed, { op: "key", id: "seq-0", prop: "opacity", at: 10, value: 0.5 })).toEqual([{ op: "keys", i: 0, keys: { scale: [[0, 1], [45, 1.2, [0.2, 0, 0, 1]]], opacity: [[10, 0.5]] } }])
     expect(seqEdits(keyed, { op: "ease", id: "seq-0", prop: "scale", at: 0, ease: "hold" })).toEqual([{ op: "keys", i: 0, keys: { scale: [[0, 1, "hold"], [45, 1.2, [0.2, 0, 0, 1]]] } }])
     expect(seqEdits(keyed, { op: "unkey", id: "seq-0", prop: "scale", at: 45 })).toEqual([{ op: "keys", i: 0, keys: { scale: [[0, 1]] } }])
-    expect(seqEdits(keyed, { op: "key", id: "seq-0", prop: "blur", at: 0, value: 1 })).toEqual({ why: "a sequence keys its x, y, scale, rotate, opacity: blur is its own code's" })
+    expect(seqEdits(keyed, { op: "key", id: "seq-0", prop: "blur", at: 0, value: 1 })).toEqual({ why: "a sequence keys its x, y, scale, rotate, opacity and the numbers of its mask, key and crop: blur is its own code's" })
   })
 })
 

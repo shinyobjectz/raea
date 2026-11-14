@@ -79,12 +79,12 @@ Feature: The timeline SDK (0.1.5): CapCut's timeline, on the composition, in the
   sdk/video <Nudge keys>, <Transition in out> (fade, slide, wipe, zoom), <Effect kind amount in out> (blur, mono,
   sepia, vivid, faded, contrast, bright, dark, invert, hue: a filter on the picture under it) and a <Video>'s or
   an <Audio>'s speedCurve (the mixer carries its sound through the changing rate as one voice). In raea-feed, draft
-  PR #19: the new timeline is the timeline (localStorage raea.timeline-sdk = 0 brings the old strip back); 34 browser
-  tests in Chrome, all passing; of the 33 that can run in a headless raea window (all but the voice test, which there
-  would ask for this Mac's microphone) 31 pass, among them a composition's every edit, freeze and reverse, mirror and
+  PR #19: the new timeline is the timeline (localStorage raea.timeline-sdk = 0 brings the old strip back); 36 browser
+  tests in Chrome, all passing; of the 35 that can run in a headless raea window (all but the voice test, which there
+  would ask for this Mac's microphone) 33 pass, among them a composition's every edit, freeze and reverse, mirror and
   crop, effects, groups and compounds, the posted item's, a plugin's effect, text style, tool and snap grid, saved
-  curves, Settings' kept frames, both kinds of sound taken out, the switcher, the export range, media added and the
-  Option keys. The other two are Chrome's alone (TL9c calls the page's own module, TL10d's film holds the host's
+  curves, Settings' kept frames, both kinds of sound taken out, the switcher, the export range, media added, the
+  Option keys, captions made from what is said and a clip's In and Out. The other two are Chrome's alone (TL9c calls the page's own module, TL10d's film holds the host's
   answers). The window runner (blitz/pw.mjs) answers routes one at a time in the order asked, keeps a reload's
   address and each test's storage, and has keyboard down and up, toBeFocused and waitForResponse. The timeline's keys
   follow the pointer over it, not :hover, which raea's window doesn't match for a script, so there they only worked
@@ -123,7 +123,13 @@ Feature: The timeline SDK (0.1.5): CapCut's timeline, on the composition, in the
                sentence's end, a pause of 0.6 s, seven words or 42 characters end one) as text clips in the
                caption style on a Captions track of their own: one edit (the `captions` operation), undone
                whole, drawn over the film, told to the agent as one line with every caption's words and
-               timecodes, and in a composition each line a sequence of words), a plugin's effects as data (timeline.effects in its manifest: parts
+               timecodes, and in a composition each line a sequence of words), TL7d's In and Out (a picked
+               clip's own animation at each end, CapCut's Animation tab: fade, slide, wipe, zoom or a plugin's,
+               and its frames, in the clip's row; a ramp on the clip; the film's picture and words over it show it
+               at once, drawn by sdk/video edges.ts, the table <Transition> now draws from too; split, each half
+               keeps its own end's; never longer than the clip; in a composition the sequence's <Transition>
+               edge, taken off with no frames; Send says how it comes in or goes out; Combo not built), a
+               plugin's effects as data (timeline.effects in its manifest: parts
                of CSS filter functions, drawn by <Effect parts> and by the preview alike), TL8a
                (waveform, level line, fades; Cmd+. and Cmd+, step the level by 0.1 dB, or key it at the
                playhead when it is keyed), TL8b's beats as ticks that edges snap to, each turned off by a
@@ -399,6 +405,16 @@ Feature: The timeline SDK (0.1.5): CapCut's timeline, on the composition, in the
     Scenario: TL7c. Text and captions
       Then a text is a clip on a text track; double-click edits its words in the picture; Enter splits a caption in two
       And captions made from the words (the transcript) are clips on a caption track, each moved, trimmed and edited
+
+    Scenario: TL7d. A clip's own In and Out animations
+      Given a clip of footage, a still or text picked
+      When I give it an In animation or an Out animation (CapCut's Animation tab: fade, slide, wipe, zoom, or a
+        plugin's transition) and how many frames it takes
+      Then it plays over the clip's own first or last frames, drawn as a ramp at that end of the clip, and the picture
+        shows it at once
+      And split, the first part keeps the In and the second the Out; it is never longer than the clip
+      And in a composition it is the sequence's own <Transition in out>, the same component a cut's transition writes
+      And a looping Combo animation over the whole clip is CapCut's third kind, not built yet
 
   Rule: TL8. Sound
     Scenario: TL8a. The waveform, the volume line and fades

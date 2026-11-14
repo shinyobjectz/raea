@@ -34,7 +34,7 @@ export type Op =
   /** a still of the frame under `at` on a clip (the main track's, when none is named), `length` frames long, put in
    *  there: the clip is split and the still goes between its halves (TL3h) */
   | { op: "freeze"; at: Frames; length: Frames; id?: string }
-  | { op: "set"; id: string; set: Partial<Pick<Clip, "name" | "off" | "volume" | "fadeIn" | "fadeOut" | "speed" | "group" | "reverse">> & { curve?: SpeedPoint[] | null; props?: Record<string, Value | boolean>; /** its In or Out animation (TL7d); null takes it off */ enter?: Anim | null; exit?: Anim | null } }
+  | { op: "set"; id: string; set: Partial<Pick<Clip, "name" | "off" | "volume" | "fadeIn" | "fadeOut" | "speed" | "group" | "reverse">> & { curve?: SpeedPoint[] | null; props?: Record<string, Value | boolean>; /** its In or Out animation (TL7d); null takes it off */ enter?: Anim | null; exit?: Anim | null; /** its Combo (TL7e), a cycle every `length` frames; null takes it off */ combo?: Anim | null } }
   /** a property's key at a frame of its clip: made, or its value (and ease) changed (TL5a) */
   | { op: "key"; id: string; prop: string; at: Frames; value: Value; ease?: Ease }
   | { op: "unkey"; id: string; prop: string; at: Frames }
@@ -264,7 +264,7 @@ function run(t: Timeline, op: Exclude<Op, { op: "restore" }>): Timeline {
     }
     case "set": {
       const { clip } = open(t, op.id)
-      const { props, curve, enter, exit, ...rest } = op.set
+      const { props, curve, enter, exit, combo, ...rest } = op.set
       let c: Clip = { ...clip, ...rest, ...(props && { props: { ...clip.props, ...props } }) }
       const source = shown(clip)
       if (curve !== undefined || (rest.speed !== undefined && rest.speed !== clip.speed)) {
@@ -273,8 +273,8 @@ function run(t: Timeline, op: Exclude<Op, { op: "restore" }>): Timeline {
         // the same frames of source, at the new pace
         c = { ...c, curve: points, shows: points ? source : undefined, length: Math.max(1, whole(points ? played(points, source) : source / speedOf(c))) }
       }
-      // an In or Out animation (TL7d): a kind, over no more of the clip than it has; null takes it off
-      for (const [side, a] of [["enter", enter], ["exit", exit]] as const) {
+      // an In or Out animation (TL7d) or a Combo's cycle (TL7e): a kind, over no more of the clip than it has; null takes it off
+      for (const [side, a] of [["enter", enter], ["exit", exit], ["combo", combo]] as const) {
         if (a === undefined) continue
         if (a !== null && (typeof a.kind !== "string" || !a.kind || !(a.length >= 1))) no("an animation is a kind and at least one frame")
         const { [side]: _, ...without } = c

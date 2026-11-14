@@ -5,7 +5,7 @@
 import { type Clip, type Ease, empty, end, find, type Frames, type Key, type Timeline, type Track } from "./model"
 import { apply, type Op } from "./ops"
 import { EFFECTS, type EffectPart, type TextStyle, textStyleError } from "./registry"
-import { TRANSITION_KINDS } from "@raea/video/edges"
+import { COMBO_KINDS, TRANSITION_KINDS } from "@raea/video/edges"
 
 /** A text clip's style, kept in its props as JSON: read back when it is well formed. */
 export function textStyleOf(v: unknown): TextStyle | undefined {
@@ -65,6 +65,8 @@ export interface SeqRow {
   in?: { kind: string; frames: number }
   /** how it goes out: its <Transition>'s out */
   out?: { kind: string; frames: number }
+  /** how it moves throughout: its <Transition>'s combo, a cycle every `frames` (TL7e) */
+  combo?: { kind: string; frames: number }
   /** a <Video> or an <Audio> of its own (TL0c): it plays where the sequence it is in does, from `startFrom` of its
    *  file, at its own level */
   media?: "video" | "audio"
@@ -117,8 +119,9 @@ export type SeqEdit =
   | { op: "voice"; at: number; frames: number; file: string }
   /** an effect clip's kind or amount */
   | { op: "fx"; i: number; kind?: string; amount?: number }
-  /** how it comes in ("in") or goes out ("out"): its <Transition>'s edge set, or taken off with 0 frames (TL7a) */
-  | { op: "edge"; i: number; side: "in" | "out"; kind: string; frames: number }
+  /** how it comes in ("in"), goes out ("out") or moves throughout ("combo", TL7e): its <Transition>'s prop set, or
+   *  taken off with 0 frames (TL7a) */
+  | { op: "edge"; i: number; side: "in" | "out" | "combo"; kind: string; frames: number }
   /** a <Video>'s or an <Audio>'s own level (TL8a) */
   | { op: "level"; i: number; volume: number }
   /** a <Video>'s own sound taken out (TL4c): the <Video> muted, and an <Audio> of the same file, from the same place
@@ -166,6 +169,17 @@ export function fromSequences(rows: SeqRow[], fps: number): Timeline {
       return out && into && out.kind === into.kind ? [{ id: `x-${c.id}`, kind: out.kind, after: c.id, length: out.frames + into.frames }] : []
     }),
   )
+  // an edge no cut's transition took is the clip's own In or Out animation (TL7d)
+  for (const k of tracks) {
+    k.clips = k.clips.map((c) => {
+      const r = by.get(c.id), before = k.clips.find((o) => end(o) === c.start)
+      const anim = (e?: { kind: string; frames: number }) => (e && e.frames > 0 ? { kind: e.kind, length: Math.min(e.frames, c.length) } : undefined)
+      const enter = before && transitions.some((x) => x.after === before.id) ? undefined : anim(r?.in)
+      const exit = transitions.some((x) => x.after === c.id) ? undefined : anim(r?.out)
+      const combo = r?.combo && r.combo.frames > 0 ? { kind: r.combo.kind, length: r.combo.frames } : undefined
+      return { ...c, ...(enter && { enter }), ...(exit && { exit }), ...(combo && { combo }) }
+    })
+  }
   // footage and sound of their own: a track each kind, more where they play at once; a sound's below the picture
   const mediaTracks = (kind: "video" | "audio"): Track[] => {
     const out: Track[] = []
@@ -294,19 +308,19 @@ export function seqEdits(t: Timeline, op: Op): SeqEdit[] | { why: string } {
         const look: SeqLook = { ...Object.fromEntries(KEYED.flatMap((k) => (num(k) === undefined ? [] : [[k, num(k)]]))), ...(p.mirror === true && { mirror: true }), ...(crop.some((v) => v > 0) && { crop }) }
         return each([op.id], (r) => ({ op: "nudge", i: r.i, look }))
       }
-      // its In and Out animations (TL7d): its <Transition>'s edges, as a cut's transition writes them
-      if (only.length && only.every((k) => k === "enter" || k === "exit")) {
+      // its In and Out animations (TL7d) and its Combo (TL7e): its <Transition>'s edges, as a cut's transition writes them
+      if (only.length && only.every((k) => k === "enter" || k === "exit" || k === "combo")) {
         const after = apply(t, op)
         if (!after.ok) return { why: after.why }
         const now = find(after.timeline, op.id)?.clip
         const out: SeqEdit[] = []
-        for (const [key, side] of [["enter", "in"], ["exit", "out"]] as const) {
+        for (const [key, side] of [["enter", "in"], ["exit", "out"], ["combo", "combo"]] as const) {
           if (!only.includes(key)) continue
-          const a = now?.[key]
-          if (a && !CODE_KINDS.includes(a.kind)) return { why: `a composition draws ${CODE_KINDS.join(", ")}: "${a.kind}" isn't one its <Transition> has` }
+          const a = now?.[key], kinds = key === "combo" ? COMBO_KINDS : CODE_KINDS
+          if (a && !kinds.includes(a.kind)) return { why: `a composition draws ${kinds.join(", ")}: "${a.kind}" isn't one its <Transition> has` }
           const r = row(op.id)
           if (!r) return { why: "only a composition's sequence comes in or goes out here" }
-          out.push({ op: "edge", i: r.i, side, kind: a?.kind ?? "fade", frames: a?.length ?? 0 })
+          out.push({ op: "edge", i: r.i, side, kind: a?.kind ?? (key === "combo" ? COMBO_KINDS[0] : "fade"), frames: a?.length ?? 0 })
         }
         return out
       }

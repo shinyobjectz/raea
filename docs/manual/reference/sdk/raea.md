@@ -262,12 +262,13 @@ Also takes the props of [`StaggerProps`](animation.md#staggerprops) (`each`, `gr
 
 ### `Transition`
 
-Its children, coming in over the part's first frames and going out over its last.
+Its children, coming in over the part's first frames, going out over its last, and moving by a Combo throughout.
 
 | Prop | Type | What it does |
 | --- | --- | --- |
 | `in` | `TransitionEdge` | over the part's first frames |
 | `out` | `TransitionEdge` | over the part's last frames |
+| `combo` | `ComboLoop` | a Combo over the whole part: a cycle every `frames`, from its first frame |
 | `children` | `ReactNode` | the part it brings in and takes out: what the <Sequence> holds |
 
 ### `Video`

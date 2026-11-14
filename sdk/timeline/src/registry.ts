@@ -6,6 +6,8 @@ import { type Ease, type SpeedPoint, under } from "./model"
 import { CURVES, FASTEST, SLOWEST } from "./speed"
 // raea's effects (TL7b): the one table the engine's <Effect> draws from, so a preview here is what a render shows
 import { EFFECTS, effectFilter, type EffectKind, type EffectPart, effectPartsError, partsFilter } from "@raea/video/effects"
+// raea's Combos (TL7e): the table <Transition combo> draws, a plugin's added to it as data of the same shape
+import { COMBOS, type ComboKind } from "@raea/video/edges"
 
 export { EFFECTS, effectFilter, type EffectKind, type EffectPart, partsFilter }
 
@@ -121,6 +123,8 @@ export interface Adds {
   curves?: Record<string, SpeedPoint[]>
   /** transitions of its own (TL7a) */
   transitions?: TransitionKind[]
+  /** Combos of its own (TL7e): how a clip moves over one cycle, as data the timeline's preview draws */
+  combos?: ComboKind[]
   /** kinds of track of its own (TL11a): a clip posted or added on one is drawn and edited like any other */
   tracks?: TrackKindInfo[]
   /** effects of its own (TL7b, TL11a), each drawn by its parts: CSS filter functions from amount 0 to amount 1 */
@@ -155,12 +159,26 @@ const isEase = (e: unknown): e is Ease => e === "linear" || e === "hold" || (Arr
 const isCurve = (c: unknown): c is SpeedPoint[] =>
   Array.isArray(c) && c.length >= 2 && c.every((p) => p && typeof p.at === "number" && p.at >= 0 && p.at <= 1 && typeof p.speed === "number" && p.speed >= SLOWEST && p.speed <= FASTEST)
 
+const WAVE = ["x", "y", "scale", "rotate", "opacity"]
+/** Why a plugin's Combo isn't well formed, or nothing when it is. */
+function comboError(x: unknown): string | undefined {
+  const c = x as Partial<ComboKind> | null
+  if (!c || typeof c.kind !== "string" || !/^[a-z][a-z0-9-]*$/.test(c.kind) || typeof c.title !== "string" || !c.title.trim()) return "is { kind, title, wave }: kind in lowercase letters, digits and dashes, title what the person sees"
+  if (!c.wave || typeof c.wave !== "object" || !Object.keys(c.wave).length) return `(${c.kind}): its wave is an object of ${WAVE.join(", ")}`
+  for (const [k, v] of Object.entries(c.wave)) {
+    if (!WAVE.includes(k)) return `(${c.kind}): a wave moves ${WAVE.join(", ")}, not ${k}`
+    if (!Array.isArray(v) || !v.length || v.length > 64 || !v.every((n) => typeof n === "number" && Number.isFinite(n))) return `(${c.kind}): wave.${k} is 1 to 64 numbers over one cycle`
+  }
+  if (c.linear !== undefined && typeof c.linear !== "boolean") return `(${c.kind}): linear is true or false`
+  return undefined
+}
+
 /** A plugin's additions as written in its manifest, checked: what is well formed, and why the rest isn't. */
 export function readAdds(raw: unknown): { adds: Adds; errors: string[] } {
   const errors: string[] = []
   const adds: Adds = {}
   if (raw === undefined) return { adds, errors }
-  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return { adds, errors: ["timeline is an object: { eases, curves, transitions, tracks, effects, texts, tools, snaps }"] }
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return { adds, errors: ["timeline is an object: { eases, curves, transitions, combos, tracks, effects, texts, tools, snaps }"] }
   const r = raw as Record<string, unknown>
   const named = (v: unknown, what: string): [string, unknown][] => (v === undefined ? [] : v && typeof v === "object" && !Array.isArray(v) ? Object.entries(v) : (errors.push(`timeline.${what} is an object of named ${what}`), []))
   for (const [name, e] of named(r.eases, "eases")) {
@@ -181,6 +199,16 @@ export function readAdds(raw: unknown): { adds: Adds; errors: string[] } {
         if (!t || typeof t.kind !== "string" || !/^[A-Za-z][\w-]*$/.test(t.kind) || typeof t.title !== "string" || !t.title.trim()) errors.push(`timeline.transitions[${i}] is { kind, title }: kind a name, title what the person sees`)
         else if (TRANSITIONS.some((o) => o.kind === t.kind)) errors.push(`timeline.transitions[${i}]: raea has a transition "${t.kind}"`)
         else (adds.transitions ??= []).push({ kind: t.kind, title: t.title })
+      }
+  }
+  if (r.combos !== undefined) {
+    if (!Array.isArray(r.combos)) errors.push("timeline.combos is a list of { kind, title, wave }")
+    else
+      for (const [i, x] of r.combos.entries()) {
+        const why = comboError(x)
+        if (why) errors.push(`timeline.combos[${i}] ${why}`)
+        else if (COMBOS.some((o) => o.kind === (x as ComboKind).kind)) errors.push(`timeline.combos[${i}]: raea has a combo "${(x as ComboKind).kind}"`)
+        else (adds.combos ??= []).push(x as ComboKind)
       }
   }
   if (r.tracks !== undefined) {
@@ -237,8 +265,8 @@ export function readAdds(raw: unknown): { adds: Adds; errors: string[] } {
 }
 
 /** Everything offered: raea's own, then each plugin's in order (a name a plugin before it took stays that one's). */
-export function palette(plugins: Adds[] = []): { eases: Record<string, Ease>; curves: Record<string, SpeedPoint[]>; transitions: TransitionKind[]; tracks: TrackKindInfo[]; /** the effects a clip of its own puts on the picture (TL7b) */ effects: EffectInfo[]; /** the ways words are put on the picture (TL7c) */ texts: TextStyle[]; /** a plugin's tools: presets for the picked clips */ tools: Preset[]; /** a plugin's snap grids */ snaps: SnapGrid[] } {
-  const eases = { ...EASES }, curves = { ...CURVES }, transitions = [...TRANSITIONS], tracks = [...TRACKS]
+export function palette(plugins: Adds[] = []): { eases: Record<string, Ease>; curves: Record<string, SpeedPoint[]>; transitions: TransitionKind[]; /** the ways a clip moves over its whole length (TL7e) */ combos: ComboKind[]; tracks: TrackKindInfo[]; /** the effects a clip of its own puts on the picture (TL7b) */ effects: EffectInfo[]; /** the ways words are put on the picture (TL7c) */ texts: TextStyle[]; /** a plugin's tools: presets for the picked clips */ tools: Preset[]; /** a plugin's snap grids */ snaps: SnapGrid[] } {
+  const eases = { ...EASES }, curves = { ...CURVES }, transitions = [...TRANSITIONS], combos = [...COMBOS], tracks = [...TRACKS]
   const effects: EffectInfo[] = EFFECTS.map(({ kind, title }) => ({ kind, title }))
   const texts = [...TEXTS]
   const tools: Preset[] = [], snaps: SnapGrid[] = []
@@ -246,6 +274,7 @@ export function palette(plugins: Adds[] = []): { eases: Record<string, Ease>; cu
     for (const [n, e] of Object.entries(p.eases ?? {})) if (!(n in eases)) eases[n] = e
     for (const [n, c] of Object.entries(p.curves ?? {})) if (!(n in curves)) curves[n] = c
     for (const t of p.transitions ?? []) if (!transitions.some((o) => o.kind === t.kind)) transitions.push(t)
+    for (const c of p.combos ?? []) if (!combos.some((o) => o.kind === c.kind)) combos.push(c)
     for (const e of p.effects ?? []) if (!effects.some((o) => o.kind === e.kind)) effects.push(e)
     for (const x of p.texts ?? []) if (!texts.some((o) => o.kind === x.kind)) texts.push(x)
     for (const x of p.tools ?? []) if (!tools.some((o) => o.id === x.id)) tools.push(x)
@@ -256,5 +285,5 @@ export function palette(plugins: Adds[] = []): { eases: Record<string, Ease>; cu
         if (t.under) under.add(t.kind)
       }
   }
-  return { eases, curves, transitions, tracks, effects, texts, tools, snaps }
+  return { eases, curves, transitions, combos, tracks, effects, texts, tools, snaps }
 }

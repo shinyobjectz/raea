@@ -102,6 +102,9 @@ export interface Clip {
   enter?: Anim
   /** the picture or words: how it goes out over its last frames (TL7d, CapCut's Out animation) */
   exit?: Anim
+  /** the picture or words: how it moves over its whole length (TL7e, CapCut's Combo and its text Loop), a cycle every
+   *  `length` frames from its first; its own length plays it once */
+  combo?: Anim
   /** its element in the code (file:line:col, docs/editing.feature E2) */
   at?: string
   /** markers on the clip itself, in frames from its start (TL2e) */

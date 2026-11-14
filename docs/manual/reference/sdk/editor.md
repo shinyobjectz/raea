@@ -21,7 +21,7 @@ built, edited and undone.
 import { ahead, animStyle, apply, applyAll } from "raea/editor"
 ```
 
-`raea/editor` exports 53 functions, 14 values, 35 types. Bevy's counterpart: `raea's own; Bevy has no timeline editor`. Source: [sdk/raea/src/editor.ts](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/src/editor.ts).
+`raea/editor` exports 53 functions, 16 values, 37 types. Bevy's counterpart: `raea's own; Bevy has no timeline editor`. Source: [sdk/raea/src/editor.ts](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/src/editor.ts).
 
 ## Functions
 
@@ -36,11 +36,11 @@ function ahead(length: number, kept: Range[], playhead: number, chunk: number): 
 
 ### `animStyle`
 
-The clip's style `into` frames from its start, coming in by its In and going out by its Out, each over no more
-of it than it has. Empty when neither plays there.
+The clip's style `into` frames from its start: coming in by its In, going out by its Out (each over no more of it
+than it has) and moving by its Combo, one of `combos` (a plugin's among them). Empty when none plays there.
 
 ```ts
-function animStyle(c: Clip, into: number): EdgeStyle
+function animStyle(c: Clip, into: number, combos?: ComboKind[]): EdgeStyle
 ```
 
 ### `apply`
@@ -274,7 +274,7 @@ function next(t: Timeline, frame: number): number | undefined
 Everything offered: raea's own, then each plugin's in order (a name a plugin before it took stays that one's).
 
 ```ts
-function palette(plugins?: Adds[]): { eases: Record<string, Ease>; curves: Record<string, SpeedPoint[]>; transitions: TransitionKind[]; tracks: TrackKindInfo[]; effects: EffectInfo[]; texts: TextStyle[]; tools: Preset[]; snaps: SnapGrid[]; }
+function palette(plugins?: Adds[]): { eases: Record<string, Ease>; curves: Record<string, SpeedPoint[]>; transitions: TransitionKind[]; combos: ComboKind[]; tracks: TrackKindInfo[]; effects: EffectInfo[]; texts: TextStyle[]; tools: Preset[]; snaps: SnapGrid[]; }
 ```
 
 ### `partsFilter`
@@ -483,6 +483,12 @@ function without(ranges: Range[], cut: Range[]): Range[]
 
 The transitions a composition's <Transition> draws (sdk/video edges.ts).
 
+### `COMBO_KINDS`
+
+### `COMBOS`
+
+raea's own Combos: the kinds <Transition combo> draws. A plugin adds its own as data the same way.
+
 ### `CURVES`
 
 CapCut's curve presets, as points over the source; a plugin adds its own.
@@ -539,6 +545,7 @@ What one plugin adds.
 | `eases` | `Record<string, Ease>` | easings of its own, by name |
 | `curves` | `Record<string, SpeedPoint[]>` | speed curves of its own, by name |
 | `transitions` | `TransitionKind[]` | transitions of its own |
+| `combos` | `ComboKind[]` | Combos of its own: how a clip moves over one cycle, as data the timeline's preview draws |
 | `tracks` | `TrackKindInfo[]` | kinds of track of its own: a clip posted or added on one is drawn and edited like any other |
 | `effects` | `EffectInfo[]` | effects of its own (TL7b, TL11a), each drawn by its parts: CSS filter functions from amount 0 to amount 1 |
 | `texts` | `TextStyle[]` | text styles of its own (TL7c, TL11a) |
@@ -589,6 +596,7 @@ A span of something on a track: footage, a sound, words, a composition's sequenc
 | `fadeOut` | `Frames` | sound: how long it fades out to its end |
 | `enter` | `Anim` | the picture or words: how it comes in over its first frames (TL7d, CapCut's In animation) |
 | `exit` | `Anim` | the picture or words: how it goes out over its last frames (TL7d, CapCut's Out animation) |
+| `combo` | `Anim` | the picture or words: how it moves over its whole length (TL7e, CapCut's Combo and its text Loop), a cycle every `length` frames from its first; its own length plays it once |
 | `at` | `string` | its element in the code |
 | `markers` | `Marker[]` | markers on the clip itself, in frames from its start |
 | `inside` | `{ kind: TrackKind; clip: Clip }[]` | a compound clip: the clips it holds, each with the kind of track it came from, their starts in frames from this clip's own start |
@@ -604,6 +612,32 @@ turned up or down (raea-feed host/clips.ts).
 | `end` (required) | `number` | where it ends, in seconds of the render |
 | `offset` (required) | `number` | where in its file it starts playing, in seconds |
 | `gainDb` (required) | `number` | its level change, in dB (0 as recorded) |
+
+### `ComboKind`
+
+A kind of Combo: its name, what the person sees, and its wave.
+
+| Field | Type | What it is |
+| --- | --- | --- |
+| `kind` (required) | `string` | its name, as code writes it |
+| `title` (required) | `string` | what the person sees |
+| `wave` (required) | `ComboWave` | how it moves over one cycle |
+| `linear` | `boolean` | straight from value to value, not eased: a spin that keeps turning |
+
+### `ComboWave`
+
+How a part moves over one cycle of a Combo: each
+property's values, evenly spaced over the cycle and eased between, the cycle starting again where it ends. x and y
+move it by a share of its own size in percent, rotate turns it in degrees, scale sizes it, opacity fades it. A wave
+that ends where it starts plays once over the part as CapCut's Combo does, and loops seamlessly as its text Loop does.
+
+| Field | Type | What it is |
+| --- | --- | --- |
+| `x` | `number[]` | across, in percent of its width |
+| `y` | `number[]` | down, in percent of its height |
+| `scale` | `number[]` | its size, 1 as it is |
+| `rotate` | `number[]` | turned, in degrees |
+| `opacity` | `number[]` | how much of it shows, 0 to 1 |
 
 ### `Ease`
 
@@ -778,6 +812,7 @@ the lane it sits on (nested ones below their parent, overlapping ones apart), an
 | `effect` | `{ kind: string; amount: number; /** a plugin's: the parts that draw it */ parts?: Effec…` | the effect it puts on the picture under it, when an <Effect> is all it holds: an effect clip |
 | `in` | `{ kind: string; frames: number }` | how it comes in and goes out: its <Transition>'s in and out |
 | `out` | `{ kind: string; frames: number }` | how it goes out: its <Transition>'s out |
+| `combo` | `{ kind: string; frames: number }` | how it moves throughout: its <Transition>'s combo, a cycle every `frames` |
 | `media` | `"video" \| "audio"` | a <Video> or an <Audio> of its own: it plays where the sequence it is in does, from `startFrom` of its file, at its own level |
 | `startFrom` | `number` | its media's first frame used, in frames of its file |
 | `volume` | `number` | its media's level, 1 as recorded |

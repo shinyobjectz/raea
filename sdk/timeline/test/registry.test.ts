@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test"
-import { CURVES, EASES, gridFrames, palette, readAdds, seqEdits, fromSequences, TEXTS, TRANSITIONS } from "../src"
+import { COMBOS, CURVES, EASES, gridFrames, palette, readAdds, seqEdits, fromSequences, TEXTS, TRANSITIONS } from "../src"
 
 describe("TL11a: a plugin adds easings, speed curves and transitions", () => {
   const raw = {
@@ -33,7 +33,15 @@ describe("TL11a: a plugin adds easings, speed curves and transitions", () => {
   test("with no plugin it is raea's own, and a manifest with no timeline adds nothing", () => {
     expect(palette().transitions).toEqual(TRANSITIONS)
     expect(readAdds(undefined)).toEqual({ adds: {}, errors: [] })
-    expect(readAdds([1]).errors).toEqual(["timeline is an object: { eases, curves, transitions, tracks, effects, texts, tools, snaps }"])
+    expect(readAdds([1]).errors).toEqual(["timeline is an object: { eases, curves, transitions, combos, tracks, effects, texts, tools, snaps }"])
+  })
+
+  test("TL7e: a plugin's Combos, each a wave of the props a clip moves by, checked", () => {
+    const wobble = { kind: "wobble", title: "Wobble", wave: { x: [0, 4, 0], rotate: [0, 2, 0] } }
+    const { adds, errors } = readAdds({ combos: [wobble, { kind: "pulse", title: "Mine", wave: { scale: [1, 2] } }, { kind: "bad", title: "Bad", wave: { skew: [1] } }, { kind: "empty", title: "Empty", wave: { x: [] } }] })
+    expect(adds.combos).toEqual([wobble])
+    expect(errors).toEqual(['timeline.combos[1]: raea has a combo "pulse"', "timeline.combos[2] (bad): a wave moves x, y, scale, rotate, opacity, not skew", "timeline.combos[3] (empty): wave.x is 1 to 64 numbers over one cycle"])
+    expect(palette([adds]).combos.map((c) => c.kind)).toEqual([...COMBOS.map((c) => c.kind), "wobble"])
   })
 })
 

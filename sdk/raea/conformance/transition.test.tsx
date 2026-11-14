@@ -1,7 +1,7 @@
 // <Transition>: how a part comes in and goes out, as the timeline writes a transition on a cut
 // (docs/timeline.feature TL7a).
 import { describe, expect, test } from "bun:test";
-import { Transition, transitionAt, transitionStyle } from "@raea/video/transition";
+import { COMBOS, comboStyle, joinStyles, Transition, transitionAt, transitionStyle } from "@raea/video/transition";
 import { Sequence } from "../src";
 import { renderFrame } from "../src/test";
 
@@ -32,5 +32,26 @@ describe("a part comes in over its first frames and goes out over its last", () 
     expect(at(130)).not.toContain("translateX");
     expect(at(159)).toContain("translateX(-81%)");
     expect(() => renderFrame(<Transition in={{ kind: "spin" as never, frames: 10 }}>x</Transition>, { ...opts, frame: 0 })).toThrow(/kind is one of/);
+  });
+});
+
+describe("a Combo moves the part over its whole length (TL7e)", () => {
+  const pulse = COMBOS.find((c) => c.kind === "pulse");
+  test("its wave eased between evenly spaced values, at rest where a cycle starts and ends, looping", () => {
+    expect(comboStyle(pulse, 0, 60)).toEqual({ transform: "scale(1)" });
+    expect(comboStyle(pulse, 30, 60)).toEqual({ transform: "scale(1.08)" });
+    expect(comboStyle(pulse, 15, 60)).toEqual({ transform: "scale(1.04)" });
+    expect(comboStyle(pulse, 90, 60)).toEqual(comboStyle(pulse, 30, 60));
+    // a spin keeps turning at one pace
+    expect(comboStyle(COMBOS.find((c) => c.kind === "spin"), 15, 60)).toEqual({ transform: "rotate(90deg)" });
+    expect(comboStyle(undefined, 15, 60)).toEqual({});
+  });
+
+  test("in a <Sequence> with its In and Out: the moves side by side, the fades multiplied", () => {
+    const at = (frame: number) => renderFrame(<Sequence from={0} durationInFrames={60}><Transition in={{ kind: "fade", frames: 10 }} combo={{ kind: "pulse", frames: 60 }}><p>hi</p></Transition></Sequence>, { ...opts, frame });
+    expect(at(4)).toContain("opacity:0.5");
+    expect(at(30)).toContain("scale(1.08)");
+    expect(joinStyles({ transform: "a", opacity: 0.5 }, { transform: "b", opacity: 0.5, clipPath: "c" })).toEqual({ transform: "a b", opacity: 0.25, clipPath: "c" });
+    expect(() => renderFrame(<Transition combo={{ kind: "wobble", frames: 10 }}>x</Transition>, { ...opts, frame: 0 })).toThrow(/combo.kind is one of/);
   });
 });

@@ -76,7 +76,7 @@ Feature: The timeline SDK (0.1.5): CapCut's timeline, on the composition, in the
   playback's mapping, readers and writers for a composition's sequences (its footage and sound, its text, its
   effects, a recording, a project's file), a film's scenes and a sound's tracks, the palette a plugin adds to; 77
   tests), and in
-  sdk/video <Nudge keys>, <Transition in out> (fade, slide, wipe, zoom), <Effect kind amount in out> (blur, mono,
+  sdk/video <Nudge keys>, <Transition in out combo> (fade, slide, wipe, zoom; a Combo's seven waves), <Effect kind amount in out> (blur, mono,
   sepia, vivid, faded, contrast, bright, dark, invert, hue: a filter on the picture under it) and a <Video>'s or
   an <Audio>'s speedCurve (the mixer carries its sound through the changing rate as one voice). In raea-feed, draft
   PR #19: the new timeline is the timeline (localStorage raea.timeline-sdk = 0 brings the old strip back); 36 browser
@@ -128,7 +128,11 @@ Feature: The timeline SDK (0.1.5): CapCut's timeline, on the composition, in the
                and its frames, in the clip's row; a ramp on the clip; the film's picture and words over it show it
                at once, drawn by sdk/video edges.ts, the table <Transition> now draws from too; split, each half
                keeps its own end's; never longer than the clip; in a composition the sequence's <Transition>
-               edge, taken off with no frames; Send says how it comes in or goes out; Combo not built), a
+               edge, taken off with no frames, read back as the clip's own where no cut's transition takes it;
+               Send says how it comes in or goes out), TL7e (a Combo: seven of raea's, as waves in sdk/video
+               edges.ts, and a plugin's as data; its cycle starts at the clip's length, playing once, and loops
+               when shorter; with the In and Out at once on the film's picture and words; a line with a tick a
+               cycle on the clip; <Transition combo> in a composition, written and read back), a
                plugin's effects as data (timeline.effects in its manifest: parts
                of CSS filter functions, drawn by <Effect parts> and by the preview alike), TL8a
                (waveform, level line, fades; Cmd+. and Cmd+, step the level by 0.1 dB, or key it at the
@@ -413,8 +417,18 @@ Feature: The timeline SDK (0.1.5): CapCut's timeline, on the composition, in the
       Then it plays over the clip's own first or last frames, drawn as a ramp at that end of the clip, and the picture
         shows it at once
       And split, the first part keeps the In and the second the Out; it is never longer than the clip
-      And in a composition it is the sequence's own <Transition in out>, the same component a cut's transition writes
-      And a looping Combo animation over the whole clip is CapCut's third kind, not built yet
+      And in a composition it is the sequence's own <Transition in out>, the same component a cut's transition writes,
+        and read back from it as the clip's own wherever no cut's transition takes it
+
+    Scenario: TL7e. A clip's Combo animation
+      Given a clip of footage, a still or text picked
+      When I give it a Combo (CapCut's third kind: pulse, sway, float, shake, swing, spin, flicker, or a plugin's)
+      Then it moves over the clip's whole length, a cycle every so many frames: the clip's own length (what it starts
+        at) plays it once, as CapCut's Combo does, and fewer loop it, as CapCut's text Loop does
+      And it plays with the clip's In and Out at once, drawn as a line along the clip with a tick at each cycle
+      And a Combo is data, a wave of the clip's x, y, scale, rotate and opacity over one cycle, so a plugin adds one in
+        its manifest and the preview draws it
+      And in a composition it is the sequence's <Transition combo>, written and read back
 
   Rule: TL8. Sound
     Scenario: TL8a. The waveform, the volume line and fades

@@ -42,13 +42,90 @@ export function transitionStyle(kind: TransitionKind, side: "in" | "out", p: num
   return { opacity: p };
 }
 
+/** Styles drawn at once: the moves side by side in order, the fades multiplied, the first cover. */
+export function joinStyles(...styles: EdgeStyle[]): EdgeStyle {
+  const transform = styles.map((s) => s.transform).filter(Boolean).join(" ") || undefined;
+  const fades = styles.filter((s) => s.opacity !== undefined);
+  const opacity = fades.length ? fades.reduce((p, s) => p * Number(s.opacity), 1) : undefined;
+  const clipPath = styles.find((s) => s.clipPath)?.clipPath;
+  return { ...(transform ? { transform } : {}), ...(opacity !== undefined ? { opacity } : {}), ...(clipPath ? { clipPath } : {}) };
+}
+
 /** A part's style at its own `frame` of `duration`, coming in by `enter` and going out by `exit`: both at once (a part
  *  shorter than its two edges) puts the moves side by side and multiplies the fades. Empty when neither plays. */
 export function edgesStyle(enter: TransitionEdge | undefined, exit: TransitionEdge | undefined, frame: number, duration: number): EdgeStyle {
   const a = enter ? transitionStyle(enter.kind, "in", transitionAt(enter, "in", frame, duration)) : {};
   const b = exit ? transitionStyle(exit.kind, "out", transitionAt(exit, "out", frame, duration)) : {};
-  const transform = [a.transform, b.transform].filter(Boolean).join(" ") || undefined;
-  const opacity = a.opacity === undefined && b.opacity === undefined ? undefined : Number(a.opacity ?? 1) * Number(b.opacity ?? 1);
-  const clipPath = a.clipPath ?? b.clipPath;
-  return { ...(transform ? { transform } : {}), ...(opacity !== undefined ? { opacity } : {}), ...(clipPath ? { clipPath } : {}) };
+  return joinStyles(a, b);
+}
+
+/** How a part moves over one cycle of a Combo (CapCut's third kind of animation, docs/timeline.feature TL7e): each
+ *  property's values, evenly spaced over the cycle and eased between, the cycle starting again where it ends. x and y
+ *  move it by a share of its own size in percent, rotate turns it in degrees, scale sizes it, opacity fades it. A wave
+ *  that ends where it starts plays once over the part as CapCut's Combo does, and loops seamlessly as its text Loop does. */
+export interface ComboWave {
+  /** across, in percent of its width */
+  x?: number[];
+  /** down, in percent of its height */
+  y?: number[];
+  /** its size, 1 as it is */
+  scale?: number[];
+  /** turned, in degrees */
+  rotate?: number[];
+  /** how much of it shows, 0 to 1 */
+  opacity?: number[];
+}
+
+/** A kind of Combo: its name, what the person sees, and its wave. */
+export interface ComboKind {
+  /** its name, as code writes it */
+  kind: string;
+  /** what the person sees */
+  title: string;
+  /** how it moves over one cycle */
+  wave: ComboWave;
+  /** straight from value to value, not eased: a spin that keeps turning */
+  linear?: boolean;
+}
+
+/** raea's own Combos: the kinds <Transition combo> draws. A plugin adds its own as data the same way. */
+export const COMBOS: ComboKind[] = [
+  { kind: "pulse", title: "Pulse", wave: { scale: [1, 1.08, 1] } },
+  { kind: "sway", title: "Sway", wave: { rotate: [0, 4, 0, -4, 0] } },
+  { kind: "float", title: "Float", wave: { y: [0, -3, 0] } },
+  { kind: "shake", title: "Shake", wave: { x: [0, 1.2, -1, 0.8, -1.2, 0], y: [0, -0.8, 1, -0.6, 0.5, 0] } },
+  { kind: "swing", title: "Swing", wave: { rotate: [0, 8, -6, 4, -2, 0], scale: [1, 1.04, 1, 1.02, 1, 1] } },
+  { kind: "spin", title: "Spin", wave: { rotate: [0, 360] }, linear: true },
+  { kind: "flicker", title: "Flicker", wave: { opacity: [1, 0.35, 1, 1, 0.55, 1] } },
+];
+export const COMBO_KINDS: string[] = COMBOS.map((c) => c.kind);
+
+/** A Combo as a part plays it: which kind, and how many frames one cycle takes (the part's length plays it once). */
+export interface ComboLoop {
+  /** which Combo: one of COMBO_KINDS */
+  kind: string;
+  /** the frames one cycle takes */
+  frames: number;
+}
+
+const three = (v: number) => Math.round(v * 1000) / 1000;
+
+/** A Combo's style at the part's own `frame`, a cycle every `frames`. */
+export function comboStyle(combo: ComboKind | undefined, frame: number, frames: number): EdgeStyle {
+  if (!combo || !(frames >= 1)) return {};
+  const p = (((frame % frames) + frames) % frames) / frames;
+  const at = (vs: number[] | undefined): number | undefined => {
+    if (!vs?.length) return undefined;
+    if (vs.length === 1) return vs[0];
+    const x = p * (vs.length - 1), n = Math.min(vs.length - 2, Math.floor(x)), f = x - n;
+    const e = combo.linear ? f : f * f * (3 - 2 * f);
+    return vs[n] + (vs[n + 1] - vs[n]) * e;
+  };
+  const w = combo.wave, x = at(w.x), y = at(w.y), r = at(w.rotate), s = at(w.scale), o = at(w.opacity);
+  const moves = [
+    x !== undefined || y !== undefined ? `translate(${three(x ?? 0)}%, ${three(y ?? 0)}%)` : "",
+    r !== undefined ? `rotate(${three(r)}deg)` : "",
+    s !== undefined ? `scale(${three(s)})` : "",
+  ].filter(Boolean);
+  return { ...(moves.length ? { transform: moves.join(" ") } : {}), ...(o !== undefined ? { opacity: three(Math.min(1, Math.max(0, o))) } : {}) };
 }

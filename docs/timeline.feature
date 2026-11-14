@@ -59,12 +59,12 @@ Feature: The timeline SDK (0.1.5): CapCut's timeline, on the composition, in the
       constant and curve. Adjust: brightness, contrast, saturation, exposure, sharpen, highlights, shadows,
       temperature, tint, fade, vignette, grain. Audio: volume, fades, noise reduction, voice changer. Text: font,
       style, effects, bubbles, animation, and its words read aloud.
-      Here 11-14: Basic but stabilise (TL3h, TL5), Mask, chroma key and Blend (TL7f) with the key's colour picked from
+      Here 11-14: Basic (TL3h, TL5) with stabilise (TL7k, a film's footage; a composition's not yet), Mask, chroma key and Blend (TL7f) with the key's colour picked from
       the picture (TL7h) and the mask's handles dragged there (TL7i), Animation (TL7d, TL7e), Speed (TL6), Audio's
       volume and fades (TL8a) and its noise reduction and voice changer (TL8d, a film's sounds; a composition's
       not yet), Text's words, styles and captions (TL7c) and its words read aloud (TL7j), Adjust as effect clips
       over a span (TL7b, raea's ten) and as the clip's own twelve sliders (TL7g, on the film and on a file from Media
-      over it), every number of these keyed (TL5a). Not yet: stabilise, auto and brushed cutout, and Retouch.
+      over it), every number of these keyed (TL5a). Not yet: auto and brushed cutout, and Retouch.
 
   The model this file sets:
     1. One timeline model, in an SDK (sdk/timeline, TypeScript, no React, no DOM): tracks, clips, keys, markers, and
@@ -94,8 +94,8 @@ Feature: The timeline SDK (0.1.5): CapCut's timeline, on the composition, in the
   CapCut's twelve adjustments as one SVG filter and a vignette layer), <Transition in out combo> (fade, slide, wipe, zoom; a Combo's seven waves), <Effect kind amount in out> (blur, mono,
   sepia, vivid, faded, contrast, bright, dark, invert, hue: a filter on the picture under it) and a <Video>'s or
   an <Audio>'s speedCurve (the mixer carries its sound through the changing rate as one voice). In raea-feed, draft
-  PR #19: the new timeline is the timeline (localStorage raea.timeline-sdk = 0 brings the old strip back); 45 browser
-  tests in Chrome, all passing; in a headless raea window 43 of the 45 pass and two skip themselves there with their
+  PR #19: the new timeline is the timeline (localStorage raea.timeline-sdk = 0 brings the old strip back); 46 browser
+  tests in Chrome, all passing; in a headless raea window 44 of the 46 pass and two skip themselves there with their
   reason (the voice test, which would ask for this Mac's microphone, and TL10d, whose film the window decodes itself,
   so no route can hold its data), among them TL9c, an agent's edits, a composition's every edit, freeze and reverse, mirror and
   crop, effects, groups and compounds, the posted item's, a plugin's effect, text style, tool and snap grid, saved
@@ -106,7 +106,8 @@ Feature: The timeline SDK (0.1.5): CapCut's timeline, on the composition, in the
   clip's file by the host, since the window has no canvas to read), its mask's handles dragged there (TL7i), and a file
   from Media over the film with its own vignette and its key's colour picked from its own file, a text's words
   read aloud onto a sound track (TL7j), and a sound's noise reduced and its voice changed (TL8d: its menu is made
-  again after each try, since the window keeps a picked option shown when the clip's didn't change). The window runner (blitz/pw.mjs) answers routes one at a time in the order asked, keeps a reload's
+  again after each try, since the window keeps a picked option shown when the clip's didn't change), and footage held
+  steady (TL7k). The window runner (blitz/pw.mjs) answers routes one at a time in the order asked, keeps a reload's
   address and each test's storage, and has keyboard down and up, toBeFocused and waitForResponse. The timeline's keys
   follow the pointer over it, not :hover, which raea's window doesn't match for a script, so there they only worked
   after a click in the timeline:
@@ -179,7 +180,13 @@ Feature: The timeline SDK (0.1.5): CapCut's timeline, on the composition, in the
                tenth, a phase vocoder for pitch, biquads for the bands, a delay line for the echo; on made sounds hiss
                down 16 dB with the tone within 0.04 dB, 3 minutes in 2.3 s; on a real voice the chipmunk moves its
                spectral centroid x1.46 and deep x0.77, each setting 25-73 ms for 1.2 s, kept under media/voice and
-               read again in under 1 ms), TL11a for easings, speed curves, transitions, effects, text styles, tools (presets put
+               read again in under 1 ms), TL7k (footage held steady: host/shake.ts in TypeScript on 320 px
+               grey frames from `raea media still`, eight at a time; the window over a block read again where
+               the first reading put the move, since a fixed window reads big moves short; the path smoothed by
+               a Gaussian-weighted line, so a pan stays a pan to the clip's ends; on a shaky clip made from a real
+               frame along a known path, the shake 21 px down to 0.23 and its turn 0.54 deg to 0.03, a 1 Hz sway
+               12 px kept to 5.4 at Minimal cut and held to 2.9 at Most stable, zoom 1.05 to 1.06, 34 ms a frame
+               read and the kept file read again in 28 ms), TL11a for easings, speed curves, transitions, effects, text styles, tools (presets put
                on the picked clips) and snap grids as data (a clip let go 6 px past a plugin grid's mark lands on
                it, under a browser test with the plugin installed; each e2e run now starts with no plugins
                installed, since an earlier run's grids had stayed approved and snapped a run whose plugin had none),
@@ -536,6 +543,19 @@ Feature: The timeline SDK (0.1.5): CapCut's timeline, on the composition, in the
       And the voice is a sound clip on a sound track from where the text starts, as long as the voice, named by the
         words, as a file from Media is (TL3j); in a composition it is the host's edit, as that is
       And what goes wrong (no words, too many, no credit) is said beside the button, and nothing is added
+
+    Scenario: TL7k. Footage held steady
+      Given a footage clip picked in a film cut here (one of the film's scenes, or footage of the project's over it)
+      When I pick a level in Stabilise (CapCut's: Minimal cut, Recommended, Most stable)
+      Then the host reads the part of its file the clip shows, small and grey, and finds each frame's move from the
+        one before (a grid of blocks by phase correlation, fitted as one shift and turn, a thing moving across the
+        picture left out); the moves add up to the camera's path, smoothed by the level (a slow sway kept at Minimal
+        cut, held at Most stable), and the difference is the move for each frame with one zoom that keeps the frame's
+        edges out of sight, kept as a file of the project's under media/stabilise by its file, frames and level
+      And the player wears the moves under the clip's own placement, so its position, scale, turn and keys move the
+        steadied picture, and the zoom is said in the row
+      And not stabilised, it is as shot; what goes wrong is said beside the level, and nothing changes
+      And the agent is told the level, the file of moves and what is in it, and the zoom (TL9b)
 
   Rule: TL8. Sound
     Scenario: TL8a. The waveform, the volume line and fades

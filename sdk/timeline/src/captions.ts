@@ -5,8 +5,11 @@ import { type Clip, end, type Frames, speedOf, type Timeline } from "./model"
 
 /** A word, or a line of them: its text, its first frame and the frame after it ends. */
 export interface Said {
+  /** what is said: a word, or a line's words with a space between */
   text: string
+  /** its first frame */
   start: Frames
+  /** the frame after it ends */
   end: Frames
 }
 

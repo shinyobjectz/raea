@@ -21,7 +21,7 @@ built, edited and undone.
 import { ahead, apply, applyAll, bezier } from "raea/editor"
 ```
 
-`raea/editor` exports 50 functions, 14 values, 31 types. Bevy's counterpart: `raea's own; Bevy has no timeline editor`. Source: [sdk/raea/src/editor.ts](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/src/editor.ts).
+`raea/editor` exports 52 functions, 14 values, 33 types. Bevy's counterpart: `raea's own; Bevy has no timeline editor`. Source: [sdk/raea/src/editor.ts](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/src/editor.ts).
 
 ## Functions
 
@@ -59,6 +59,15 @@ slope is too flat for them. The handles' x are kept in 0..1 so the curve is a fu
 
 ```ts
 function bezier(x1: number, y1: number, x2: number, y2: number): (x: number) => number
+```
+
+### `captionLines`
+
+The words gathered into caption lines: a line ends after a sentence does, at a pause, or once it holds as many
+words or characters as it may. Each line runs from its first word to its last and ends by the next line's start.
+
+```ts
+function captionLines(words: Said[], fps: number, o?: LineRules): Said[]
 ```
 
 ### `changed`
@@ -203,6 +212,16 @@ The frames a snap grid marks in a timeline `length` frames long (none for a grid
 
 ```ts
 function gridFrames(grid: SnapGrid, fps: number, length: number): number[]
+```
+
+### `heard`
+
+The words as the edited timeline says them. `words` are in the film's own frames (where its transcript has them);
+each is said where a main-track clip plays that part of the film, at that clip's speed. A word in a scene taken out
+is gone, a scene duplicated says its words twice, and a clip curved, reversed or frozen says none.
+
+```ts
+function heard(t: Timeline, words: Said[]): Said[]
 ```
 
 ### `joined`
@@ -631,6 +650,16 @@ A property's value at a frame of its clip (frames from the clip's start), and ho
 | `value` (required) | `Value` | the property's value there: a number, a list of them (a colour, a point) or a string |
 | `ease` | `Ease` | how the value travels to the next key (linear when unset) |
 
+### `LineRules`
+
+How words are gathered into lines.
+
+| Field | Type | What it is |
+| --- | --- | --- |
+| `words` | `number` | the most words on a line (7) |
+| `chars` | `number` | the most characters on a line, spaces counted (42) |
+| `gap` | `Frames` | a pause at least this long starts a new line (0.6 s) |
+
 ### `Marker`
 
 A mark at a frame: a beat, a comment's time or one put there by hand.
@@ -663,6 +692,16 @@ A tool a plugin adds: one press sets these on every picked clip, as one edit eac
 ```ts
 type Range = [from: Frames, to: Frames]
 ```
+
+### `Said`
+
+A word, or a line of them: its text, its first frame and the frame after it ends.
+
+| Field | Type | What it is |
+| --- | --- | --- |
+| `text` (required) | `string` | what is said: a word, or a line's words with a space between |
+| `start` (required) | `Frames` | its first frame |
+| `end` (required) | `Frames` | the frame after it ends |
 
 ### `SeqEdit`
 

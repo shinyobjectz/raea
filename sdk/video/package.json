@@ -17,6 +17,7 @@
     "./speed": "./src/speed.ts",
     "./transition": "./src/transition.tsx",
     "./edges": "./src/edges.ts",
+    "./cutout": "./src/cutout.ts",
     "./words": "./src/words.tsx",
     "./region": "./src/region.tsx",
     "./overlay": "./src/overlay.tsx",

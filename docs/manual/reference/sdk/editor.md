@@ -21,7 +21,7 @@ built, edited and undone.
 import { ahead, animStyle, apply, applyAll } from "raea/editor"
 ```
 
-`raea/editor` exports 53 functions, 16 values, 37 types. Bevy's counterpart: `raea's own; Bevy has no timeline editor`. Source: [sdk/raea/src/editor.ts](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/src/editor.ts).
+`raea/editor` exports 58 functions, 22 values, 42 types. Bevy's counterpart: `raea's own; Bevy has no timeline editor`. Source: [sdk/raea/src/editor.ts](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/src/editor.ts).
 
 ## Functions
 
@@ -112,6 +112,42 @@ half moves as the whole did up to the cut.
 
 ```ts
 function cut(keys: Key[], frame: number): [Key[], Key[]]
+```
+
+### `cutoutError`
+
+What is wrong with a clip's cutout props as they stand, or undefined: a mask kind or blend it hasn't got, a value
+out of range, a grey key.
+
+```ts
+function cutoutError(props?: Props): string | undefined
+```
+
+### `cutoutLook`
+
+How the editor's preview draws a clip's cutout on its picture, as <Nudge> draws it in a composition: CSS for the
+picture, and the SVG filter its key needs (an feColorMatrix's values under `id`, to put beside the picture).
+
+```ts
+function cutoutLook(props: Props | undefined, width: number, height: number): { style: Record<string, string>; key?: { id: string; matrix: string; } | undefined; }
+```
+
+### `cutoutOf`
+
+A clip's cutout read from its props: a mask when its kind is one, a blend other than normal, a key when it has a
+colour.
+
+```ts
+function cutoutOf(props?: Props): Cutout
+```
+
+### `cutoutProps`
+
+A cutout as a clip's props: every one of them, what it hasn't got at its plain value, so a set takes off the
+rest. Values to five places.
+
+```ts
+function cutoutProps(c: Cutout): Props
 ```
 
 ### `eased`
@@ -259,6 +295,15 @@ function length(t: Timeline): number
 ```
 
 Used in: [manual: edits](https://github.com/shinyobjectz/raea/blob/main/docs/manual/examples/edits.tsx).
+
+### `maskPlain`
+
+A mask's values when a kind is chosen: in the middle, half the frame's shorter side across, so a circle is round
+on any frame; a mirror a band a fifth of the frame's height.
+
+```ts
+function maskPlain(kind: "circle" | "line" | "rect" | "mirror" | "heart" | "star", width: number, height: number): Required<Mask>
+```
 
 ### `next`
 
@@ -479,6 +524,13 @@ function without(ranges: Range[], cut: Range[]): Range[]
 
 ## Values
 
+### `BLEND_KINDS`
+
+### `BLENDS`
+
+How a part is drawn over what is under it: CapCut's Blend modes that CSS has (Add is plus-lighter), in its order,
+then difference and exclusion.
+
 ### `CODE_KINDS`
 
 The transitions a composition's <Transition> draws (sdk/video edges.ts).
@@ -493,6 +545,10 @@ raea's own Combos: the kinds <Transition combo> draws. A plugin adds its own as 
 
 CapCut's curve presets, as points over the source; a plugin adds its own.
 
+### `CUTOUT_PROPS`
+
+Every prop a clip's cutout is held in.
+
 ### `EASES`
 
 The easing presets raea registers; a plugin adds its own beside them.
@@ -501,9 +557,22 @@ The easing presets raea registers; a plugin adds its own beside them.
 
 ### `FASTEST`
 
+### `KEY_PROPS`
+
+A chroma key's values as a clip's props.
+
 ### `KEYED`
 
 The properties a sequence's <Nudge> can key (sdk/video nudge.tsx).
+
+### `MASK_KINDS`
+
+A mask's shapes, in CapCut's order: a line (what is above it is kept), a mirror (a band), a circle, a rectangle,
+a heart and a star.
+
+### `MASK_PROPS`
+
+A mask's values as a clip's props.
 
 ### `ORDER`
 
@@ -566,6 +635,22 @@ How a clip comes in or goes out on its own: a transition's kind over its own fir
 ```ts
 type Applied = { ok: true; timeline: Timeline; inverse: Op } | { ok: false; why: string }
 ```
+
+### `Blend`
+
+```ts
+type Blend = (typeof BLENDS)[number]["kind"]
+```
+
+### `ChromaKey`
+
+A chroma key: the colour taken out (a green or blue screen), how much of what is near it goes, and how softly.
+
+| Field | Type | What it is |
+| --- | --- | --- |
+| `color` (required) | `string` | the key colour, #rrggbb or #rgb |
+| `strength` | `number` | how far from the key colour is still taken out, 0 (only it) to 1 (most of its hue); 0.5 when not said |
+| `shadow` | `number` | how much of the screen's shadows (its darker, duller parts, nearer grey than the key) is let through half seen rather than kept whole, 0 (none) to 1; it softens the edge too. 0.2 when not said |
 
 ### `Clip`
 
@@ -638,6 +723,16 @@ that ends where it starts plays once over the part as CapCut's Combo does, and l
 | `scale` | `number[]` | its size, 1 as it is |
 | `rotate` | `number[]` | turned, in degrees |
 | `opacity` | `number[]` | how much of it shows, 0 to 1 |
+
+### `Cutout`
+
+A clip's mask, blend and key, each there only when it has one.
+
+| Field | Type | What it is |
+| --- | --- | --- |
+| `mask` | `Mask` | what of it is seen: a shape in shares of the frame |
+| `blend` | `Blend` | how it is drawn over what is under it |
+| `chroma` | `ChromaKey` | a colour taken out of it |
 
 ### `Ease`
 
@@ -735,6 +830,28 @@ A mark at a frame: a beat, a comment's time or one put there by hand.
 | `name` | `string` | what it says, shown on hover |
 | `color` | `string` | its colour, any CSS colour |
 
+### `Mask`
+
+A mask, in shares of the part's frame.
+
+| Field | Type | What it is |
+| --- | --- | --- |
+| `kind` (required) | `MaskKind` | its shape: line, mirror, circle, rect, heart or star |
+| `x` | `number` | its centre, a share of the frame's width from the left (0.5 the middle) |
+| `y` | `number` | its centre, a share of the frame's height from the top |
+| `w` | `number` | its width, a share of the frame's (a line has none) |
+| `h` | `number` | its height, a share of the frame's (a mirror's band is this thick) |
+| `rotate` | `number` | a turn, in degrees |
+| `feather` | `number` | how soft its edge is, 0 sharp to 1 (a blur a twentieth of the frame's shorter side) |
+| `round` | `number` | a rectangle's corners, 0 square to 1 as round as its shorter side allows |
+| `invert` | `boolean` | keeps what is outside it instead |
+
+### `MaskKind`
+
+```ts
+type MaskKind = (typeof MASK_KINDS)[number]
+```
+
 ### `Op`
 
 ```ts
@@ -788,6 +905,9 @@ A sequence's still placement: its <Nudge>'s props (sdk/video nudge.tsx). `crop` 
 | `opacity` | `number` | from 0 (gone) to 1 (as it is) |
 | `mirror` | `boolean` | flipped left to right |
 | `crop` | `[number, number, number, number]` | cut in from each edge, in % of its size: left, top, right, bottom |
+| `mask` | `Mask` | what of it is seen: a shape in shares of the frame |
+| `blend` | `Blend` | how it is drawn over what is under it, normal when not said |
+| `chroma` | `ChromaKey` | a colour taken out of it |
 
 ### `SeqRow`
 

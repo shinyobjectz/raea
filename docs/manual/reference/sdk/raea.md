@@ -180,7 +180,7 @@ The master: every sound in the composition brought to `lufs` integrated loudness
 ### `Nudge`
 
 Places its child: an element gets the move in front of its own transform and the fade times its own opacity; a
-component, whose box it can't reach, is placed inside a full-frame layer.
+component, whose box it can't reach, or a part with a mask, is placed inside a full-frame layer.
 
 | Prop | Type | What it does |
 | --- | --- | --- |
@@ -191,6 +191,9 @@ component, whose box it can't reach, is placed inside a full-frame layer.
 | `opacity` | `number` | 0 (gone) to 1 (as it was), times its own opacity |
 | `mirror` | `boolean` | flipped left to right |
 | `crop` | `[left: number, top: number, right: number, bottom: number]` | how much is cut off its left, top, right and bottom, each a share of that side from 0 to 0.9 |
+| `mask` | `Mask` | what of it is seen: a shape in shares of the frame (line, mirror, circle, rect, heart, star), turned, feathered or inverted (sdk/video cutout.ts, TL7f) |
+| `blend` | `Blend` | how it is drawn over what is under it: screen, multiply, overlay and the rest of CSS's blend modes |
+| `chroma` | `ChromaKey` | a colour taken out of it, as a green screen is: { color, strength, shadow } |
 | `keys` | `Partial<Record<NudgeProp, NudgeKey[]>>` | any of the above over time: its keys, each [frame, value, ease?], in frames from where this part's time starts (its <Sequence>'s first frame). A keyed property's still value is ignored. |
 | `children` | `ReactNode` | the part it places: an element, or a component, which moves inside a full-frame layer |
 

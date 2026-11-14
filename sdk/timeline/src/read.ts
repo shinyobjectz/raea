@@ -367,6 +367,14 @@ export function seqEdits(t: Timeline, op: Op): SeqEdit[] | { why: string } {
       const style = textStyleOf(op.clip.props?.style)
       return [{ op: "text", at: Math.max(0, Math.round(op.clip.start)), frames: Math.max(1, Math.round(op.clip.length)), text: (op.clip.name ?? "Text").trim() || "Text", ...(style && { style }) }]
     }
+    case "captions": {
+      // captions made from what is said (TL7c): each line a sequence of words of its own, in the captions' style
+      if (textStyleError(op.style)) return { why: `a caption's style ${textStyleError(op.style)}` }
+      const tried = apply(t, op)
+      if (!tried.ok) return { why: tried.why }
+      const made = tried.timeline.tracks.find((k) => !t.tracks.some((o) => o.id === k.id))?.clips ?? []
+      return made.map((c) => ({ op: "text", at: c.start, frames: c.length, text: c.name ?? "", style: op.style }))
+    }
     default:
       return { why: `the composition's sequences don't take "${op.op}" yet` }
   }

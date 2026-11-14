@@ -116,7 +116,14 @@ Feature: The timeline SDK (0.1.5): CapCut's timeline, on the composition, in the
                TL7a, TL7b for raea's ten effects (an effect is a clip of its own,
                shown on the player where it is on), TL7c (text added with T or in a style from the bar, drawn over a
                film where it is on, renamed by a double-click, a caption split at the caret with Enter; raea's
-               four text styles and a plugin's, as data), a plugin's effects as data (timeline.effects in its manifest: parts
+               four text styles and a plugin's, as data; and captions made from what is said, CapCut's auto
+               captions: Captions in the bar transcribes the film first when it has no words yet, then puts the
+               words, where the edited cut now says them (sdk/timeline captions.ts heard: a scene taken out takes
+               its words, a duplicated one says them twice, a curved, reversed or frozen clip none), in lines (a
+               sentence's end, a pause of 0.6 s, seven words or 42 characters end one) as text clips in the
+               caption style on a Captions track of their own: one edit (the `captions` operation), undone
+               whole, drawn over the film, told to the agent as one line with every caption's words and
+               timecodes, and in a composition each line a sequence of words), a plugin's effects as data (timeline.effects in its manifest: parts
                of CSS filter functions, drawn by <Effect parts> and by the preview alike), TL8a
                (waveform, level line, fades; Cmd+. and Cmd+, step the level by 0.1 dB, or key it at the
                playhead when it is keyed), TL8b's beats as ticks that edges snap to, each turned off by a

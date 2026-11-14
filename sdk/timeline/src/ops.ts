@@ -6,6 +6,7 @@ import { cut as cutKeys, sorted } from "./keys"
 import { type Clip, end, find, type Frames, type Key, type Marker, slot, speedOf, type SpeedPoint, type Timeline, type Track, type TrackKind, type Transition, type Value, type Ease } from "./model"
 import { fits } from "./snap"
 import { played } from "./speed"
+import type { TextStyle } from "./registry"
 
 export type Op =
   /** clips moved in time by `by` frames, and (one kind's clips) onto track `track` */
@@ -46,6 +47,9 @@ export type Op =
   /** a transition put on the cut after clip `after`, or changed (TL7a) */
   | { op: "transition"; transition: Transition }
   | { op: "untransition"; id: string }
+  /** captions made from what is said (TL7c): each line a text clip in `style`, on a track of their own named Captions
+   *  (captions.ts makes the lines) */
+  | { op: "captions"; lines: { text: string; start: Frames; end: Frames }[]; style: TextStyle }
   | { op: "option"; set: Partial<Pick<Timeline, "magnet" | "snapping" | "linkage">> }
   /** the timeline as it was: what every inverse is */
   | { op: "restore"; timeline: Timeline }
@@ -318,6 +322,26 @@ function run(t: Timeline, op: Exclude<Op, { op: "restore" }>): Timeline {
     }
     case "untransition":
       return { ...t, transitions: t.transitions.filter((o) => o.id !== op.id) }
+    case "captions": {
+      // one line at a time, in order: a line starting before the one ahead of it ends starts where that one ends
+      const taken = new Set(t.tracks.flatMap((k) => k.clips.map((c) => c.id)))
+      let n = 1
+      const clips: Clip[] = []
+      for (const l of [...op.lines].sort((a, b) => a.start - b.start)) {
+        const text = l.text.trim()
+        const from = Math.max(0, whole(l.start), clips.length ? end(clips[clips.length - 1]) : 0)
+        if (!text || whole(l.end) <= from) continue
+        while (taken.has(`text-${n}`)) n++
+        taken.add(`text-${n}`)
+        clips.push({ id: `text-${n}`, kind: "text", name: text, start: from, length: whole(l.end) - from, props: { text: op.style.kind, style: JSON.stringify(op.style), said: true } })
+      }
+      if (!clips.length) no("there are no words to caption")
+      let k = 1
+      while (t.tracks.some((x) => x.id === (k === 1 ? "captions" : `captions-${k}`))) k++
+      const tracks = [...t.tracks]
+      tracks.splice(slot(tracks, "text"), 0, { id: k === 1 ? "captions" : `captions-${k}`, kind: "text", name: "Captions", clips })
+      return { ...t, tracks }
+    }
     case "option":
       return { ...t, ...op.set }
   }

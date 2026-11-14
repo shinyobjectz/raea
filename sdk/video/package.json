@@ -16,6 +16,7 @@
     "./nudge": "./src/nudge.tsx",
     "./speed": "./src/speed.ts",
     "./transition": "./src/transition.tsx",
+    "./edges": "./src/edges.ts",
     "./words": "./src/words.tsx",
     "./region": "./src/region.tsx",
     "./overlay": "./src/overlay.tsx",

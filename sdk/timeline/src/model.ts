@@ -46,6 +46,14 @@ export interface Marker {
   color?: string
 }
 
+/** How a clip comes in or goes out on its own (TL7d): a transition's kind over its own first or last frames. */
+export interface Anim {
+  /** fade, slide, wipe, zoom or a plugin's (TRANSITIONS) */
+  kind: string
+  /** how many of the clip's frames it takes */
+  length: Frames
+}
+
 /** A span of something on a track: footage, a sound, words, a composition's sequence, an effect. */
 export interface Clip {
   /** its own id, unique on the timeline */
@@ -90,6 +98,10 @@ export interface Clip {
   fadeIn?: Frames
   /** sound: how long it fades out to its end */
   fadeOut?: Frames
+  /** the picture or words: how it comes in over its first frames (TL7d, CapCut's In animation) */
+  enter?: Anim
+  /** the picture or words: how it goes out over its last frames (TL7d, CapCut's Out animation) */
+  exit?: Anim
   /** its element in the code (file:line:col, docs/editing.feature E2) */
   at?: string
   /** markers on the clip itself, in frames from its start (TL2e) */

@@ -3,7 +3,7 @@
 // After each one the timeline is settled: the main track closed while its magnet is on (TL4a), what sits over a
 // main clip carried with it while linkage is on (TL4c), transitions kept only on cuts that still exist.
 import { cut as cutKeys, sorted } from "./keys"
-import { type Clip, end, find, type Frames, type Key, type Marker, slot, speedOf, type SpeedPoint, type Timeline, type Track, type TrackKind, type Transition, type Value, type Ease } from "./model"
+import { type Anim, type Clip, end, find, type Frames, type Key, type Marker, slot, speedOf, type SpeedPoint, type Timeline, type Track, type TrackKind, type Transition, type Value, type Ease } from "./model"
 import { fits } from "./snap"
 import { played } from "./speed"
 import type { TextStyle } from "./registry"
@@ -34,7 +34,7 @@ export type Op =
   /** a still of the frame under `at` on a clip (the main track's, when none is named), `length` frames long, put in
    *  there: the clip is split and the still goes between its halves (TL3h) */
   | { op: "freeze"; at: Frames; length: Frames; id?: string }
-  | { op: "set"; id: string; set: Partial<Pick<Clip, "name" | "off" | "volume" | "fadeIn" | "fadeOut" | "speed" | "group" | "reverse">> & { curve?: SpeedPoint[] | null; props?: Record<string, Value | boolean> } }
+  | { op: "set"; id: string; set: Partial<Pick<Clip, "name" | "off" | "volume" | "fadeIn" | "fadeOut" | "speed" | "group" | "reverse">> & { curve?: SpeedPoint[] | null; props?: Record<string, Value | boolean>; /** its In or Out animation (TL7d); null takes it off */ enter?: Anim | null; exit?: Anim | null } }
   /** a property's key at a frame of its clip: made, or its value (and ease) changed (TL5a) */
   | { op: "key"; id: string; prop: string; at: Frames; value: Value; ease?: Ease }
   | { op: "unkey"; id: string; prop: string; at: Frames }
@@ -264,7 +264,7 @@ function run(t: Timeline, op: Exclude<Op, { op: "restore" }>): Timeline {
     }
     case "set": {
       const { clip } = open(t, op.id)
-      const { props, curve, ...rest } = op.set
+      const { props, curve, enter, exit, ...rest } = op.set
       let c: Clip = { ...clip, ...rest, ...(props && { props: { ...clip.props, ...props } }) }
       const source = shown(clip)
       if (curve !== undefined || (rest.speed !== undefined && rest.speed !== clip.speed)) {
@@ -272,6 +272,13 @@ function run(t: Timeline, op: Exclude<Op, { op: "restore" }>): Timeline {
         const points = curve === undefined ? clip.curve : (curve ?? undefined)
         // the same frames of source, at the new pace
         c = { ...c, curve: points, shows: points ? source : undefined, length: Math.max(1, whole(points ? played(points, source) : source / speedOf(c))) }
+      }
+      // an In or Out animation (TL7d): a kind, over no more of the clip than it has; null takes it off
+      for (const [side, a] of [["enter", enter], ["exit", exit]] as const) {
+        if (a === undefined) continue
+        if (a !== null && (typeof a.kind !== "string" || !a.kind || !(a.length >= 1))) no("an animation is a kind and at least one frame")
+        const { [side]: _, ...without } = c
+        c = a ? { ...without, [side]: { kind: a.kind, length: Math.min(whole(a.length), c.length) } } : without
       }
       return change(t, clip.id, () => c)
     }
@@ -353,7 +360,7 @@ function shiftKeys(keys: Record<string, Key[]>, d: Frames): Record<string, Key[]
 }
 
 /** A clip as its two parts either side of timeline frame `at`: the left keeps its id, the right takes `id`. Media
- *  keep their place in the source, keys stay at their frames, each fade stays on its own end. */
+ *  keep their place in the source, keys stay at their frames, each fade and each In or Out animation stays on its own end. */
 function halves(c: Clip, at: Frames, id: string): [Clip, Clip] {
   const d = at - c.start
   const parts = Object.entries(c.keys ?? {}).map(([p, ks]) => [p, cutKeys(ks, d)] as const)
@@ -362,8 +369,8 @@ function halves(c: Clip, at: Frames, id: string): [Clip, Clip] {
     return Object.keys(ks).length ? ks : undefined
   }
   const share = (len: number) => (c.shows === undefined ? {} : { shows: (c.shows * len) / c.length })
-  const left: Clip = { ...c, ...share(d), length: d, fadeOut: undefined, keys: keysOf(0), markers: c.markers?.filter((m) => m.at < d) }
-  const right: Clip = { ...c, ...share(c.length - d), id, start: at, length: c.length - d, fadeIn: undefined, keys: keysOf(1), markers: c.markers?.filter((m) => m.at >= d).map((m) => ({ ...m, at: m.at - d })), ...(c.in !== undefined && { in: c.in + Math.round(d * speedOf(c)) }) }
+  const left: Clip = { ...c, ...share(d), length: d, fadeOut: undefined, exit: undefined, keys: keysOf(0), markers: c.markers?.filter((m) => m.at < d) }
+  const right: Clip = { ...c, ...share(c.length - d), id, start: at, length: c.length - d, fadeIn: undefined, enter: undefined, keys: keysOf(1), markers: c.markers?.filter((m) => m.at >= d).map((m) => ({ ...m, at: m.at - d })), ...(c.in !== undefined && { in: c.in + Math.round(d * speedOf(c)) }) }
   return [left, right]
 }
 

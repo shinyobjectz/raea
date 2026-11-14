@@ -5,6 +5,7 @@
 import { type Clip, type Ease, empty, end, find, type Frames, type Key, type Timeline, type Track } from "./model"
 import { apply, type Op } from "./ops"
 import { EFFECTS, type EffectPart, type TextStyle, textStyleError } from "./registry"
+import { TRANSITION_KINDS } from "@raea/video/edges"
 
 /** A text clip's style, kept in its props as JSON: read back when it is well formed. */
 export function textStyleOf(v: unknown): TextStyle | undefined {
@@ -128,8 +129,8 @@ export type SeqEdit =
    *  track's clips either side of it, so it is drawn under what is over them), else after the composition's last */
   | { op: "media"; at: number; frames: number; kind: "video" | "image" | "audio"; file: string; after?: number; before?: number }
 
-/** The transitions a composition's <Transition> draws (sdk/video transition.tsx). */
-export const CODE_KINDS = ["fade", "slide", "wipe", "zoom"]
+/** The transitions a composition's <Transition> draws (sdk/video edges.ts). */
+export const CODE_KINDS: string[] = TRANSITION_KINDS
 /** The properties a sequence's <Nudge> can key (sdk/video nudge.tsx). */
 export const KEYED = ["x", "y", "scale", "rotate", "opacity"]
 
@@ -292,6 +293,22 @@ export function seqEdits(t: Timeline, op: Op): SeqEdit[] | { why: string } {
         const crop = CROPS.map((k) => Math.min(0.9, Math.max(0, num(k) ?? 0))) as [number, number, number, number]
         const look: SeqLook = { ...Object.fromEntries(KEYED.flatMap((k) => (num(k) === undefined ? [] : [[k, num(k)]]))), ...(p.mirror === true && { mirror: true }), ...(crop.some((v) => v > 0) && { crop }) }
         return each([op.id], (r) => ({ op: "nudge", i: r.i, look }))
+      }
+      // its In and Out animations (TL7d): its <Transition>'s edges, as a cut's transition writes them
+      if (only.length && only.every((k) => k === "enter" || k === "exit")) {
+        const after = apply(t, op)
+        if (!after.ok) return { why: after.why }
+        const now = find(after.timeline, op.id)?.clip
+        const out: SeqEdit[] = []
+        for (const [key, side] of [["enter", "in"], ["exit", "out"]] as const) {
+          if (!only.includes(key)) continue
+          const a = now?.[key]
+          if (a && !CODE_KINDS.includes(a.kind)) return { why: `a composition draws ${CODE_KINDS.join(", ")}: "${a.kind}" isn't one its <Transition> has` }
+          const r = row(op.id)
+          if (!r) return { why: "only a composition's sequence comes in or goes out here" }
+          out.push({ op: "edge", i: r.i, side, kind: a?.kind ?? "fade", frames: a?.length ?? 0 })
+        }
+        return out
       }
       // a text clip's name is its words
       if (only.length === 1 && only[0] === "name") {

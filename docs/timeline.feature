@@ -79,13 +79,13 @@ Feature: The timeline SDK (0.1.5): CapCut's timeline, on the composition, in the
   sdk/video <Nudge keys>, <Transition in out combo> (fade, slide, wipe, zoom; a Combo's seven waves), <Effect kind amount in out> (blur, mono,
   sepia, vivid, faded, contrast, bright, dark, invert, hue: a filter on the picture under it) and a <Video>'s or
   an <Audio>'s speedCurve (the mixer carries its sound through the changing rate as one voice). In raea-feed, draft
-  PR #19: the new timeline is the timeline (localStorage raea.timeline-sdk = 0 brings the old strip back); 36 browser
-  tests in Chrome, all passing; of the 35 that can run in a headless raea window (all but the voice test, which there
-  would ask for this Mac's microphone) 33 pass, among them a composition's every edit, freeze and reverse, mirror and
+  PR #19: the new timeline is the timeline (localStorage raea.timeline-sdk = 0 brings the old strip back); 37 browser
+  tests in Chrome, all passing; in a headless raea window 35 of the 37 pass and two skip themselves there with their
+  reason (the voice test, which would ask for this Mac's microphone, and TL10d, whose film the window decodes itself,
+  so no route can hold its data), among them TL9c, an agent's edits, a composition's every edit, freeze and reverse, mirror and
   crop, effects, groups and compounds, the posted item's, a plugin's effect, text style, tool and snap grid, saved
   curves, Settings' kept frames, both kinds of sound taken out, the switcher, the export range, media added, the
-  Option keys, captions made from what is said and a clip's In and Out. The other two are Chrome's alone (TL9c calls the page's own module, TL10d's film holds the host's
-  answers). The window runner (blitz/pw.mjs) answers routes one at a time in the order asked, keeps a reload's
+  Option keys, captions made from what is said and a clip's In, Out and Combo. The window runner (blitz/pw.mjs) answers routes one at a time in the order asked, keeps a reload's
   address and each test's storage, and has keyboard down and up, toBeFocused and waitForResponse. The timeline's keys
   follow the pointer over it, not :hover, which raea's window doesn't match for a script, so there they only worked
   after a click in the timeline:

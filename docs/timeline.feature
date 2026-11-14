@@ -61,10 +61,10 @@ Feature: The timeline SDK (0.1.5): CapCut's timeline, on the composition, in the
       style, effects, bubbles, animation, and its words read aloud.
       Here 11-14: Basic but stabilise (TL3h, TL5), Mask, chroma key and Blend (TL7f) with the key's colour picked from
       the picture (TL7h) and the mask's handles dragged there (TL7i), Animation (TL7d, TL7e), Speed (TL6), Audio's
-      volume and fades (TL8a), Text's words, styles and captions (TL7c), Adjust as effect clips over a span (TL7b,
-      raea's ten) and as the clip's own twelve sliders (TL7g, on the film and on a file from Media over it), every
-      number of these keyed (TL5a). Not yet: stabilise, auto and brushed cutout, Retouch, noise reduction, the voice
-      changer, and text read aloud.
+      volume and fades (TL8a), Text's words, styles and captions (TL7c) and its words read aloud (TL7j), Adjust as
+      effect clips over a span (TL7b, raea's ten) and as the clip's own twelve sliders (TL7g, on the film and on a
+      file from Media over it), every number of these keyed (TL5a). Not yet: stabilise, auto and brushed cutout,
+      Retouch, noise reduction, and the voice changer.
 
   The model this file sets:
     1. One timeline model, in an SDK (sdk/timeline, TypeScript, no React, no DOM): tracks, clips, keys, markers, and
@@ -94,8 +94,8 @@ Feature: The timeline SDK (0.1.5): CapCut's timeline, on the composition, in the
   CapCut's twelve adjustments as one SVG filter and a vignette layer), <Transition in out combo> (fade, slide, wipe, zoom; a Combo's seven waves), <Effect kind amount in out> (blur, mono,
   sepia, vivid, faded, contrast, bright, dark, invert, hue: a filter on the picture under it) and a <Video>'s or
   an <Audio>'s speedCurve (the mixer carries its sound through the changing rate as one voice). In raea-feed, draft
-  PR #19: the new timeline is the timeline (localStorage raea.timeline-sdk = 0 brings the old strip back); 43 browser
-  tests in Chrome, all passing; in a headless raea window 41 of the 43 pass and two skip themselves there with their
+  PR #19: the new timeline is the timeline (localStorage raea.timeline-sdk = 0 brings the old strip back); 44 browser
+  tests in Chrome, all passing; in a headless raea window 42 of the 44 pass and two skip themselves there with their
   reason (the voice test, which would ask for this Mac's microphone, and TL10d, whose film the window decodes itself,
   so no route can hold its data), among them TL9c, an agent's edits, a composition's every edit, freeze and reverse, mirror and
   crop, effects, groups and compounds, the posted item's, a plugin's effect, text style, tool and snap grid, saved
@@ -104,7 +104,8 @@ Feature: The timeline SDK (0.1.5): CapCut's timeline, on the composition, in the
   sliders are a track of their own, as the volume's is: the window doesn't move a range input), their numbers and the
   crop's sides keyed (TL5a), its own Adjust (TL7g), its key's colour picked from the picture (TL7h: read from the
   clip's file by the host, since the window has no canvas to read), its mask's handles dragged there (TL7i), and a file
-  from Media over the film with its own vignette and its key's colour picked from its own file. The window runner (blitz/pw.mjs) answers routes one at a time in the order asked, keeps a reload's
+  from Media over the film with its own vignette and its key's colour picked from its own file, and a text's words
+  read aloud onto a sound track (TL7j). The window runner (blitz/pw.mjs) answers routes one at a time in the order asked, keeps a reload's
   address and each test's storage, and has keyboard down and up, toBeFocused and waitForResponse. The timeline's keys
   follow the pointer over it, not :hover, which raea's window doesn't match for a script, so there they only worked
   after a click in the timeline:
@@ -165,7 +166,9 @@ Feature: The timeline SDK (0.1.5): CapCut's timeline, on the composition, in the
                placement, read by the host from the clip's file where the player is, a small patch's mean), TL7i
                (the mask's outline and CapCut's handles on the picture through the clip's placement: move, width,
                height, corner, turn, feather, round; a drag shown as it moves and one edit when let go, keyed
-               numbers keyed), a plugin's effects as data (timeline.effects in its manifest: parts
+               numbers keyed), TL7j (a text's words read aloud: raea gen speech on the host, kept under
+               media/speech by the words' hash, a sound clip from the text's start; a real line 8.4 s to make,
+               43 ms read again), a plugin's effects as data (timeline.effects in its manifest: parts
                of CSS filter functions, drawn by <Effect parts> and by the preview alike), TL8a
                (waveform, level line, fades; Cmd+. and Cmd+, step the level by 0.1 dB, or key it at the
                playhead when it is keyed), TL8b's beats as ticks that edges snap to, each turned off by a
@@ -517,6 +520,16 @@ Feature: The timeline SDK (0.1.5): CapCut's timeline, on the composition, in the
       Then the picture's mask follows as it moves and it is one edit when let go, the panel's numbers with it: a number
         keyed (TL5a) takes a key at the playhead, the rest a still value
       And a press on them leaves no comment and doesn't play
+
+    Scenario: TL7j. A text's words read aloud
+      Given a text clip picked, in a film or a composition with a project
+      When I press read aloud (CapCut's text to speech)
+      Then its words are made into a voice on the host (raea gen speech: narration through raea's API, about a cent a
+        line) and kept as a sound file of the project's, media/speech/ by the words and their hash, so the same words
+        read again are the kept file and cost nothing
+      And the voice is a sound clip on a sound track from where the text starts, as long as the voice, named by the
+        words, as a file from Media is (TL3j); in a composition it is the host's edit, as that is
+      And what goes wrong (no words, too many, no credit) is said beside the button, and nothing is added
 
   Rule: TL8. Sound
     Scenario: TL8a. The waveform, the volume line and fades

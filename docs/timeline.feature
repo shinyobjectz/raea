@@ -52,6 +52,18 @@ Feature: The timeline SDK (0.1.5): CapCut's timeline, on the composition, in the
     - Playing while editing: lighter copies of heavy media (Proxy, 540 or 720 lines), a lower preview quality, parts
       that were worked out kept (the cache: its size shown, cleared by hand or on a schedule), all remade when needed;
       an export always reads the originals.
+    - The inspector beside the player (read 11-14), its tabs by the picked clip's kind. Video: Basic (position, scale,
+      rotation, opacity, blend mode, stabilise), Mask (line, mirror, circle, rectangle, heart, star; position, size,
+      rotation, feather, round corners, invert), Cutout (auto cutout of a person, a custom cutout brushed, chroma key
+      with its colour picked from the picture, strength and shadow), Retouch. Animation: In, Out, Combo. Speed:
+      constant and curve. Adjust: brightness, contrast, saturation, exposure, sharpen, highlights, shadows,
+      temperature, tint, fade, vignette, grain. Audio: volume, fades, noise reduction, voice changer. Text: font,
+      style, effects, bubbles, animation, and its words read aloud.
+      Here 11-14: Basic but stabilise (TL3h, TL5), Mask, chroma key and Blend (TL7f), Animation (TL7d, TL7e), Speed
+      (TL6), Audio's volume and fades (TL8a), Text's words, styles and captions (TL7c), Adjust as effect clips over a
+      span (TL7b, raea's ten). Not yet: stabilise, auto and brushed cutout, the key colour picked from the picture,
+      Retouch, Adjust as the clip's own sliders, noise reduction, the voice changer, text read aloud, and a mask's
+      handles dragged on the picture (its values are typed and slid in the row).
 
   The model this file sets:
     1. One timeline model, in an SDK (sdk/timeline, TypeScript, no React, no DOM): tracks, clips, keys, markers, and
@@ -76,16 +88,17 @@ Feature: The timeline SDK (0.1.5): CapCut's timeline, on the composition, in the
   playback's mapping, readers and writers for a composition's sequences (its footage and sound, its text, its
   effects, a recording, a project's file), a film's scenes and a sound's tracks, the palette a plugin adds to; 77
   tests), and in
-  sdk/video <Nudge keys>, <Transition in out combo> (fade, slide, wipe, zoom; a Combo's seven waves), <Effect kind amount in out> (blur, mono,
+  sdk/video <Nudge keys mask blend chroma> (cutout.ts: a mask's six shapes, CSS's blend modes, a chroma key), <Transition in out combo> (fade, slide, wipe, zoom; a Combo's seven waves), <Effect kind amount in out> (blur, mono,
   sepia, vivid, faded, contrast, bright, dark, invert, hue: a filter on the picture under it) and a <Video>'s or
   an <Audio>'s speedCurve (the mixer carries its sound through the changing rate as one voice). In raea-feed, draft
-  PR #19: the new timeline is the timeline (localStorage raea.timeline-sdk = 0 brings the old strip back); 37 browser
-  tests in Chrome, all passing; in a headless raea window 35 of the 37 pass and two skip themselves there with their
+  PR #19: the new timeline is the timeline (localStorage raea.timeline-sdk = 0 brings the old strip back); 38 browser
+  tests in Chrome, all passing; in a headless raea window 36 of the 38 pass and two skip themselves there with their
   reason (the voice test, which would ask for this Mac's microphone, and TL10d, whose film the window decodes itself,
   so no route can hold its data), among them TL9c, an agent's edits, a composition's every edit, freeze and reverse, mirror and
   crop, effects, groups and compounds, the posted item's, a plugin's effect, text style, tool and snap grid, saved
   curves, Settings' kept frames, both kinds of sound taken out, the switcher, the export range, media added, the
-  Option keys, captions made from what is said and a clip's In, Out and Combo. The window runner (blitz/pw.mjs) answers routes one at a time in the order asked, keeps a reload's
+  Option keys, captions made from what is said, a clip's In, Out and Combo, and its mask, blend and chroma key (whose
+  sliders are a track of their own, as the volume's is: the window doesn't move a range input). The window runner (blitz/pw.mjs) answers routes one at a time in the order asked, keeps a reload's
   address and each test's storage, and has keyboard down and up, toBeFocused and waitForResponse. The timeline's keys
   follow the pointer over it, not :hover, which raea's window doesn't match for a script, so there they only worked
   after a click in the timeline:
@@ -132,7 +145,14 @@ Feature: The timeline SDK (0.1.5): CapCut's timeline, on the composition, in the
                Send says how it comes in or goes out), TL7e (a Combo: seven of raea's, as waves in sdk/video
                edges.ts, and a plugin's as data; its cycle starts at the clip's length, playing once, and loops
                when shorter; with the In and Out at once on the film's picture and words; a line with a tick a
-               cycle on the clip; <Transition combo> in a composition, written and read back), a
+               cycle on the clip; <Transition combo> in a composition, written and read back), TL7f (a mask, a
+               blend and a chroma key: the row's blend menu, and a mask and a key panel; a mask an SVG mask image
+               laid over the frame, feathered by a blur, inverted by mask-composite; a blend CSS's mix-blend-mode;
+               a key an SVG colour-matrix filter whose alpha falls as a colour's share of the key's hue rises; drawn
+               by sdk/video cutout.ts in the preview and in <Nudge>, and by raea's renderer as Chrome draws them,
+               seen on a render of a keyed green panel, a feathered heart, an inverted turned star and a screen
+               blend; an SVG <mask> to invert overran Vello's buffers, so it isn't used; a clip's cutout is its
+               props, a preset's to set later; Send says all three as they stand), a
                plugin's effects as data (timeline.effects in its manifest: parts
                of CSS filter functions, drawn by <Effect parts> and by the preview alike), TL8a
                (waveform, level line, fades; Cmd+. and Cmd+, step the level by 0.1 dB, or key it at the
@@ -155,7 +175,9 @@ Feature: The timeline SDK (0.1.5): CapCut's timeline, on the composition, in the
                host on its own port: 1 draft and 2 ranges listed as 15,000 bytes, Clear freeing all three), TL11b (the model as raea/editor, with its reference page and an example), TL12a-b, TL14a-c (a
                scene's timeline as long as the scene, past its last sequence)
     in code    a composition's sequences: move, trim, split, delete (E3), keys on x, y, scale, rotate and opacity
-               (TL5d), its still placement as its <Nudge>'s props, mirror and crop among them (TL3h), a speed or a
+               (TL5d), its still placement as its <Nudge>'s props, mirror and crop among them (TL3h), and its mask,
+               blend and chroma key (TL7f: mask={{ kind, x, y, w, h, rotate, feather, round, invert }},
+               blend="screen", chroma={{ color, strength, shadow }}, plain values only, any other the code's), a speed or a
                speed curve for a sequence that holds footage, split in two with it (TL6a-b), a transition on a cut
                (TL7a), an effect as a sequence holding an <Effect>, its kind and amount (TL7b), a sequence of
                words as a text clip, its words rewritten, words added as a new sequence (TL7c), a <Video>'s or an
@@ -429,6 +451,23 @@ Feature: The timeline SDK (0.1.5): CapCut's timeline, on the composition, in the
       And a Combo is data, a wave of the clip's x, y, scale, rotate and opacity over one cycle, so a plugin adds one in
         its manifest and the preview draws it
       And in a composition it is the sequence's <Transition combo>, written and read back
+
+    Scenario: TL7f. A clip's mask, blend and chroma key
+      Given a clip of footage or a still picked
+      When I give it a mask (CapCut's Mask tab: a line, a mirror band, a circle, a rectangle, a heart or a star)
+      Then the picture is seen through it at once: a shape that starts round in the middle of the film, moved and
+        sized in shares of the frame, turned, its edge feathered, a rectangle's corners rounded, or inverted to keep
+        what is outside it
+      When I give it a blend (Basic's Blend: darken, screen, overlay, multiply, lighten, hard and soft light, colour
+        burn and dodge, add, difference, exclusion)
+      Then it is drawn onto what is under it by that mode
+      When I key a colour out of it (Cutout's Chroma key: a green or blue screen, or a colour typed, its strength and
+        its shadow)
+      Then that colour's hue goes from the picture, the screen's shadows let through half seen as far as the shadow
+        says; a grey, which has no hue to key by, is refused in words
+      And in a composition each is a prop of the sequence's <Nudge> (mask, blend, chroma), written and read back,
+        and raea's renderer draws them as the preview does
+      And Send tells the agent the mask, the blend and the key as they now stand
 
   Rule: TL8. Sound
     Scenario: TL8a. The waveform, the volume line and fades

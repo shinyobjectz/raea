@@ -92,14 +92,15 @@ export function maskSvg(m: Mask, width: number, height: number): string {
 export function maskStyle(m: Mask, width: number, height: number) {
   const shape = `url("data:image/svg+xml,${encodeURIComponent(maskSvg(m, width, height)).replace(/\(/g, "%28").replace(/\)/g, "%29")}")`;
   const image = m.invert ? `linear-gradient(#000, #000), ${shape}` : shape;
+  // the prefixed first: Chrome takes -webkit-mask-composite as mask-composite, so the standard one is set last
   return {
-    maskImage: image,
     WebkitMaskImage: image,
-    maskSize: "100% 100%",
+    maskImage: image,
     WebkitMaskSize: "100% 100%",
-    maskRepeat: "no-repeat",
+    maskSize: "100% 100%",
     WebkitMaskRepeat: "no-repeat",
-    ...(m.invert ? { maskComposite: "exclude", WebkitMaskComposite: "xor" } : {}),
+    maskRepeat: "no-repeat",
+    ...(m.invert ? { WebkitMaskComposite: "xor", maskComposite: "exclude" } : {}),
   };
 }
 

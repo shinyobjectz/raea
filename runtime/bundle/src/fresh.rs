@@ -25,28 +25,6 @@ fn spec(p: &Path) -> String {
     dunce::simplified(p).display().to_string()
 }
 
-/// A react-dom page's bundle (a surface): the module at `src` (its default
-/// export a React component) rendered by react-dom into #root with the page's width and height, again on each resize,
-/// bundled with its packages (the project's node_modules, raea-io-npm's) into `out`. The bundle's text. A legacy-app panel's
-/// and a `<Screen app>`'s.
-pub fn bundle_surface(src: &Path, out: &Path) -> R<String> {
-    let entry = format!(
-        r#"// raea writes this (motion.rs bundle_surface): {src} on react-dom, at the surface's size, again on each resize.
-import {{ createElement }} from "react";
-import {{ createRoot }} from "react-dom/client";
-import Page from {src:?};
-
-const root = createRoot(document.getElementById("root")!);
-const draw = () => root.render(createElement(Page as any, {{ width: innerWidth, height: innerHeight }}));
-addEventListener("resize", draw);
-draw();
-"#,
-        src = spec(src)
-    );
-    bundle_entry(&entry, out, &[])?;
-    std::fs::read_to_string(out).map_err(|e| format!("{}: {e}", out.display()))
-}
-
 /// `entry` (TypeScript source) bundled into `out` by raea-bundle's library (engine/bundle/src/script.rs's resolution); `extra`
 /// are bundle.ts's flags (--define K=V, --alias SPEC=PATH, --node-stub a,b).
 pub fn bundle_entry(entry: &str, out: &Path, extra: &[&str]) -> R<()> {

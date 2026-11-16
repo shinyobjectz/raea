@@ -105,13 +105,21 @@ pub(crate) fn gather(bundle: &mut String, dir: &Path, game: &Path, got: &mut Gat
         let ext = file.extension().and_then(|x| x.to_str()).unwrap_or("").to_ascii_lowercase();
         if SOURCE_EXTS.contains(&ext.as_str()) || file.file_name().is_some_and(|n| n == MANIFEST) {
             // an app screen's module (`<Screen app="chat.tsx">`, a component on react-dom): bundled now with its npm
-            // packages beside where it was, as `chat.tsx.surface.js`, which the player opens (it bundles nothing)
+            // packages beside where it was, as `chat.tsx.surface.js` and its CSS `chat.tsx.surface.css`, which the
+            // player opens (it bundles nothing; raea-runtime-appscreen code_of)
             if matches!(ext.as_str(), "tsx" | "jsx") && std::fs::read_to_string(&file).is_ok_and(|t| t.contains("export default") && !t.contains("registerRoot(")) && !imported(dir, &file) {
                 if let Some(rel) = inside(&file) {
-                    let rel = format!("{rel}{}", raea_runtime_page::screen::BUNDLED);
-                    if !got.has(&rel) {
-                        raea_runtime_react::scene::bundle_surface(&file, &game.join(&rel))?;
-                        got.files.push((rel, file.clone()));
+                    let (js_rel, css_rel) = (format!("{rel}{}", raea_runtime_page::screen::BUNDLED), format!("{rel}{}", raea_runtime_page::screen::BUNDLED_CSS));
+                    if !got.has(&js_rel) {
+                        let (js, css) = raea_runtime_page::screen::build_app(&file)?;
+                        for (r, text) in [(&js_rel, js), (&css_rel, css)] {
+                            let out = game.join(r);
+                            if let Some(d) = out.parent() {
+                                std::fs::create_dir_all(d).map_err(|e| format!("{}: {e}", d.display()))?;
+                            }
+                            std::fs::write(&out, text).map_err(|e| format!("{}: {e}", out.display()))?;
+                            got.files.push((r.clone(), file.clone()));
+                        }
                     }
                 }
             }

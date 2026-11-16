@@ -64,7 +64,7 @@ pub fn host(args: &[String]) -> Result<String, String> {
         let p = Path::new(a);
         if p.extension().is_some_and(|x| x == "tsx" || x == "ts" || x == "jsx") && p.is_file() {
             std::fs::create_dir_all(&work).map_err(|e| format!("{}: {e}", work.display()))?;
-            let (js, css) = raea_runtime_bundle::inproc::app::bundle(p, &raea_io_home::home())?;
+            let (js, css) = raea_runtime_bundle::inproc::app::bundle(p, &raea_io_home::home(), raea_runtime_bundle::inproc::app::WINDOW)?;
             let script = work.join(format!("{}.js", p.file_stem().unwrap_or_default().to_string_lossy()));
             std::fs::write(&script, js).map_err(|e| format!("{}: {e}", script.display()))?;
             handed.push(script.display().to_string());

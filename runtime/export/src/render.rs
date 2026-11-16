@@ -35,6 +35,10 @@ pub fn render(args: &[String]) -> R<String> {
     // the edit's words.json and perception.json beside it, as play loads them (a render without the flags lost the
     // captions its words drive; the corpus found 10 edits so); a flag still wins
     let mut o = comp_opts(args)?;
+    // an input log's `apps`, what reached the app screens in the play it came from, given them again frame by frame
+    // (docs/blitz-bevy.feature H12): the render draws what was played
+    let apps: std::collections::BTreeMap<i64, serde_json::Value> = o.input.as_ref().and_then(|v| v.as_object()).into_iter().flatten().filter_map(|(f, v)| Some((f.parse().ok()?, v.get("apps")?.clone()))).collect();
+    *raea_runtime_page::screen::APP_LOG.lock().unwrap() = (!apps.is_empty()).then_some(apps);
     for (slot, file) in [(&mut o.words, "words.json"), (&mut o.perception, "perception.json")] {
         if slot.is_none() && dir.join(file).exists() {
             let v = json_file(&dir.join(file).display().to_string())?;

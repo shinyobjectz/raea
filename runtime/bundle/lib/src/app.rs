@@ -5,10 +5,10 @@
 use std::path::Path;
 
 /// The entry every app is mounted by: the DOM installed before the app's module runs, its default export mounted at
-/// the root (an app that mounts itself with createRoot needs no default export)
-fn entry(app: &Path) -> String {
+/// the root with `props` (JS; an app's none) (an app that mounts itself with createRoot needs no default export)
+fn entry(app: &Path, props: &str) -> String {
     format!(
-        "import \"@raea/ui/dom-globals\";\nimport {{ createElement }} from \"react\";\nimport {{ mount }} from \"@raea/ui/react\";\nimport * as M from {:?};\nconst App = (M as any).default;\nif (typeof App === \"function\") mount(createElement(App), 0, {{ dom: true }});\n",
+        "import \"@raea/ui/dom-globals\";\nimport {{ createElement }} from \"react\";\nimport {{ mount }} from \"@raea/ui/react\";\nimport * as M from {:?};\nconst App = (M as any).default;\nif (typeof App === \"function\") mount(createElement(App, {props}), 0, {{ dom: true }});\n",
         app.display().to_string()
     )
 }
@@ -36,8 +36,17 @@ fn ui(home: &Path) -> serde_json::Value {
     m.into()
 }
 
-/// `app` bundled against `home`: its script and the CSS its modules import
-pub fn bundle(app: &Path, home: &Path) -> Result<(String, String), String> {
+/// What an app's default export is given, for `bundle`: nothing, as an app in a window of its own is (it reads the
+/// window)
+pub const WINDOW: &str = "null";
+
+/// What an app screen's module (`<Screen app="kit.tsx">`, docs/blitz-bevy.feature H12) is given: `{width, height}`, the
+/// screen's size (its document's, so one bundle serves a screen of any size)
+pub const SCREEN: &str = "{ width: innerWidth, height: innerHeight }";
+
+/// `app` bundled against `home`, its default export mounted with `props` (WINDOW or SCREEN): its script and the CSS its
+/// modules import
+pub fn bundle(app: &Path, home: &Path, props: &str) -> Result<(String, String), String> {
     // canonical, and on Windows without canonicalize()'s verbatim \\?\ prefix: Rolldown can't resolve an entry that
     // imports a path written with it (T1f: the Windows release check, 11-07)
     let app = raea_io_home::plain(app.canonicalize().map_err(|e| format!("{}: {e}", app.display()))?);
@@ -49,7 +58,7 @@ pub fn bundle(app: &Path, home: &Path) -> Result<(String, String), String> {
     let _ = std::fs::remove_dir_all(&work);
     std::fs::create_dir_all(&work).map_err(|e| format!("{}: {e}", work.display()))?;
     let entry_file = work.join("entry.tsx");
-    let wrote = std::fs::write(&entry_file, entry(&app)).and_then(|_| std::fs::write(work.join("tsconfig.json"), tsconfig(home)));
+    let wrote = std::fs::write(&entry_file, entry(&app, props)).and_then(|_| std::fs::write(work.join("tsconfig.json"), tsconfig(home)));
     let r = wrote.map_err(|e| e.to_string()).and_then(|_| {
         let opts = serde_json::json!({
             "script": {"js": home.join("sdk/react/js"), "motion": home.join("sdk/raea/src"), "shell": home.join("sdk/shell/src/index.ts"), "aliases": ui(home), "stubs": []},

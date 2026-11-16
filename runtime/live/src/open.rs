@@ -65,7 +65,7 @@ impl Live {
         let (w, h) = if responsive { (stage.0.max(1), stage.1.max(1)) } else { (cw, ch) };
         let page = raea_runtime_page::BevyPage::new(w, h, &dir)?;
         let brand = raea_runtime_react::scene::page_css(&dir, w, &js);
-        let mut live = Live { app, dir: dir.clone(), page, brand, dirty: true, mixer: None, mixer_failed: false, lag: (0.0, std::time::Instant::now()), w, h, fps, frames, responsive, js, master: None, master_wav: None, game_master: None, game_gain: None, scene_rx: None, scene: None, live3d: None, frame: 0, pads: Vec::new(), pointer: Default::default(), made: Default::default(), sound_buf: Vec::new(), holders: Vec::new(), baked: None, applied: -1, session: new_session() };
+        let mut live = Live { app, dir: dir.clone(), page, brand, dirty: true, mixer: None, mixer_failed: false, lag: (0.0, std::time::Instant::now()), w, h, fps, frames, responsive, js, master: None, master_wav: None, game_master: None, game_gain: None, scene_rx: None, scene: None, live3d: None, frame: 0, pads: Vec::new(), taken: Vec::new(), pointer: Default::default(), made: Default::default(), sound_buf: Vec::new(), holders: Vec::new(), baked: None, applied: -1, session: new_session() };
         if responsive {
             live.send("raea-size", json!({"w": w, "h": h}));
         }
@@ -117,7 +117,7 @@ impl Live {
         raea_runtime_react::scene::one_thread(&mut app);
         let page = raea_runtime_page::BevyPage::new(w, h, &dir)?;
         let brand = raea_runtime_react::scene::page_css(&dir, w, &js);
-        let mut live = Live { app, dir: dir.clone(), page, brand, dirty: true, mixer: None, mixer_failed: false, lag: (0.0, std::time::Instant::now()), w, h, fps, frames, responsive: false, js, master: None, master_wav: None, game_master: None, game_gain: None, scene_rx: None, scene: None, live3d: None, frame: 0, pads: Vec::new(), pointer: Default::default(), made: Default::default(), sound_buf: Vec::new(), holders: Vec::new(), baked: None, applied: -1, session: new_session() };
+        let mut live = Live { app, dir: dir.clone(), page, brand, dirty: true, mixer: None, mixer_failed: false, lag: (0.0, std::time::Instant::now()), w, h, fps, frames, responsive: false, js, master: None, master_wav: None, game_master: None, game_gain: None, scene_rx: None, scene: None, live3d: None, frame: 0, pads: Vec::new(), taken: Vec::new(), pointer: Default::default(), made: Default::default(), sound_buf: Vec::new(), holders: Vec::new(), baked: None, applied: -1, session: new_session() };
         for b in &baked.init {
             live.app.world().resource::<raea_runtime_react::ReplayFeed>().feed(b.clone());
         }

@@ -8,6 +8,7 @@ description = "A composition's page in Bevy: React's elements laid out and paint
 
 [dependencies]
 raea-runtime-view = { path = "../view" }
+raea-runtime-appscreen = { path = "../appscreen" }
 raea-sys-frame = { path = "../../systems/frame" }
 raea-io-assets = { path = "../../io/assets" }
 raea-io-net = { path = "../../io/net" }

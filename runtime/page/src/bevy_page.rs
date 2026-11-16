@@ -98,11 +98,7 @@ impl BevyPage {
             }
         }
         crate::screen::retire(&mut self.apps, &self.app_screens);
-        for (name, _, _, app) in &self.app_screens {
-            if self.apps.failed.insert(name.clone(), app.clone()).is_none() {
-                eprintln!("raea: screen {name:?}: its app {app:?} isn't drawn yet: app screens move to raea-runtime-js roots of their own (ts-native P27)");
-            }
-        }
+        crate::screen::step_all(&mut self.apps, &self.app_screens, &self.dir);
         self.page.place_videos(videos)
     }
 
@@ -147,12 +143,21 @@ impl BevyPage {
     /// The page and each <Screen>'s picture drawn and read back: the page's premultiplied RGBA, and each screen's name,
     /// size and RGBA.
     pub fn frame_all(&mut self) -> R<(Vec<u8>, Vec<(String, u32, u32, Vec<u8>)>)> {
-        self.page.frame_all()
+        let (px, mut pics) = self.page.frame_all()?;
+        pics.extend(crate::screen::pictures(&mut self.apps)?);
+        Ok((px, pics))
     }
 
-    /// The page drawn at frame `f` of a composition at `fps`: its CSS animations and transitions where they are then.
+    /// The page drawn at frame `f` of a composition at `fps`: its CSS animations and transitions where they are then,
+    /// and its app screens stepped there.
     pub fn at_frame(&mut self, f: i64, fps: f64) {
         self.page.at_frame(f, fps);
+        self.set_app_frame(f, fps);
+    }
+
+    /// The frame the app screens step to at the next sync (live play, whose page keeps its own CSS clock).
+    pub fn set_app_frame(&mut self, f: i64, fps: f64) {
+        self.apps.frame = Some((f, fps));
     }
 
     /// The page drawn and read back: premultiplied RGBA rows, `w` x `h`.
@@ -276,9 +281,10 @@ impl BevyPage {
         &mut self.apps
     }
 
-    /// Each <Screen>'s picture as last drawn, by name: its texture on the shared device.
+    /// Each <Screen>'s picture as last drawn, by name: its texture on the shared device (an app screen's too).
     pub fn screen_textures(&self) -> Vec<(String, wgpu::Texture)> {
-        self.page.sub_textures().into_iter().map(|(k, t, _, _)| (k, (*t).clone())).collect()
+        let apps = crate::screen::textures(&self.apps);
+        self.page.sub_textures().into_iter().map(|(k, t, _, _)| (k, t)).chain(apps).map(|(k, t)| (k, (*t).clone())).collect()
     }
 
     /// The page's picture as last drawn, on the shared device (`Rgba8UnormSrgb`, premultiplied).

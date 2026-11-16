@@ -237,6 +237,10 @@ pub(crate) fn offscreen(mut run: Run, json: Option<String>, flat_out: bool, snap
             if let Some((x, y, down)) = run.pointer {
                 e["pointer"] = serde_json::json!({"x": x, "y": y, "down": down});
             }
+            // what reached its app screens (the keys they took aren't the page's above), given them again in a render
+            if let Some(apps) = live.app_input() {
+                e["apps"] = apps;
+            }
             // the session's seed and start with its first frame: a render of the log draws the same Math.random and Date
             if logged.is_empty() {
                 e["session"] = live.session();

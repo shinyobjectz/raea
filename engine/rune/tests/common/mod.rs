@@ -12,7 +12,7 @@ fn home() -> PathBuf {
 
 /// `file`'s script
 pub fn script(file: &Path) -> String {
-    raea_runtime_bundle_lib::app::bundle(file, &home()).unwrap().0
+    raea_runtime_bundle_lib::app::bundle(file, &home(), raea_runtime_bundle_lib::app::WINDOW).unwrap().0
 }
 
 /// tests/apps/`name`

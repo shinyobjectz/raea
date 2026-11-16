@@ -19,6 +19,8 @@ mod pick3d;
 pub use pick3d::want_wire;
 pub use sound::warm_audio;
 mod draw;
+mod react;
+pub use react::needs_react;
 
 type R<T> = Result<T, String>;
 
@@ -58,6 +60,9 @@ pub struct Live {
     frame: i64,
     /// the gamepads' marked keys the last frame was given beside its input ("Pad0:South"), for its input log
     pads: Vec<String>,
+    /// the keys an app screen took from the last frame (the page didn't get them), left out of its input log, which
+    /// keeps them under `apps` (`app_input`)
+    taken: Vec<String>,
     /// the pointer on the page's elements, as the last frame left it (pointer.rs)
     pointer: pointer::PagePointer,
     /// generated sounds' files, by what they were made from (looked up once)
@@ -202,6 +207,9 @@ impl Live {
         self.lag = (lag, std::time::Instant::now());
         self.frame = f;
         self.pads.clear();
+        self.taken.clear();
+        // the app screens step to this frame at the page's next sync (screen.rs step_all)
+        self.page.set_app_frame(f, self.fps);
         let t0 = std::time::Instant::now();
         if self.baked.is_some() {
             // a baked timeline: its recorded commits, no JS; the clips it cuts to soon opened ahead; the page styled at
@@ -224,6 +232,9 @@ impl Live {
                 Some(e) => Some(raea_runtime_page::screen::route(&mut self.page, e, keys, pointer, (self.w, self.h))),
                 None => None,
             };
+            if let Some(r) = &routed {
+                self.taken = keys.iter().filter(|k| !r.contains(k)).cloned().collect();
+            }
             let keys = routed.as_deref().unwrap_or(keys);
             // the pointer on the page's elements: their on* handlers, before the frame's step (pointer.rs)
             if let Some(p) = pointer {
@@ -317,29 +328,6 @@ fn components_use_config(dir: &Path) -> bool {
     std::fs::read_dir(dir.join("components")).into_iter().flatten().flatten().any(|e| std::fs::read_to_string(e.path()).is_ok_and(|t| t.contains("useVideoConfig(")))
 }
 
-/// Whether the edit's own sources (its folder, not node_modules) import React Three Fiber (`raea/r3f`,
-/// `@react-three/...`): R3F runs a reconciler of its own on React, which live play's runtime (sdk/react/js/lite) isn't,
-/// so such a play keeps React, as RAEA_LIVE_REACT=1 does (docs/r3f.feature R3F27)
-pub fn needs_react(dir: &Path) -> bool {
-    fn walk(d: &Path, depth: usize) -> bool {
-        let Ok(rd) = std::fs::read_dir(d) else { return false };
-        rd.flatten().any(|e| {
-            let name = e.file_name();
-            let name = name.to_string_lossy();
-            let p = e.path();
-            if name.starts_with('.') || name == "node_modules" || name == "target" {
-                false
-            } else if p.is_dir() {
-                depth < 4 && walk(&p, depth + 1)
-            } else {
-                [".tsx", ".ts", ".jsx", ".js"].iter().any(|x| name.ends_with(x))
-                    && std::fs::read_to_string(&p).is_ok_and(|t| t.contains("raea/r3f") || t.contains("@react-three/"))
-            }
-        })
-    }
-    walk(dir, 0)
-}
-
 /// What a composition's sound is made of: its bundle and every file in its project (path, size, time), hashed, so a
 /// sound worked out from them (the mastered track) is found again until one of them changes.
 fn sound_key(js: &Path, dir: &Path) -> u64 {
@@ -389,7 +377,13 @@ impl Live {
     /// The keys the last frame stepped was given: `keys` and the gamepads marked beside them, as its input log records
     /// them, so a render of the log gives the game the same pads (bench/render-play's live-gamepad).
     pub fn played_keys(&self, keys: &[String]) -> Vec<String> {
-        keys.iter().chain(&self.pads).cloned().collect()
+        keys.iter().chain(&self.pads).filter(|k| !self.taken.contains(k)).cloned().collect()
+    }
+
+    /// What reached the app screens in the last frame stepped, as its input log keeps it (`apps`): a render of the
+    /// log gives them the same (runtime/page/src/screen.rs).
+    pub fn app_input(&self) -> Option<serde_json::Value> {
+        raea_runtime_page::screen::logged(&self.page)
     }
 }
 
@@ -473,22 +467,5 @@ mod frame_event_tests {
             let got: Value = serde_json::from_str(&frame_event(7, &keys, pointer, None)).unwrap();
             assert_eq!(got, want);
         }
-    }
-}
-
-#[cfg(test)]
-mod needs_react_tests {
-    #[test]
-    fn an_edit_importing_r3f_keeps_react_and_one_whose_packages_do_doesnt() {
-        let d = std::env::temp_dir().join(format!("raea-needs-react-{}", std::process::id()));
-        let _ = std::fs::remove_dir_all(&d);
-        std::fs::create_dir_all(d.join("node_modules/drei")).unwrap();
-        std::fs::write(d.join("edit.tsx"), "import { Composition } from \"raea\";").unwrap();
-        std::fs::write(d.join("node_modules/drei/index.js"), "import \"@react-three/fiber\";").unwrap();
-        assert!(!super::needs_react(&d));
-        std::fs::create_dir_all(d.join("src/scene")).unwrap();
-        std::fs::write(d.join("src/scene/ball.tsx"), "import { R3F } from \"raea/r3f\";").unwrap();
-        assert!(super::needs_react(&d));
-        let _ = std::fs::remove_dir_all(&d);
     }
 }

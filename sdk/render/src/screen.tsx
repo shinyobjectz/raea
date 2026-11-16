@@ -70,10 +70,10 @@ export interface ScreenSource {
   /** a video to show instead of children: staticFile("clip.mp4"), filling the picture */
   src?: string;
   /** an app to show instead of children: a module's path from the composition's folder ("chat.tsx"), its default
-   * export a React component given {width, height}. It runs on real react-dom in a document of its own, so npm's React
-   * libraries work on it (assistant-ui, Radix; installed with `raea add`). In play the pointer reaches it through
-   * the 3D, where it lands on the picture, and a press on it gives it the keys (the game doesn't get them) until a
-   * press elsewhere or Escape; in a render it runs on the frame's clock, so the render repeats */
+   * export a React component given {width, height}. It runs on react-dom (@raea/ui's) in a Blitz document of its
+   * own, so npm's React libraries work on it (assistant-ui, Radix; installed with `raea add`). In play the pointer
+   * reaches it through the 3D, where it lands on the picture, and a press on it gives it the keys (the game doesn't
+   * get them) until a press elsewhere or Escape; in a render it runs on the frame's clock, so the render repeats */
   app?: string;
   /** the nested composition or game */
   children?: ReactNode;

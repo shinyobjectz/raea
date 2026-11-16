@@ -1,0 +1,21 @@
+[package]
+name = "raea-runtime-appscreen"
+version = "0.1.0"
+edition = "2024"
+license = "FSL-1.1-ALv2"
+publish = false
+description = "App screens (<Screen app>): a module on @raea/ui's react-dom in a Blitz document of its own at the screen's size, stepped once a frame on the frame's clock with the input routed to it"
+
+[dependencies]
+bevy = { version = "=0.20.0", default-features = false, features = ["std", "default_app", "bevy_render", "bevy_window"] }
+blitz-traits = "=0.3.0-beta.4"
+keyboard-types = "0.8"
+serde_json = "1"
+raea-page = { path = "../../engine/page" }
+raea-runtime-dom = { path = "../dom" }
+raea-runtime-js = { path = "../js" }
+raea-runtime-jsengine = { path = "../jsengine" }
+raea-runtime-bundle = { path = "../bundle" }
+raea-sys-page = { path = "../../systems/page" }
+raea-sys-fonts = { path = "../../systems/fonts" }
+raea-io-home = { path = "../../io/home" }

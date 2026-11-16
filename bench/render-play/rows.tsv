@@ -8,7 +8,8 @@
 # React on the page with 3D in the world, picking and input replay are all here: the games (pong and platformer on
 # the page, arena3d's 3D drawn live), bevy-ts' live cases (keys, the pointer, a gamepad, the window and the World's
 # components through useQuery), the bridge's Engine reads (engine3d: a cube the World moves, React's marker reading it)
-# and pick3d (on* on 3D parts: hover, press, leave); an <R3F>'s own pointer events and <OrbitControls> (r3f live/pointer)
+# and pick3d (on* on 3D parts: hover, press, leave); an <R3F>'s own pointer events and <OrbitControls> (r3f live/pointer);
+# an app screen's button clicked through the 3D, its own timer on the frame's clock (appscreen: blitz-bevy H12)
 sdk/react/bench/games/pong/edit.tsx	keys:ArrowUp,ArrowDown,,ArrowUp	0.25 0.75 1.25 1.75
 sdk/react/bench/games/platformer/edit.tsx	keys:ArrowRight,ArrowRight+ArrowUp,ArrowRight,	0.25 0.75 1.25 1.75
 sdk/react/bench/games/arena3d/edit.tsx	keys:ArrowRight,ArrowUp,ArrowLeft+ArrowUp,ArrowDown,	0.25 0.75 1.25 1.75
@@ -22,3 +23,4 @@ sdk/raea/bench/bevy-ts/cases/text3d-readback.tsx	script:sdk/raea/bench/bevy-ts/c
 bench/bridge/engine3d.tsx	-	0.3 0.9 1.25
 sdk/raea/bench/bevy/pick3d/edit.tsx	script:bench/render-play/pick3d.json	0.1 0.2 0.3 0.4 0.6 0.9
 sdk/r3f/test/live/pointer.tsx	script:sdk/r3f/test/live/pointer.json	0.2 0.4 0.6 0.9
+sdk/raea/bench/bevy/appscreen/edit.tsx	script:bench/render-play/appscreen.json	0.2 0.4 0.6 0.9

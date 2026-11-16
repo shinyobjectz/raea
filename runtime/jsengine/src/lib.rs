@@ -36,11 +36,21 @@ pub type Native = Box<dyn Fn(&[String]) -> Result<Ret, String>>;
 
 thread_local! {
     static T0: std::time::Instant = std::time::Instant::now();
+    static HELD: std::cell::Cell<Option<f64>> = const { std::cell::Cell::new(None) };
 }
 
-/// ms since this thread first asked: the clock a host's JS timers run on.
+/// ms since this thread first asked: the clock a host's JS timers run on (or the time `at_clock` holds it at).
 pub fn now_ms() -> f64 {
-    T0.with(|t| t.elapsed().as_secs_f64() * 1e3)
+    HELD.with(|h| h.get()).unwrap_or_else(|| T0.with(|t| t.elapsed().as_secs_f64() * 1e3))
+}
+
+/// `f` run with this thread's JS clock held at `ms`: a root stepped on a composition's frames (an app screen, frame
+/// over fps) sees the same timers and performance.now in a render and its play, so the render repeats.
+pub fn at_clock<T>(ms: f64, f: impl FnOnce() -> T) -> T {
+    let was = HELD.with(|h| h.replace(Some(ms)));
+    let out = f();
+    HELD.with(|h| h.set(was));
+    out
 }
 
 /// A native answering `now_ms()`, a host's `now` for its JS.

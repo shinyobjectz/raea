@@ -14989,6 +14989,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "raea-runtime-appscreen"
+version = "0.1.0"
+dependencies = [
+ "bevy",
+ "blitz-traits",
+ "keyboard-types",
+ "raea-io-home",
+ "raea-page",
+ "raea-runtime-bundle",
+ "raea-runtime-dom",
+ "raea-runtime-js",
+ "raea-runtime-jsengine",
+ "raea-sys-fonts",
+ "raea-sys-page",
+ "serde_json",
+]
+
+[[package]]
 name = "raea-runtime-bake"
 version = "0.1.0"
 dependencies = [
@@ -15283,6 +15301,7 @@ dependencies = [
  "raea-io-net",
  "raea-page",
  "raea-render",
+ "raea-runtime-appscreen",
  "raea-runtime-input",
  "raea-runtime-react",
  "raea-runtime-twins",

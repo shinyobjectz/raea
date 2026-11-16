@@ -101,10 +101,7 @@ pub fn export(args: &[String]) -> R<String> {
     gather(&mut bundle, &dir, &game, &mut got)?;
     std::fs::write(&js, &bundle).map_err(|e| e.to_string())?;
 
-    // an app screen needs a player with the surface runtime (the `surfaces` feature), which the size-built one leaves out
-    if got.files.iter().any(|(rel, _)| rel.ends_with(raea_runtime_page::screen::BUNDLED)) && !player_has_surfaces(&player)? {
-        return Err(format!("this game has an app screen (<Screen app>), and the player {} can't run one: build it with them (cargo build --profile game -p raea-app-game --bin raea-game --features player,surfaces) and export again", player.display()));
-    }
+    // an app screen (<Screen app>) draws on the player's own Blitz page (raea-runtime-appscreen): every player has one
 
     // 3. what play works out at open, worked out now from the package itself (so the package is known to load)
     let src = std::fs::read_to_string(&tsx).unwrap_or_default();
@@ -253,12 +250,6 @@ pub(crate) fn imported(dir: &Path, file: &Path) -> bool {
         }
     }
     false
-}
-
-/// Whether the player at `bin` was built with the surface runtime (app screens): its shim's text is in it.
-pub(crate) fn player_has_surfaces(bin: &Path) -> R<bool> {
-    let bytes = std::fs::read(bin).map_err(|e| format!("{}: {e}", bin.display()))?;
-    Ok(bytes.windows(14).any(|w| w == b"__surfaceFrame"))
 }
 
 pub(crate) fn default_name(tsx: &Path) -> String {

@@ -353,3 +353,14 @@ notes and is worth shipping without it: a person gets word scores, checks and bo
 5. **CLAP joins the stack** (Shane, 11-12: "include clap if we can if its not too much work"). It is about 300 lines
    of Rust on ort: the 48 kHz log-mel front end and the audio session (200), and the text tower with its tokenizer
    (100), run only when an axis's words change. Both are checked against the spike's vectors at cosine 0.999.
+6. **Pro and Studio include checks and content intelligence** (Shane, 11-20). Each month's pool (about 8,000 frames
+   checked on Pro, ten times that on Studio) stops when it's spent and is never billed past. It pays for two things:
+   - **clef-omni answering the fingerprint's questions** about a render's frames (`POST /v1/clef/ask`), so the agent
+     reads answers in words and opens only the frames they flag. Its verdicts are another eye's (FP6d), and it serves
+     the axes with no labels yet.
+   - **content intelligence for references** (`GET /v1/intel/...`): public posts, videos, transcripts and ads, to find
+     a videoform's references by what performs and keep them current (docs/videoform.md). A source's views and
+     engagement are another eye's evidence too, never the person's taste. A reference found this way is still read
+     once, as VF1 reads any link, and VF1's rights confirmation still applies.
+
+   Without a pool, everything here still works locally, and clef runs on the person's own Cloudflare account.

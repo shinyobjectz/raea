@@ -12,8 +12,8 @@ Feature: Videoform: the kind of video a person makes again and again, read once 
        references, its vocabulary, its template and its rules. It's found, inherited, taught and shared as a
        fingerprint is.
     2. Each part flows into the part of raea that does that job already: its ranges into its profile (FP6e), its rules
-       into a controller's rule fields (DR4, DR8), its structure into a NAME.script.ts template, its references into
-       brief.ts's `references` shape.
+       into the section's `rules`, each in a taste line's shape (words, a check, its values, a level; DR4, DR8), its
+       structure into a NAME.script.ts template, its references into brief.ts's `references` shape.
     3. A reference is read once, from the local drive or streamed from a URL, and never needed again: its per-shot rows,
        its vocabulary's vectors, its ranges, its structure and its rules are all that following and checking read.
     4. What stays the same across the references is the videoform; what varies is content. A rule's strength is its
@@ -23,13 +23,26 @@ Feature: Videoform: the kind of video a person makes again and again, read once 
     6. Checks start from the composition: a videoform's rules run in `raea check PROJECT` before any render, and
        embeddings only for shots that changed.
 
+  Start here (the order of work, and where it touches what exists):
+    - The order: VF1 and VF2 (a reference in, a videoform made), VF3 (each reference read once into the kept rows), then
+      VF4 with VF12 (the ranges, judged on the test bench). That pair is the gate: it passes on at least five of the
+      person's sets before VF1b's platform pages or anything in VF9-VF11 is built.
+    - New crates hold the work: raea-app-videoform (apps/videoform: ingest, rights, reading, the verbs, the bench),
+      raea-sys-videoform (systems/videoform: the maths over kept rows) and raea-io-resolve (io/resolve, VF1b). The
+      videoform section's types are core/brief's videoform.rs.
+    - Three small hooks into what exists: fingerprint.ts's optional `videoform` field (systems/fingerprint taxonomy.rs,
+      VF2), `raea context` printing a project's videoform (engine/cli guide.rs, VF2), and `raea check PROJECT` holding
+      the rules of the fingerprint that judges the piece (apps/direction check.rs, VF8).
+    - The bench (VF12) runs after every step, on every set, from the kept files alone; its numbers are the progress.
+
   Background:
     Given the readers raea has: footage perception (systems/footage), Fingerprint's columns (systems/columns: SigLIP 2,
       CLAP, YAMNet, cached by content hash), Parakeet's words, Beat This!, HTDemucs and Silero VAD (systems/song), OCR,
       Depth Anything 3, and raea check's one decode of the picture (raea-app-check-read once.rs)
     And Fingerprint's fingerprint.ts (`about`, `extends`, `applies`, axes, encoder pins), its profiles (FP6e: ranges by
       measure name, critique, leave-one-out), `which` (FP14c) and evidence rows (FP2c)
-    And controllers' `rule` fields and raea/check's `.ts` checks over the world (DR4), run by `raea check PROJECT`
+    And taste lines' checks (raea's six forms, a check by name, a `.ts` check written with raea/check over the world;
+      DR4), run by `raea check PROJECT`
     And the crate limits (a file at most 500 lines, a crate at most 2,000): raea-sys-fingerprint, -fingerprint-use and
       raea-app-fingerprint are each within 150 lines of theirs, so a videoform's code is its own crates, and the
       fingerprint crates grow only by a field and a map
@@ -149,12 +162,15 @@ Feature: Videoform: the kind of video a person makes again and again, read once 
       And the template is a NAME.script.ts a project made to the videoform starts from, checked by `raea spec`
 
     @needs:VF6,VF7
-    Scenario: VF8. Rules, with their strength, into a controller
+    Scenario: VF8. Rules, with their strength, in the videoform's rules
       Given the plan
         | crate              | file                              | lines | job                                                                    |
-        | raea-sys-videoform | systems/videoform/src/rules.rs    | 240   | coverage, order and event rules from the kept rows, each with how strongly it holds; written as rule fields of the controller `videoform.rules` names |
+        | raea-sys-videoform | systems/videoform/src/rules.rs    | 240   | coverage, order and event rules from the kept rows, each with how strongly it holds; written into the section's `rules`, each a taste line with its check and values |
+        | raea-app-direction | apps/direction/src/check.rs       | 15    | tastes(): the rules of the fingerprint `which` names for the project, after the person's, the workspace's and the project's taste |
       Then a rule that holds in most references (a punch-in when a number is said; a close-up of the counters in every
-        kitchen) is a rule field with its strength and its check
+        kitchen) is a line in the section's `rules`, with its strength and its check
+      And `raea check PROJECT` holds a piece to the rules of the fingerprint that judges it (raea-sys-fingerprint-use
+        `which`), beside the person's, the workspace's and the project's taste
       And the person confirms the strongest rules once, on a contact sheet of shot-kind stills, and each answer is
         evidence in the videoform
 

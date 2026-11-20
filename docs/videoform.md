@@ -49,11 +49,10 @@ not only what was corrected. Notes still matter. They teach what the numbers can
 | Fingerprint: `fingerprint.ts` with `about`, `extends`, `applies` kinds and tags; `which` finds one by project, workspace and account; a child inherits its parent's evidence, its own counted more; notes teach the one that judged (FP14a-e) | the home: a videoform is one of these | the fields a kind of video needs |
 | Fingerprint's frozen encoders (SigLIP 2, CLAP, YAMNet, EmbeddingGemma 2, Depth Anything 3), columns cached by content hash, word and learned heads, evidence in f16 rows (FP1-FP4) | the per-shot vectors and measures, and where they're kept | no shot vocabulary, no structure |
 | Fingerprint profiles: ranges from admired work, critique against them, a leave-one-out test (FP6e, `raea fingerprint profile`) | a videoform's ranges, and its validation | few measures (loudness, tilt, cut rate, motion, light, colour, sharpness) |
-| Controllers' `rule` fields, a check by name or a `.ts` check on raea/check's world (DR4) | rules that `raea check PROJECT` and every agent hold work to | none written from references |
 | Notes become checks, and climb to project, workspace and taste (DR5-DR8, `raea notes keep`) | the path a correction takes to becoming a rule | a videoform's rules start from evidence, not notes |
 | `raea check`: findings and the record (DR3); who can fix what, carried findings, one decode (raea-app-check-cause, PR #205) | the check every pass runs | a videoform's rules join it as more rules |
 | `NAME.script.ts` (scenes, beats, lines, cut); `brief.ts` (`references`, `look`, `mode`, `deliver`) | a storyboard spec, and a brief that names references | no template made from references; references named, never read |
-| `taste.ts`, six checked forms | the person's standing lines | the forms are fixed: mined rules go to controllers, not here |
+| `taste.ts` lines: words, and a check that holds them (one of six forms, a check by name, or a `.ts` check on raea/check's world; DR4) | the person's, the workspace's and the project's standing lines, which `raea check PROJECT` and every agent hold work to | none written from references |
 | Footage perception (`systems/footage`: shots, cuts, camera, faces, words on screen, scene labels, performance, facts.json) | what each reference shot is | read for raw footage, not for references |
 | Transcription (Parakeet), beats, stems and voice activity (`raea song`, HTDemucs, Silero VAD), OCR | words, pauses, cuts against beats, music under voice, captions | not gathered into a videoform |
 | Index and libraries (SigLIP over a person's media; turbopuffer in the cloud) | finding footage by meaning; vector storage for teams | — |
@@ -83,7 +82,7 @@ Each part of a videoform flows into the part of raea that already does that job:
 |---|---|---|
 | ranges (pace, pauses, shot lengths, loudness, colour, captions) | its own profile (FP6e) | `raea fingerprint score --profile` critiques a cut against them, and leave-one-out is already built |
 | the taste taught later | its own evidence and heads (FP2, FP14b-d) | a note on a piece it judged teaches it, never the person's general fingerprint unless they move it up |
-| rules (coverage, order, event rules, limits) | a controller's `rule` fields, which `videoform.rules` names | `raea check PROJECT` runs them, and they're edited in the app like any controller |
+| rules (coverage, order, event rules, limits) | the section's `rules`, each in a taste line's shape (words, check, values, level) | `raea check PROJECT` runs them for a piece the videoform judges (`which`), beside the taste |
 | structure (slots, their order and lengths) | a `NAME.script.ts` template, which `videoform.template` names | a project made to the videoform starts from it, and agents plan from it as from any storyboard |
 | references | `brief.ts`'s existing `references` shape, `{ target, note }`, with the source kept by content hash | a reference is named the way a brief already names one |
 
@@ -161,7 +160,7 @@ Following and checking need four kinds of thing from the references, and a video
 | per-shot rows | each reference shot's SigLIP 2 vector (one pooled vector, a few frames averaged), its CLAP vector over the shot's sound, and its measures (length, scale, camera move, caption boxes, light and colour, words, pauses at its edges, its place in the video) | the shot vocabulary; matching new footage to shot kinds; the embedding checks |
 | the vocabulary's vectors | each term's phrasings through the text towers, as word heads store them (FP2e) | naming shot kinds; finding domain things in new footage |
 | the profile | the ranges of every measure across the references (FP6e) | the critique, and composition-first range checks |
-| the structure and the rules | the slots with their lengths and shot kinds; the event and coverage rules with their strength | the template, and the controller rules `raea check` runs |
+| the structure and the rules | the slots with their lengths and shot kinds; the event and coverage rules with their strength | the template, and the rules `raea check` runs |
 
 Also kept: one small still for each shot kind (a thumbnail, a few kilobytes), so the person can see what a kind is when
 confirming rules, and the evidence the person adds over time. The reference videos aren't kept.
@@ -226,8 +225,8 @@ working as it was. This is the one time a reference is needed again, and it's th
    (open, sections, close), each with its length range, its shot kinds and what's on screen. This becomes the script
    template.
 5. **The event rules.** How often one thing comes with another across the references ("a punch-in when a number is
-   said", "a close-up of the counters in every kitchen"). Those that hold in most references become controller rules,
-   each stating how strongly it holds.
+   said", "a close-up of the counters in every kitchen"). Those that hold in most references become the videoform's
+   rules, each stating how strongly it holds.
 6. **The person confirms the strongest rules once,** on a contact sheet ("countertop close-up in every kitchen: 9 of
    10"). Each yes or no is evidence in the videoform, as any label is in a fingerprint.
 
@@ -247,7 +246,7 @@ working as it was. This is the one time a reference is needed again, and it's th
    - shot lengths and pauses (the voice's cut points are in the composition);
    - caption places and sizes.
 
-   These are the controller rules, run by `raea check PROJECT` as today.
+   These are the videoform's rules, run by `raea check PROJECT` with the taste.
 2. **On the render manifest and measures, in seconds:** loudness, light and colour against the profile (`raea
    fingerprint score --profile`).
 3. **On embeddings, only for shots that changed:** each shot against its slot's shot kind (one SigLIP frame a shot);
@@ -298,7 +297,7 @@ The sets, their answers and their verdicts are kept as fixtures, so each step of
 | | VF5 | the vocabulary loop with the person's AI, as word heads | medium-high | word heads already score from text; the report is new |
 | | VF6 | the shot vocabulary (clusters named from the vocabulary) | medium | clustering is plain; naming quality varies by domain |
 | | VF7 | the structure template | medium | alignment across varied videos is the hard part |
-| | VF8 | event rules into controller rules, with strength, confirmed by the person | medium | co-occurrence is plain; telling habit from style needs the person |
+| | VF8 | event rules into the videoform's rules, with strength, confirmed by the person; `raea check` holds them | medium | co-occurrence is plain; telling habit from style needs the person |
 | | VF8b | when it doesn't hold together: too few, mixed kinds (split into videoforms), traits that vary, outliers | medium-high | groups and spreads come from the kept rows |
 | | VF8c | adding and removing references from kept rows; encoder pins and `refresh` | high | Fingerprint keeps evidence across upgrades the same way (FP8c) |
 | 3, use | VF9 | following: context, coverage gaps, planning to the template | medium-high | context and scripts exist |

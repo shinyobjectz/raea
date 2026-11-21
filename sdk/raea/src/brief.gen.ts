@@ -40,11 +40,7 @@ assumed?: Array<string>,
 /**
  * prose sections beyond the fields above (Goal, Background), in order
  */
-sections?: Array<Section>, deliver?: Array<Deliverable>, references?: Array<Reference>, 
-/**
- * the tasks, in stages ("Act one", "The cut")
- */
-stages?: Array<Stage>, agents?: Array<Agent>, };
+sections?: Array<Section>, deliver?: Array<Deliverable>, references?: Array<Reference>, agents?: Array<Agent>, };
 
 export type Section = { heading: string, text: string, };
 
@@ -67,20 +63,6 @@ brief?: string,
 script?: string, };
 
 export type Reference = { target: string, note?: string, };
-
-export type Stage = { name: string, tasks: Array<Task>, };
-
-export type Mark = "todo" | "done" | "dropped";
-
-export type Task = { text: string, 
-/**
- * a task linked to an item takes the item's state (the work is the truth); this is for unlinked ones
- */
-mark?: Mark, agents?: Array<string>, item?: string, tags?: Array<string>, due?: string, 
-/**
- * the craft verb it was written as ("quieter"): agents read it, the page shows the text
- */
-verb?: string, };
 
 export type Agent = { name: string, role?: string, };
 
@@ -144,11 +126,24 @@ export type TasteSection = {
  */
 heading: string, rules: Array<Rule>, };
 
-export type Rule = { text: string, check?: Check, };
+export type Rule = { text: string, check?: RuleCheck, 
+/**
+ * what a named or a .ts check is held to (`{ band: 0.8 }`); a form carries its own value
+ */
+values?: Record<string, number | string | boolean>, 
+/**
+ * how bad what its check finds is: error, warn or note (unset: a form's findings are errors, another check's keep
+ * its own level)
+ */
+level?: RuleLevel, };
+
+export type RuleCheck = Check | string;
+
+export type RuleLevel = "error" | "warn" | "note";
 
 export type Check = { "form": "text-hold", "value": number } | { "form": "text-above", "value": number } | { "form": "text-below", "value": number } | { "form": "text-margin", "value": number } | { "form": "loudness", "value": number } | { "form": "still-max", "value": number };
 
-export type Plan = { concept: Concept, 
+export type Parts = { concept: Concept, 
 /**
  * by name; the build's parts are typed from these keys, so a planned part the build skips is a tsc error
  */
@@ -190,16 +185,6 @@ material?: string, style?: string,
  */
 near?: string, };
 
-export type Controller = { id: string, title: string, help?: string, groups: Array<Group>, };
-
-export type Group = { id: string, title: string, help?: string, fields: Array<Field>, };
-
-export type Field = { id: string, label: string, help?: string, } & ({ "type": "toggle", value: boolean, } | { "type": "choice", options: Array<string>, value: string, } | { "type": "number", value: number, unit?: string, min?: number, max?: number, step?: number, } | { "type": "text", value: string, placeholder?: string, multiline?: boolean, } | { "type": "list", value: Array<string>, placeholder?: string, } | { "type": "agents", value: Array<string>, } | { "type": "channels", value: Array<string>, } | { "type": "workflow", value: Array<Step>, channels?: Array<string>, } | { "type": "servers", value: Array<string>, } | { "type": "skills", value: Array<string>, } | { "type": "rule", check: string, values: Record<string, number | string | boolean>, level?: string, });
-
-export type Kind = { "type": "toggle", value: boolean, } | { "type": "choice", options: Array<string>, value: string, } | { "type": "number", value: number, unit?: string, min?: number, max?: number, step?: number, } | { "type": "text", value: string, placeholder?: string, multiline?: boolean, } | { "type": "list", value: Array<string>, placeholder?: string, } | { "type": "agents", value: Array<string>, } | { "type": "channels", value: Array<string>, } | { "type": "workflow", value: Array<Step>, channels?: Array<string>, } | { "type": "servers", value: Array<string>, } | { "type": "skills", value: Array<string>, } | { "type": "rule", check: string, values: Record<string, number | string | boolean>, level?: string, };
-
-export type Step = { name: string, by?: string, back?: string, };
-
 export type Videoform = { 
 /**
  * What the videos are, in the person's words ("street interviews for a brand: the host, a stranger, the product in
@@ -220,8 +205,8 @@ vocabulary?: string,
  */
 template?: string, 
 /**
- * The NAME.rules.ts its rules are written to (VF8): a controller whose fields are rules (docs/direction.feature
- * DR4), mined from the references, each with how strongly it holds and the check that holds it
+ * The NAME.taste.ts its rules are written to (VF8): taste lines, each with the check that holds it (a standing rule
+ * is a taste line, docs/projects.feature PJ9), mined from the references with how strongly each holds
  */
 rules?: string, 
 /**

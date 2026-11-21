@@ -303,6 +303,16 @@ fn scored(enc: &mut Encoders, args: &[String], cwd: &Path, eval: Eval) -> Result
     let found = checks(&file);
     arbitrate(&mut s, &fp, &found);
     raea_sys_fingerprint_things::located::locate(enc, &file, &raea_sys_fingerprint_use::patch::load(&dir.dir), &mut s)?;
+    // AK8: each flag asked again of the decision model on its own window, the answers kept as clef's evidence
+    let doubles = match flag(args, "--ask").map(str::to_string).or_else(|| fp.ask.clone()) {
+        Some(which) => {
+            anyhow::ensure!(which == "flags" || which == "unsure", "--ask takes flags or unsure, not {which}");
+            let d = raea_app_double::ask(&file, &fp, raea_app_double::moments(&s, &fp, &which), &raea_app_double::Opts::new(4, false));
+            raea_app_double::keep(&dir, &c, &project_of(&file), &d).map_err(|e| anyhow!(e))?;
+            d
+        }
+        None => Vec::new(),
+    };
     // FP9a: each gating flag on the cut before, judged on this one, and its axis's disguises rerun on the fix
     let fixes = match flag(args, "--was") {
         Some(old) => {
@@ -314,7 +324,7 @@ fn scored(enc: &mut Encoders, args: &[String], cwd: &Path, eval: Eval) -> Result
         None => None,
     };
     let mut out = if has(args, "--json") {
-        serde_json::to_string_pretty(&json!({"fingerprint": {"name": fp.name, "about": fp.about, "why": why}, "scored": s, "checks": found.iter().map(|(r, a, b, says)| json!({"check": r, "a": a, "b": b, "says": says})).collect::<Vec<_>>(), "fixes": fixes}))?
+        serde_json::to_string_pretty(&json!({"fingerprint": {"name": fp.name, "about": fp.about, "why": why}, "scored": s, "clef": doubles, "checks": found.iter().map(|(r, a, b, says)| json!({"check": r, "a": a, "b": b, "says": says})).collect::<Vec<_>>(), "fixes": fixes}))?
     } else if let Some(f) = &fixes {
         let mut t = format!("judged by {}: {why}\n", fp.name);
         t += &raea_sys_fingerprint_use::fixed::said(f);
@@ -323,6 +333,9 @@ fn scored(enc: &mut Encoders, args: &[String], cwd: &Path, eval: Eval) -> Result
     } else {
         let mut t = format!("judged by {}: {why}\n", fp.name);
         t += &summary(&s);
+        if !doubles.is_empty() {
+            t += &raea_app_double::lines(&doubles);
+        }
         t += &format!("checks: {}\n", if found.is_empty() { "no findings".to_string() } else { format!("{} findings", found.len()) });
         for (r, a, _, says) in &found {
             t += &format!("  {} {r}: {says}\n", clock(*a));

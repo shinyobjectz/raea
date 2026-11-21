@@ -4,7 +4,7 @@ Notes like these: "we need it in 16:9", "a square one for the feed", "4:5 for In
 YouTube". The same piece made right for another size, length or platform; never a crop of the old one.
 
 ## Assess
-- The controllers' delivery specs name the sizes, lengths and platforms; work to those.
+- The brief's deliverables and the taste name the sizes, lengths and platforms; work to those.
 - For each size, find what no longer fits: type that wraps, a face cut off, a part in a platform's button zone, a
   hold that's too long for a shorter cut.
 

@@ -3,7 +3,8 @@
 //! repo's git config), and an agent's copy of the raea skill from another version. `raea context` runs the same checks
 //! and prints CONTEXT_STALE when any finds something, so they stay cheap: file reads and git config, no engine.
 //! It also lists what in the project isn't connected to raea's project system (docs/projects.feature PJ8, registry.rs):
-//! `--fix` registers a default export and moves a stray controller to controllers/, as a commit.
+//! `--fix` registers a default export, as a commit. A controller left from before 11-20 is listed with where its parts
+//! go, and kept: raea reads none since, and only the person knows which still hold.
 use super::*;
 use crate::workspace::{get, git, include, new_id, set};
 
@@ -69,6 +70,32 @@ fn format(repo: &Path, file: &Path, keys: &[(&str, String)], out: &mut Vec<Findi
     }
 }
 
+/// Controllers, which raea no longer reads (11-20): each .ts in the project's or the workspace's controllers/ (or the
+/// workspace's shared/controllers/), with where its parts go. Nothing is moved or deleted.
+fn old_controllers(base: &Path, ws: Option<&Path>, out: &mut Vec<Finding>) {
+    let mut dirs = vec![base.join("controllers")];
+    dirs.extend(ws.into_iter().flat_map(|w| [w.join("controllers"), w.join("shared/controllers")]));
+    dirs.dedup();
+    for d in dirs {
+        let mut files: Vec<PathBuf> = std::fs::read_dir(&d).into_iter().flatten().flatten().map(|e| e.path()).filter(|p| p.extension().is_some_and(|x| x == "ts")).collect();
+        files.sort();
+        for f in files {
+            let says = format!("{}: a controller, which raea no longer reads; move what still holds (a standing rule or preference to a line in taste.ts, with a check when raea can measure it; a decision for now to a feed post with an ask; a piece's settings into its composition), then delete it", f.display());
+            out.push(Finding { says, fix: Fix::No });
+        }
+    }
+}
+
+/// A brief.ts that still keeps tasks in `stages` (docs/plan.feature PL8a): they read, unread, and belong in plan.org.
+fn briefs_with_tasks(base: &Path, out: &mut Vec<Finding>) {
+    let f = base.join("brief.ts");
+    let Ok(text) = std::fs::read_to_string(&f) else { return };
+    if text.lines().any(|l| l.trim_start().starts_with("stages:") || l.trim_start().starts_with("\"stages\":")) {
+        let says = format!("{}: keeps tasks in `stages`, which raea no longer reads; move each to the project's plan.org (an Org heading under its stage, its mark as TODO, DONE or DROPPED), then delete `stages`", f.display());
+        out.push(Finding { says, fix: Fix::No });
+    }
+}
+
 /// The `version:` in a SKILL.md's front matter.
 fn skill_version(md: &Path) -> Option<String> {
     let text = std::fs::read_to_string(md).ok()?;
@@ -83,6 +110,8 @@ pub fn findings(from: &Path, skills: &[(&str, PathBuf)], version: &str) -> Vec<F
     let project = up(from, ".raea/project");
     let base = project.clone().or_else(|| ws.clone()).unwrap_or_else(|| from.to_path_buf());
     old_briefs(&base, if project.is_some() { 2 } else { 1 }, &mut out);
+    old_controllers(&base, ws.as_deref(), &mut out);
+    briefs_with_tasks(&base, &mut out);
     if let Some(ws) = &ws {
         let name = ws.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
         let keys = [("workspace.id", new_id("ws")), ("workspace.name", name), ("workspace.layout", "monorepo".to_string())];
@@ -154,7 +183,7 @@ pub fn doctor(args: &[String], skills: &[(&str, PathBuf)], version: &str, reinst
     let mut found = findings(&from, skills, version);
     found.extend(registry_findings(&from));
     if found.is_empty() {
-        return Ok("CHECKED  nothing to fix: this folder's files and the agents' raea skill match this raea, and its compositions, components and controllers are connected".into());
+        return Ok("CHECKED  nothing to fix: this folder's files and the agents' raea skill match this raea, and its compositions and components are connected".into());
     }
     let mut touched = Vec::new();
     let mut lines = Vec::new();
@@ -165,10 +194,8 @@ pub fn doctor(args: &[String], skills: &[(&str, PathBuf)], version: &str, reinst
             (Fix::Include(repo, file), true) => include(repo, file).map(|_| true),
             (Fix::Skills(agent), true) => reinstall(agent).map(|_| true),
             (Fix::Registry(r), true) => {
-                touched.extend(match r {
-                    crate::registry::Fix::Register { file, .. } => vec![file.clone()],
-                    crate::registry::Fix::Move { from, to } => vec![from.clone(), to.clone()],
-                });
+                let crate::registry::Fix::Register { file, .. } = r;
+                touched.push(file.clone());
                 crate::registry::apply(r).map(|_| true)
             }
             _ => Ok(false),

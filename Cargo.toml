@@ -4,6 +4,7 @@
 resolver = "2"
 members = [
     "core/animate",
+    "core/ask",
     "core/brief",
     "core/facts",
     "core/ease",
@@ -62,6 +63,7 @@ members = [
     "io/codec",
     "io/media",
     "io/assets",
+    "io/clef",
     "io/gen",
     "io/gen-comfy",
     "io/gen-core",
@@ -188,6 +190,8 @@ members = [
     "runtime/scene",
     "runtime/scene2d",
     "runtime/shared",
+    "apps/ask",
+    "apps/double",
     "apps/check",
     "apps/check/cause",
     "apps/check/flash",

@@ -1,12 +1,12 @@
 //! A rule: a line the work is held to, and the check that holds it (docs/direction.feature DR4). The check is one of
 //! raea's, by name with its values (apps/direction systems.rs), or a project's own TS check by its path (sdk/raea
-//! check.ts). Where a rule was written (raea's floor, the person's taste, a workspace's or a project's controller)
+//! check.ts). Where a rule was written (raea's floor, the person's, a workspace's or a project's taste file)
 //! changes nothing about how it runs: it is only said, as its findings' `by`. A taste file's six forms are six of
 //! raea's named checks with the same names and values, so every taste file reads as it did.
 
 use std::path::Path;
 
-use raea_core_brief::{controller, taste};
+use raea_core_brief::taste;
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 
@@ -49,32 +49,33 @@ impl Rule {
         self.values.get(name).and_then(Value::as_f64)
     }
 
-    /// A taste line that carries a check: the named check of its form (text-hold, text-above, text-below,
-    /// text-margin, loudness, still-max), its value as `value`. Taste's lines are errors, as raea check held them.
-    pub fn of_taste(text: &str, c: taste::Check, file: &str) -> Rule {
-        let values = Map::from_iter([("value".to_string(), Value::from(c.value()))]);
-        Rule::named(c.form(), text, values, Level::Error, &format!("taste {file}"))
-    }
-
-    /// A controller's rule fields, each a rule: a check's path joined to `dir` (the controller's folder; its `..`
-    /// steps are the caller's to take), the field's label its words. `by`: "workspace" or "project", with the
-    /// controller's file.
-    pub fn of_controller(c: &controller::Controller, dir: &Path, by: &str) -> Vec<Rule> {
-        let mut out = Vec::new();
-        for f in c.groups.iter().flat_map(|g| &g.fields) {
-            let controller::Kind::Rule { check, values, level } = &f.kind else { continue };
-            let (check, id) = match check.ends_with(".ts") {
-                true => {
-                    let path = dir.join(check);
-                    let id = path.file_stem().map(|s| s.to_string_lossy().into_owned()).unwrap_or_default();
-                    (path.display().to_string(), id)
-                }
-                false => (check.clone(), check.clone()),
-            };
-            let level = level.as_deref().map(Level::of_word);
-            out.push(Rule { id, text: f.label.clone(), check, values: values.clone().unwrap_or_default(), level, by: by.into(), of: None });
+    /// A taste line's rule, when it carries a check. One of the six forms is raea's named check of that form, its
+    /// value as `value`, and an error unless the line says otherwise. A check by name, or by path (joined to `dir`, the
+    /// taste file's folder; its `..` steps are the caller's to take, and the file's name is the rule's id), is held to
+    /// the line's `values` at the line's level (unset: the check's own). `by`: "taste" and the file.
+    pub fn of_taste(r: &taste::Rule, dir: &Path, by: &str) -> Option<Rule> {
+        let level = r.level.map(|l| match l {
+            taste::RuleLevel::Error => Level::Error,
+            taste::RuleLevel::Warn => Level::Warn,
+            taste::RuleLevel::Note => Level::Note,
+        });
+        match r.check.as_ref()? {
+            taste::RuleCheck::Form(c) => {
+                let values = Map::from_iter([("value".to_string(), Value::from(c.value()))]);
+                Some(Rule::named(c.form(), &r.text, values, level.unwrap_or(Level::Error), by))
+            }
+            taste::RuleCheck::Named(check) => {
+                let (check, id) = match check.ends_with(".ts") {
+                    true => {
+                        let path = dir.join(check);
+                        let id = path.file_stem().map(|s| s.to_string_lossy().into_owned()).unwrap_or_default();
+                        (path.display().to_string(), id)
+                    }
+                    false => (check.clone(), check.clone()),
+                };
+                Some(Rule { id, text: r.text.clone(), check, values: r.values.clone().unwrap_or_default(), level, by: by.into(), of: None })
+            }
         }
-        out
     }
 }
 
@@ -82,23 +83,24 @@ impl Rule {
 mod tests {
     use super::*;
 
-    #[test]
-    fn a_taste_form_is_the_named_check_of_the_same_name_and_value() {
-        let r = Rule::of_taste("Captions sit clear of the bottom.", taste::Check::TextAbove(62.0), "taste.ts");
-        assert_eq!((r.id.as_str(), r.check.as_str(), r.number("value"), r.level), ("text-above", "text-above", Some(62.0), Some(Level::Error)));
-        assert!(r.file().is_none() && r.by == "taste taste.ts");
+    fn line(j: serde_json::Value) -> taste::Rule {
+        serde_json::from_value(j).unwrap()
     }
 
     #[test]
-    fn a_controllers_rule_fields_are_rules_and_a_path_is_from_its_folder() {
-        let raw = serde_json::json!({"title": "Rules", "groups": [{"title": "G", "fields": [
-            {"label": "Captions clear the button band", "type": "rule", "check": "../checks/clear.ts", "level": "warn"},
-            {"label": "Loud enough", "type": "rule", "check": "loudness", "values": {"value": -14}},
-            {"label": "Burn in captions", "type": "toggle", "value": true}]}]});
-        let c = controller::normalize(&raw).unwrap();
-        let rs = Rule::of_controller(&c, Path::new("/p/controllers"), "project controllers/rules.ts");
-        assert_eq!(rs.len(), 2, "a toggle is no rule");
-        assert_eq!((rs[0].id.as_str(), rs[0].file(), rs[0].level), ("clear", Some(Path::new("/p/controllers/../checks/clear.ts")), Some(Level::Warn)));
-        assert_eq!((rs[1].check.as_str(), rs[1].number("value"), rs[1].level), ("loudness", Some(-14.0), None));
+    fn a_taste_form_is_the_named_check_of_the_same_name_and_value() {
+        let r = Rule::of_taste(&line(serde_json::json!({"text": "Captions sit clear of the bottom.", "check": {"form": "text-above", "value": 62}})), Path::new("/p"), "taste taste.ts").unwrap();
+        assert_eq!((r.id.as_str(), r.check.as_str(), r.number("value"), r.level), ("text-above", "text-above", Some(62.0), Some(Level::Error)));
+        assert!(r.file().is_none() && r.by == "taste taste.ts");
+        assert!(Rule::of_taste(&line(serde_json::json!({"text": "The look is neutral."})), Path::new("/p"), "taste taste.ts").is_none(), "words alone hold nothing");
+    }
+
+    #[test]
+    fn a_taste_lines_check_by_path_is_from_its_folder_and_by_name_keeps_its_values() {
+        let clear = line(serde_json::json!({"text": "Captions clear the button band", "check": "../checks/clear.ts", "level": "warn"}));
+        let r = Rule::of_taste(&clear, Path::new("/p/sub"), "taste sub/taste.ts").unwrap();
+        assert_eq!((r.id.as_str(), r.file(), r.level), ("clear", Some(Path::new("/p/sub/../checks/clear.ts")), Some(Level::Warn)));
+        let loud = Rule::of_taste(&line(serde_json::json!({"text": "Loud enough", "check": "loudness", "values": {"value": -14}})), Path::new("/p"), "taste taste.ts").unwrap();
+        assert_eq!((loud.check.as_str(), loud.number("value"), loud.level), ("loudness", Some(-14.0), None));
     }
 }

@@ -130,9 +130,14 @@ fn context_body(out: &mut String, dir: &Path, taste_dir: Option<PathBuf>, modes:
     if let Some((p, text)) = raea_app_workspace::up(&dir, ".raea/workspace").and_then(|ws| spec::taste_file(&ws, "taste")) {
         section(format!("WORKSPACE TASTE {}", p.display()), text);
     }
-    // the workspace's controllers with this project's overrides (its settings and workflows, which the work follows), and
-    // the project's compositions, components and controllers as raea reads them (docs/projects.feature PJ8)
-    for (name, text) in raea_app_workspace::context(dir, spec::spec_json) {
+    // the project's own rules, which raea check holds beside the person's and the workspace's (DR4)
+    if raea_app_workspace::up(dir, ".raea/workspace").as_deref() != Some(dir)
+        && let Some((p, text)) = spec::taste_file(dir, "taste")
+    {
+        section(format!("PROJECT TASTE {}", p.display()), text);
+    }
+    // the project's compositions and components as raea reads them (docs/projects.feature PJ8)
+    for (name, text) in raea_app_workspace::context(dir) {
         section(name, text);
     }
     section(format!("BRIEF {}", brief_path.display()), brief.clone());

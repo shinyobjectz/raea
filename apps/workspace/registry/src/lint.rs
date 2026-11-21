@@ -20,8 +20,6 @@ pub enum Level {
 pub enum Fix {
     /// registers a default export: an import line at the top (when one is missing) and a registerRoot at the end
     Register { file: PathBuf, import: Option<String>, root: String },
-    /// a controller moved to the workspace's (or the project's) controllers/
-    Move { from: PathBuf, to: PathBuf },
 }
 
 #[derive(Debug, Clone)]
@@ -66,13 +64,12 @@ fn warn(file: &str, line: usize, rule: &'static str, says: String, fix: impl Int
     Lint { file: file.into(), line, rule, level: Level::Warn, says, fix: fix.into(), action: None }
 }
 
-pub(super) fn lint(reg: &Registry, files: &[File], used_by: &BTreeMap<String, BTreeSet<String>>, overridden: &[String]) -> Vec<Lint> {
+pub(super) fn lint(reg: &Registry, files: &[File], used_by: &BTreeMap<String, BTreeSet<String>>) -> Vec<Lint> {
     let mut out = Vec::new();
-    if !reg.project && !(reg.compositions.is_empty() && reg.controllers.is_empty()) {
+    if !reg.project && !reg.compositions.is_empty() {
         out.push(warn("", 0, "not-a-project", "this folder isn't in a raea project (no .raea/project at or above it)".into(), "raea project new NAME and move the files in, or raea workspace adopt the folder"));
     }
     let comp_files: BTreeSet<&str> = reg.compositions.iter().map(|c| c.file.as_str()).collect();
-    let controller_files: BTreeSet<&str> = reg.controllers.iter().map(|c| c.file.as_str()).collect();
     // the workspace's shared/, which a project reaches as @shared/
     let shared = super::up(&reg.dir, ".raea/workspace").map(|w| {
         let s = w.join("shared");
@@ -89,7 +86,7 @@ pub(super) fn lint(reg: &Registry, files: &[File], used_by: &BTreeMap<String, BT
             out.push(Lint { file: f.rel.clone(), line: 1, rule: "computed-root", level: Level::Info, says: "registers its root through code the scan doesn't follow (a helper that makes its <Composition>s), so its compositions aren't listed".into(), fix: "known when it renders; write each <Composition> inside registerRoot to have them listed before".into(), action: None });
         }
         // a .tsx that is neither a composition nor reached from one
-        if f.rel.ends_with(".tsx") && !f.facts.roots && !comp_files.contains(f.rel.as_str()) && !used_by.contains_key(&f.rel) && !controller_files.contains(f.rel.as_str()) {
+        if f.rel.ends_with(".tsx") && !f.facts.roots && !comp_files.contains(f.rel.as_str()) && !used_by.contains_key(&f.rel) {
             out.push(warn(&f.rel, 1, "orphan", "isn't a composition, and no composition imports it".into(), "register it (a default export or a registerRoot <Composition>), import it from a composition, or delete it"));
         }
         for (spec, line) in f.facts.imports.iter().filter(|(s, _)| is_path(s)) {
@@ -197,54 +194,6 @@ pub(super) fn lint(reg: &Registry, files: &[File], used_by: &BTreeMap<String, BT
         }
     }
 
-    // controllers: where they're kept, one id each, and every override naming one that's there
-    let ws = super::up(&reg.dir, ".raea/workspace");
-    // a project keeps its own (its controllers/); the workspace's own folder keeps the shared ones (docs/layout.feature LY3)
-    let home = match &ws {
-        Some(w) if w != &reg.dir => reg.dir.join("controllers"),
-        Some(w) => super::shared_dir(w, "controllers"),
-        None => reg.dir.join("controllers"),
-    };
-    let mut ids: BTreeMap<String, Vec<&str>> = BTreeMap::new();
-    for c in &reg.controllers {
-        let f = files.iter().find(|f| f.rel == c.file).expect("a controller's file was read");
-        if let Some(id) = &c.id {
-            ids.entry(id.clone()).or_default().push(&c.file);
-        }
-        let in_home = f.path.parent().and_then(Path::file_name).is_some_and(|n| n == "controllers");
-        if !in_home {
-            let id = c.id.clone().unwrap_or_else(|| stem(&c.file));
-            let to = home.join(format!("{id}.ts"));
-            out.push(Lint {
-                file: c.file.clone(),
-                line: c.line,
-                rule: "controller-home",
-                level: Level::Warn,
-                says: "a controller outside controllers/: `raea controller` and the app don't read it".into(),
-                fix: format!("move it to {}", to.display()),
-                action: (!to.exists()).then(|| Fix::Move { from: f.path.clone(), to }),
-            });
-        }
-    }
-    for (id, at) in ids.iter().filter(|(_, at)| at.len() > 1) {
-        for f in at {
-            out.push(warn(f, 1, "controller-duplicate", format!("controller \"{id}\" is declared in {} files", at.len()), "keep one: the others' fields override nothing"));
-        }
-    }
-    // the workspace's controllers too, read the same way, for overrides naming them
-    let mut known: BTreeSet<String> = ids.keys().cloned().collect();
-    for e in std::fs::read_dir(&home).into_iter().flatten().flatten() {
-        let src = std::fs::read_to_string(e.path()).unwrap_or_default();
-        if let Some(id) = super::read::read(&src, false).controller.and_then(|c| c.id) {
-            known.insert(id);
-        }
-    }
-    let mut named = BTreeSet::new();
-    for id in overridden {
-        if !known.contains(id) && named.insert(id.clone()) {
-            out.push(warn(".raea/project", 0, "override-missing", format!("overrides controller \"{id}\", which isn't there"), format!("raea controller ls lists the ones there; remove the override with git config --file .raea/project --remove-section controller.{id}")));
-        }
-    }
     out
 }
 
@@ -256,13 +205,6 @@ pub fn apply(fix: &Fix) -> Result<String, String> {
             let text = format!("{}{}{root}", import.clone().unwrap_or_default(), src.trim_end_matches('\n'));
             std::fs::write(file, text).map_err(|e| format!("{}: {e}", file.display()))?;
             Ok(format!("registered {}", file.display()))
-        }
-        Fix::Move { from, to } => {
-            if let Some(d) = to.parent() {
-                std::fs::create_dir_all(d).map_err(|e| e.to_string())?;
-            }
-            std::fs::rename(from, to).map_err(|e| format!("{}: {e}", from.display()))?;
-            Ok(format!("moved {} to {}", from.display(), to.display()))
         }
     }
 }

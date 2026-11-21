@@ -5,7 +5,7 @@
 //! towers (SigLIP 2 for what's seen, CLAP for what's heard) and kept in videoform/vocab.json and vocab.f16 until they
 //! change. The references' shot kinds (VF6), named from the terms, are said after it and kept in videoform/kinds.json,
 //! and the template made from them and the sections (VF7) is written as NAME.script.ts; the rules mined from all of it
-//! (VF8) as NAME.rules.ts, with a contact sheet a shot kind, from the references' stills, to confirm them on.
+//! (VF8) as NAME.taste.ts, taste lines with their checks, with a contact sheet a shot kind, from the references' stills, to confirm them on.
 
 use crate::{Eval, plain};
 use raea_core_brief::videoform::{Correction, Term};
@@ -16,7 +16,7 @@ use raea_sys_columns::{CLAP, Encoders, SIG};
 use raea_sys_fingerprint::taxonomy::{PICTURE_VOCAB, SOUND_VOCAB, prompt};
 use raea_sys_videoform::kinds::{Kinds, kinds, lines};
 use raea_sys_videoform::rows::{Rows, stills};
-use raea_sys_videoform_rules::{Rule, lines as rule_lines, rules, rules_ts};
+use raea_sys_videoform_rules::{Rule, lines as rule_lines, rules, taste_ts};
 use raea_sys_videoform::structure::{lines as st_lines, script_ts, structure, template};
 use raea_sys_videoform::vocab::{Background, Head, Pat, Report, Space, fire, lines as did, report};
 use std::path::{Path, PathBuf};
@@ -31,7 +31,7 @@ pub(crate) fn template_file(name: &str) -> String {
 
 /// The rules' name, beside it (VF8)
 pub(crate) fn rules_file(name: &str) -> String {
-    format!("{name}.rules.ts")
+    format!("{name}.taste.ts")
 }
 
 /// The vocabulary, when it's written
@@ -204,9 +204,9 @@ pub(crate) fn found(dir: &Path, v: &Vocabulary, said: &[Correction]) -> Result<(
     let kept = dir.join("videoform/rules.json");
     std::fs::write(&kept, serde_json::to_vec_pretty(&rules_found).unwrap()).map_err(|e| format!("{}: {e}", kept.display()))?;
     let rf = dir.join(rules_file(&name));
-    std::fs::write(&rf, rules_ts(&rules_found, &name, n)).map_err(|e| format!("{}: {e}", rf.display()))?;
+    std::fs::write(&rf, taste_ts(&rules_found, &name, n)).map_err(|e| format!("{}: {e}", rf.display()))?;
     out.extend(rule_lines(&rules_found, &names, &name));
-    out.push(format!("The rules, a controller of rule fields: {}", rf.display()));
+    out.push(format!("The rules, taste lines with their checks (raea spec checks it): {}", rf.display()));
     out.push(match sheets(dir, &rep.kinds, &rows) {
         Ok(d) => format!("Each shot kind's stills, to confirm the rules on (kind-N.jpg is the kind a rule's kind-N names): {}", d.display()),
         Err(e) => format!("No contact sheets: {e}"),

@@ -1,0 +1,18 @@
+[package]
+name = "raea-io-clef"
+version = "0.1.0"
+edition = "2024"
+license = "FSL-1.1-ALv2"
+publish = false
+description = "The decision model (clef-omni) called one way: the call, the media cut to its limits, the route (the person's raea plan first) and the cache"
+
+[dependencies]
+raea-core-ask = { path = "../../core/ask" }
+raea-io-home = { path = "../home" }
+# raea's own FFmpeg (fetched on Windows) and the H.264 encoder this machine has
+raea-io-assets = { path = "../assets" }
+raea-io-ffmpeg = { path = "../ffmpeg" }
+serde_json = "1"
+ureq = { version = "2", features = ["json"] }
+base64 = "0.22"
+sha2 = "0.10"

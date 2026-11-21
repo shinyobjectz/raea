@@ -1,8 +1,7 @@
 //! What one .tsx or .ts file declares, read from its source without running it (docs/projects.feature PJ8): the
 //! compositions its registerRoot registers, each <Composition>'s id, component, size, fps and length (a value written
-//! out, or the expression that computes it); its default export; what it imports; and whether its default export is a
-//! controller (`export default controller({...})` from "raea/brief"). A prop written as a top-level constant, or simple
-//! arithmetic on them (`const FPS = 30; … durationInFrames={15 * FPS}`), is read as its value.
+//! out, or the expression that computes it); its default export; and what it imports. A prop written as a top-level
+//! constant, or simple arithmetic on them (`const FPS = 30; … durationInFrames={15 * FPS}`), is read as its value.
 use oxc::allocator::Allocator;
 use oxc::ast::ast::*;
 use oxc::ast_visit::{Visit, walk};
@@ -43,13 +42,6 @@ pub struct Registered {
     pub frames: Option<Prop>,
 }
 
-/// A controller the file's default export declares: its id (written, else from its title), at a line.
-#[derive(Debug, Clone)]
-pub struct Declared {
-    pub line: usize,
-    pub id: Option<String>,
-}
-
 #[derive(Debug, Default)]
 pub struct Facts {
     pub registered: Vec<Registered>,
@@ -57,7 +49,6 @@ pub struct Facts {
     pub default: Option<Option<String>>,
     /// each import or re-export's module, at its line
     pub imports: Vec<(String, usize)>,
-    pub controller: Option<Declared>,
     /// the names it imports from "raea" (a fix that registers its default export adds only what's missing)
     pub raea_names: Vec<String>,
     /// why it didn't parse (the first diagnostic), when it didn't
@@ -78,22 +69,12 @@ pub fn read(source: &str, tsx: bool) -> Facts {
         f.broken = Some(d.to_string());
         return f;
     }
-    let mut controller_fn = None;
     for s in &parsed.program.body {
         match s {
             Statement::ImportDeclaration(d) => {
                 f.imports.push((d.source.value.to_string(), line(d.span.start)));
                 if d.source.value == "raea" {
                     f.raea_names.extend(d.specifiers.iter().flatten().map(|sp| sp.local().name.to_string()));
-                }
-                if d.source.value == "raea/brief" {
-                    for sp in d.specifiers.iter().flatten() {
-                        if let ImportDeclarationSpecifier::ImportSpecifier(x) = sp
-                            && x.imported.name() == "controller"
-                        {
-                            controller_fn = Some(sp.local().name.to_string());
-                        }
-                    }
                 }
             }
             Statement::ExportFromDeclaration(d) => f.imports.push((d.source.value.to_string(), line(d.span.start))),
@@ -110,12 +91,6 @@ pub fn read(source: &str, tsx: bool) -> Facts {
                     ExportDefaultDeclarationKind::Identifier(x) => Some(x.name.to_string()),
                     _ => None,
                 });
-                if let ExportDefaultDeclarationKind::CallExpression(c) = &d.declaration
-                    && let Expression::Identifier(callee) = &c.callee
-                    && controller_fn.as_deref() == Some(callee.name.as_str())
-                {
-                    f.controller = Some(Declared { line: line(d.span.start), id: controller_id(c) });
-                }
             }
             _ => {}
         }
@@ -128,21 +103,6 @@ pub fn read(source: &str, tsx: bool) -> Facts {
         r
     }).collect();
     f
-}
-
-/// A controller's id as written, else from its title (core/brief fills an id in from the title the same way).
-fn controller_id(c: &CallExpression) -> Option<String> {
-    let Some(Argument::ObjectExpression(o)) = c.arguments.first() else { return None };
-    let text = |key: &str| {
-        o.properties.iter().find_map(|p| match p {
-            ObjectPropertyKind::ObjectProperty(p) if p.key.static_name().as_deref() == Some(key) => match &p.value {
-                Expression::StringLiteral(s) => Some(s.value.to_string()),
-                _ => None,
-            },
-            _ => None,
-        })
-    };
-    text("id").or_else(|| text("title").map(|t| super::slug(&t)))
 }
 
 /// The file's top-level numeric constants, in order: `const FPS = 30`, `const DUR = 15 * FPS`, and an object constant's

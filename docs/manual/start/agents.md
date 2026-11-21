@@ -41,9 +41,9 @@ In a project folder, print everything to read first, in order:
 raea context .
 ```
 
-That prints the person's taste (`~/.raea/taste/taste.ts`), the workspace's taste, the project's brief, its look, the
-workspace's controllers (its settings and workflows), the craft floor, and the guide for each of the brief's modes.
-Read all of it. A line in the person's taste beats any guide's default.
+That prints the person's taste (`~/.raea/taste/taste.ts`), the workspace's taste, the project's own taste, its brief,
+its look, the craft floor, and the guide for each of the brief's modes. Read all of it. A line in the person's taste
+beats any guide's default.
 
 With no request in hand, `raea next` lists the two or three useful next steps for the project. Offer them to the
 person; don't run one unasked.
@@ -123,7 +123,7 @@ text.
 
 - Final exports of motion graphics and type: `--quality master`.
 - Name files with lowercase letters, digits and hyphens only: `spring-launch-9x16.mp4`.
-- Deliver to the workspace's controllers when they set sizes, platforms or loudness (`raea controller ls`).
+- Deliver to the taste when it sets sizes, platforms or loudness (`raea context .` prints it).
 
 ## What an agent should never do
 

@@ -18,7 +18,7 @@ space", "the logo's lost". Where things sit in the frame and how much room each 
 - One focal point per moment. Make it bigger or give it more room; make the rest smaller rather than moving it away.
 - Put parts on a grid: shared left edges, shared baselines, the same margin on every side (`raea guide motion/layout`).
 - Use the room on purpose: space around the focal point, not spread evenly across the frame.
-- Keep text and faces inside the safe zones of every platform the controllers name.
+- Keep text and faces inside the safe zones of every platform the brief or the taste names.
 
 ## Verify
 - Stills at the same frames, before and after (`raea render --at`), at ship size. The eye goes to the right place first.

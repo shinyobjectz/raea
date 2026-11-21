@@ -130,3 +130,13 @@ fn a_script_and_a_still_get_rows() {
     assert_eq!((s.sig.len(), s.dur, s.text.len()), (crate::SIG, 1.0, 0));
     let _ = std::fs::remove_dir_all(&dir);
 }
+
+#[test]
+fn a_file_with_no_sound_track_has_no_sound_to_judge() {
+    use crate::window::Modality;
+    // what columns() gives a render with no audio stream: one empty clip's CLAP vector, and no levels
+    let silent = Columns { sig: vec![0.0; SIG], clap: vec![0.0; CLAP], ..Default::default() };
+    assert!(Modality::Picture.in_file(&silent) && !Modality::Sound.in_file(&silent) && !Modality::Events.in_file(&silent));
+    let heard = Columns { level: vec![-30.0], ..silent };
+    assert!(Modality::Sound.in_file(&heard));
+}

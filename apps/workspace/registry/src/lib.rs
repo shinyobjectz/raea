@@ -1,13 +1,11 @@
-//! A project's compositions, components and controllers, registered by reading its files (docs/projects.feature PJ8),
+//! A project's compositions and components, registered by reading its files (docs/projects.feature PJ8),
 //! so the raea app, `raea project scan`, `raea doctor` and `raea next` agree on what each file is:
 //! - a composition is each <Composition> a registerRoot registers (its props read from the source, not rendered), or a
 //!   .tsx's default export with none that no other file imports, registered for it under its file's name (versions
 //!   NAME-vN.tsx are one composition), sized from its newest render's manifest when it has one;
-//! - a component is a .tsx a composition imports, directly or through another;
-//! - a controller is a module whose default export is `controller({...})` from "raea/brief".
-//! What isn't connected is linted (lint.rs), each with its file and line and the fix. raea-app-workspace wraps `scan`
-//! with the project's controller overrides (read from .raea/project's git config) and runs it for `raea project scan`,
-//! `raea doctor`, `raea next` and `raea context`.
+//! - a component is a .tsx a composition imports, directly or through another.
+//! What isn't connected is linted (lint.rs), each with its file and line and the fix. raea-app-workspace runs `scan`
+//! for `raea project scan`, `raea doctor`, `raea next` and `raea context`.
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
 
@@ -22,9 +20,9 @@ pub use read::{Facts, Prop};
 /// The nearest folder at or above a path that holds a marker (.raea/workspace, .raea/project), as the record finds it.
 pub use raea_core_facts::record::up;
 
-/// The workspace's shared folder of one kind (docs/layout.feature: shared/compositions, components, controllers, assets,
-/// artifacts), which every project can call on as @shared/<kind>/. A workspace from before shared/ keeps that kind at
-/// its root (controllers/, artifacts/) until `raea workspace tidy` moves it, and it's read there meanwhile.
+/// The workspace's shared folder of one kind (docs/layout.feature: shared/compositions, components, assets, artifacts),
+/// which every project can call on as @shared/<kind>/. A workspace from before shared/ keeps that kind at its root
+/// (artifacts/) until `raea workspace tidy` moves it, and it's read there meanwhile.
 pub fn shared_dir(ws: &Path, kind: &str) -> PathBuf {
     let old = ws.join(kind);
     if !ws.join("shared").is_dir() && old.is_dir() {
@@ -33,7 +31,7 @@ pub fn shared_dir(ws: &Path, kind: &str) -> PathBuf {
     ws.join("shared").join(kind)
 }
 
-/// A name as a folder: lowercase, dashes. A controller's id from its title is this (core/brief fills it the same way).
+/// A name as a folder: lowercase, dashes.
 pub fn slug(s: &str) -> String {
     let mut out = String::new();
     for c in s.trim().to_lowercase().chars() {
@@ -82,13 +80,6 @@ pub struct Component {
     pub used_by: Vec<String>,
 }
 
-#[derive(Debug, Clone)]
-pub struct Controller {
-    pub id: Option<String>,
-    pub file: String,
-    pub line: usize,
-}
-
 #[derive(Debug)]
 pub struct Registry {
     pub dir: PathBuf,
@@ -96,7 +87,6 @@ pub struct Registry {
     pub project: bool,
     pub compositions: Vec<Composition>,
     pub components: Vec<Component>,
-    pub controllers: Vec<Controller>,
     pub lint: Vec<Lint>,
 }
 
@@ -180,9 +170,8 @@ fn manifest(path: &Path) -> Option<Value> {
     serde_json::from_str(&std::fs::read_to_string(f).ok()?).ok()
 }
 
-/// The folder's registry. `overridden`: the controller ids the project's overrides name, each checked against the
-/// controllers there (the folder's and its workspace's controllers/).
-pub fn scan(dir: &Path, overridden: &[String]) -> Registry {
+/// The folder's registry.
+pub fn scan(dir: &Path) -> Registry {
     let dir = dunce::canonicalize(dir).unwrap_or_else(|_| dir.to_path_buf());
     let project = up(&dir, ".raea/project").is_some();
     let mut found = Vec::new();
@@ -243,10 +232,9 @@ pub fn scan(dir: &Path, overridden: &[String]) -> Registry {
         .filter(|f| f.rel.ends_with(".tsx") && !comp_files.contains(f.rel.as_str()) && used_by.contains_key(&f.rel))
         .map(|f| Component { file: f.rel.clone(), used_by: used_by[&f.rel].iter().cloned().collect() })
         .collect();
-    let controllers = files.iter().filter_map(|f| f.facts.controller.as_ref().map(|c| Controller { id: c.id.clone(), file: f.rel.clone(), line: c.line })).collect();
 
-    let mut reg = Registry { dir, project, compositions, components, controllers, lint: Vec::new() };
-    reg.lint = lint::lint(&reg, &files, &used_by, overridden);
+    let mut reg = Registry { dir, project, compositions, components, lint: Vec::new() };
+    reg.lint = lint::lint(&reg, &files, &used_by);
     reg
 }
 
@@ -280,13 +268,12 @@ impl Registry {
                 "component": c.component, "width": p(&c.width), "height": p(&c.height), "fps": p(&c.fps), "frames": p(&c.frames),
             })).collect::<Vec<_>>(),
             "components": self.components.iter().map(|c| json!({ "file": c.file, "usedBy": c.used_by })).collect::<Vec<_>>(),
-            "controllers": self.controllers.iter().map(|c| json!({ "id": c.id, "file": c.file, "line": c.line })).collect::<Vec<_>>(),
             "findings": self.lint.iter().map(Lint::finding).collect::<Vec<_>>(),
         })
     }
 
-    /// For an agent (`raea context`): each composition with its id, file, size, fps and length, the components and
-    /// controllers, and what isn't connected (its warnings, at most ten; the notes are `raea project scan`'s).
+    /// For an agent (`raea context`): each composition with its id, file, size, fps and length, the components, and
+    /// what isn't connected (its warnings, at most ten; the notes are `raea project scan`'s).
     pub fn summary(&self) -> String {
         let p = |v: &Option<Prop>| match v {
             Some(Prop::Num(n)) => format!("{n}"),
@@ -304,9 +291,6 @@ impl Registry {
         if !self.components.is_empty() {
             out.push_str(&format!("components: {}\n", self.components.iter().map(|c| c.file.as_str()).collect::<Vec<_>>().join(", ")));
         }
-        if !self.controllers.is_empty() {
-            out.push_str(&format!("controllers: {}\n", self.controllers.iter().map(|c| format!("{} ({})", c.id.as_deref().unwrap_or("?"), c.file)).collect::<Vec<_>>().join(", ")));
-        }
         let warn: Vec<&Lint> = self.warnings().collect();
         if !warn.is_empty() {
             out.push_str(&format!("\nnot connected ({}; raea doctor --fix fixes what it can):\n", warn.len()));
@@ -321,11 +305,10 @@ impl Registry {
     /// each about its file:line with the fix, and their count last.
     pub fn text(&self) -> String {
         let mut out = format!(
-            "{}: {} compositions, {} components, {} controllers",
+            "{}: {} compositions, {} components",
             self.dir.display(),
             self.compositions.len(),
-            self.components.len(),
-            self.controllers.len()
+            self.components.len()
         );
         for c in &self.compositions {
             out.push_str(&format!("\n  composition {} ({}:{}{})", c.id, c.file, c.line, if c.how == How::Default { ", its default export" } else { "" }));

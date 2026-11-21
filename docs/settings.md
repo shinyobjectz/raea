@@ -41,7 +41,11 @@ libraries (pianos, General MIDI instruments, orchestral and percussion samples, 
 
 | Setting | What |
 |---|---|
-| `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN` | The checks' judge model (clef-omni on Workers AI) |
+| `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN` | The decision model (clef-omni on Workers AI) on your own Cloudflare account, for `raea ask`, `raea judge` and the checks that ask. Signed in to raea on Pro or Studio, the app pays from your plan's monthly pool first (docs/ask.feature) |
+| `RAEA_AGENT_KEY`, `RAEA_API` | An agent key with the `ask` scope, and the API address it came with: asks from your plan's pool with no app running (a pipeline, CI, a server) |
+| `RAEA_ASK_ROUTE` | `app`, `agent` or `own`: ask only that way, rather than the first that answers |
+| `RAEA_ASK_DIR` | Where `raea ask` keeps its answers, the clips it cut and its cache (`~/.raea/ask`) |
+| `RAEA_CLEF_REPLAY` | A JSON file of answers by question id, given back for every call: for tests, which then never spend |
 | `RAEA_GUIDES` | A folder of craft references for the agent's `guide` tool (`captions.md`, `motion-rules.md`, ...) |
 
 ## Rendering

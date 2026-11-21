@@ -20,7 +20,7 @@ Where these texts come from: the published Blender + Claude workflows.
 
 ## What to do
 
-1. Write the brief from the template (section 1). Write a `plan.ts` for every hero object.
+1. Write the brief from the template (section 1). Write a `NAME.parts.ts` for every hero object.
 2. Start the builder with the builder prompt (section 2), filled from the brief.
 3. After every stage and every fix, run step R: the review sheets, then the judge prompt (section 3) in a new context
    and `raea judge` on the same sheets.
@@ -29,7 +29,7 @@ Where these texts come from: the published Blender + Claude workflows.
 
 The brief is data, in three files:
 - `brief.ts` for the scene, made with `brief()` from `raea/brief`.
-- A `plan.ts` for each hero object, made with `plan()`.
+- A `NAME.parts.ts` for each hero object, made with `parts()`.
 - For an interior, the room plan that `checkLayout` reads (`raea/room`).
 
 Fields that have no schema yet go in `sections` as text.
@@ -72,12 +72,12 @@ Each generated object needs a reference picture made from this template:
 > light, plain pale grey seamless background, the whole object in frame with margin, three-quarter view from slightly
 > above, sharp focus, no people, no text, no brand names, no logos.
 
-Each hero object gets a plan. Its fields are the frozen contract that `raea solid info --expect` and the judge check
+Each hero object gets its parts (NAME.parts.ts). Its fields are the frozen contract that `raea solid info --expect` and the judge check
 against:
 
 ```ts
-import { plan } from "raea/brief";
-export default plan({
+import { parts } from "raea/brief";
+export default parts({
   concept: { what: "coin-op tumble dryer, stacked pair", style: "worn 1990s commercial", size: 1.9, seenFrom: 1.2,
              material: "enamelled steel" },
   parts: {
@@ -104,7 +104,7 @@ finished scene must read as the same place, the same objects and the same light.
 invent in the same world. brief.ts notDoing is a hard list: add nothing on it, and nothing the brief doesn't name.
 
 ORDER OF WORK (one stage at a time; a stage that fails its check is fixed before the next one starts)
-0. Plan. Every object row in brief.ts has a route, a real size and, for each hero, a plan.ts with its part tree and
+0. Plan. Every object row in brief.ts has a route, a real size and, for each hero, a NAME.parts.ts with its part tree and
    connection map. If any is missing, write it first, from how the real thing is built: look up the real product.
 1. Space. Block the room as boxes at real size. Place furniture with place() from raea/3d (on, against, beside,
    near, apart, facing, align, clear), never typed coordinates; its `found` must be empty. Check: `raea run checks.ts`

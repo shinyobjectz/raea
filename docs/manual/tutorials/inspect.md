@@ -38,4 +38,4 @@ properties and versions on the right. Move or scale what you've picked, and savi
 agent: when you say this, or here, it reads what you've picked, and makes the change in the same version you're
 editing.
 
-Next: [Controllers](controllers.md).
+Next: [Publish](publish.md).

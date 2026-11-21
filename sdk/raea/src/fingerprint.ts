@@ -46,6 +46,9 @@ export interface Fingerprint {
   extends?: string;
   /** Which pieces it judges when its project or workspace holds more than one. */
   applies?: Applies;
+  /** Its flags asked again of the decision model as it scores: "flags", or "unsure" for the moments it's unsure of too
+   *  (`raea fingerprint score --ask`). Costs by the flags; each answer is clef's evidence, never yours. */
+  ask?: "flags" | "unsure";
   /** What it notices, each axis with its words and the sense its head reads. */
   axes: Axis[];
   /** Each encoder's id and its file's sha256: heads trained on other encoders' columns are refused. */

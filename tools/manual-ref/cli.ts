@@ -26,12 +26,12 @@ const verbs: Verb[] = JSON.parse(run(["help", "--json"])).verbs
 // the index's groups, in the order a reader meets them; every verb is in one
 const GROUPS: [string, string, string[]][] = [
   ["Make", "Render, play and package what you wrote.", ["render", "play", "export-game", "export", "bundle", "app", "run"]],
-  ["Projects", "The workspace, its projects and what a project holds.", ["init", "workspace", "project", "controller", "spec", "component", "part", "add", "brand", "library", "index"]],
+  ["Projects", "The workspace, its projects and what a project holds.", ["init", "workspace", "project", "spec", "component", "part", "add", "brand", "library", "index"]],
   ["Check", "What's wrong before anyone watches it.", ["check", "judge", "fingerprint", "videoform", "findings", "scene", "light", "world", "solid", "next", "doctor", "hook", "traces"]],
   ["Footage", "Takes, cuts and the camera, from your own media.", ["media", "cut", "frame", "track", "splat", "mezz", "neural"]],
   ["Sound", "Music read, foley and instruments made on this machine.", ["song", "sounds", "sao", "tokensynth", "setup-audio"]],
   ["Generate and 3D tools", "Generated media, physics and weathering bakes, clothes and motion for SOMA's body, Blender and Godot.", ["gen", "physics", "wear", "clothes", "motion", "blender", "godot"]],
-  ["Agents and setup", "What an agent reads and shows the person, and the tools raea installs.", ["guide", "context", "notes", "show", "skill", "skills", "setup", "bug"]],
+  ["Agents and setup", "What an agent reads and shows the person, and the tools raea installs.", ["guide", "context", "notes", "show", "skill", "skills", "setup", "bug", "ask"]],
 ]
 /** A verb's page: VERB.md, but index.md is this section's own page, so raea index's is indexer.md */
 const pageOf = (verb: string) => (verb === "index" ? "indexer.md" : `${verb}.md`)

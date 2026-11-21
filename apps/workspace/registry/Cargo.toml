@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2024"
 license = "FSL-1.1-ALv2"
 publish = false
-description = "A raea project's compositions, components and controllers, read from their source without running it, and lint for what isn't connected (docs/projects.feature PJ8)"
+description = "A raea project's compositions and components, read from their source without running it, and lint for what isn't connected (docs/projects.feature PJ8)"
 
 [dependencies]
 dunce = "1"

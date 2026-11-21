@@ -4,6 +4,7 @@
 // (TODO MAKING REVIEW | DONE DROPPED), its properties and its views are in every registry from the start.
 import type { TaskFields } from "./edit.ts"
 import type { Plan, State, Task } from "./model.ts"
+import { trackerProblems } from "./trackers.ts"
 import { agenda, board, outline } from "./views.ts"
 
 export const STATES: readonly State[] = ["todo", "making", "review", "done", "dropped"]
@@ -127,7 +128,9 @@ export interface Diagnostic {
 }
 
 /** What is wrong in a plan by the registry's rules: ids used twice, properties that fail their check, kinds nobody
- *  defined, a kind's missing properties, keywords outside a kind's sequence, and the kinds' own checks. */
+ *  defined, a kind's missing properties, keywords outside a kind's sequence, the kinds' own checks, and its links to
+ *  other trackers (trackers.ts: an entry that isn't SYSTEM:ID, one tracker item on two tasks, a #+LINK_STATES:
+ *  keyword the plan doesn't know). Nothing else is required: no :ID:, no keyword on a heading, no property. */
 export function checkPlan(plan: Plan, reg: PlanRegistry = plans): Diagnostic[] {
   const out: Diagnostic[] = []
   const seen = new Map<string, Task>()
@@ -153,5 +156,6 @@ export function checkPlan(plan: Plan, reg: PlanRegistry = plans): Diagnostic[] {
     const why = kind.check?.(t, plan)
     if (why) say(why)
   }
+  for (const p of trackerProblems(plan)) out.push({ ref: p.task?.ref ?? "head", line: p.task?.line ?? p.line ?? 0, severity: "error", message: p.message })
   return out
 }

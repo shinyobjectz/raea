@@ -23,7 +23,8 @@ SHIMS=(':!systems/ml/src/feed.rs')
 #   a recorded SEO rankings file (the keywords searched that day)
 #   P26 baseline rows already taken (their notes name the composition as it was then)
 RECORDS=(':!*-OFL.txt' ':!apps/site/seo/rankings/*' ':!bench/p26-baseline/manifest.jsonl')
-SKIP=("${SHIMS[@]}" "${RECORDS[@]}" ':!*.lock' ':!*pnpm-lock.yaml' ':!*package-lock.json' ':!*/vendor/*' ':!vendor/*' ':!**/node_modules/**' ':!tools/no-void.allow' ':!tools/no-void.sh' ':!docs/handoff/*' ':!docs/overhaul/audit/*' ':!*LICENSE*' ':!*LICENCE*' ':!*.png' ':!*.jpg' ':!*.mp4' ':!*.woff2' ':!*.glb' ':!*.wasm')
+# raea-skills (skills/) is its own repo: an export has its files, the live tree's git grep never reads them
+SKIP=("${SHIMS[@]}" "${RECORDS[@]}" ':!skills/*' ':!*.lock' ':!*pnpm-lock.yaml' ':!*package-lock.json' ':!*/vendor/*' ':!vendor/*' ':!**/node_modules/**' ':!tools/no-void.allow' ':!tools/no-void.sh' ':!docs/handoff/*' ':!docs/overhaul/audit/*' ':!*LICENSE*' ':!*LICENCE*' ':!*.png' ':!*.jpg' ':!*.mp4' ':!*.woff2' ':!*.glb' ':!*.wasm')
 
 # file:line of each use, in one repo (prefixed with its path in raea)
 uses() {

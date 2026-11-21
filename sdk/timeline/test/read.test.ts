@@ -281,7 +281,7 @@ describe("TL14b: a sound in the feed is its tracks", () => {
   })
 })
 
-describe("TL0d: a feed item or a controller declares a timeline of its own data", () => {
+describe("TL0d: a feed item declares a timeline of its own data", () => {
   test("what is well formed is a timeline the editor takes; the rest is said", () => {
     const { timeline, errors } = readTimeline({
       fps: 1,

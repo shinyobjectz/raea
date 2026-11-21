@@ -23,9 +23,9 @@ required-features = ["bevy-plugins"]
 dunce = "1"
 raea-runtime-plugins = { path = "../../runtime/plugins" }
 raea-io-home = { path = "../../io/home" }
-# the schemas of what an agent writes (brief.ts, script.ts, taste.ts, controllers): raea context reads specs against them
+# the schemas of what an agent writes (brief.ts, script.ts, taste.ts, plan.ts): raea context reads specs against them
 raea-core-brief = { path = "../../core/brief" }
-# `raea workspace`, `raea project` and `raea controller` (docs/projects.feature PJ1-PJ4)
+# `raea workspace` and `raea project` (docs/projects.feature PJ1-PJ4)
 raea-app-workspace = { path = "../../apps/workspace" }
 # raea-runtime-react's defaults
 raea-runtime-react = { path = "../../runtime/react", default-features = false, features = ["h264", "av1", "scripts", "modules", "network", "ml"] }
@@ -70,6 +70,7 @@ raea-app-engines = { path = "../../apps/engines" }
 raea-app-solid = { path = "../../apps/solid" }
 # raea judge: review sheets judged by clef-omni
 raea-app-judge = { path = "../../apps/judge" }
+raea-app-ask = { path = "../../apps/ask" }
 raea-app-videoform = { path = "../../apps/videoform" }
 raea-app-media = { path = "../../apps/media" }
 # `raea app run|check|bundle` and `raea rune` on either target (docs/targets.feature T0b)

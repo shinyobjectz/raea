@@ -1,0 +1,9 @@
+[
+  {"id": "defect.muffled-voice", "ask": "Is there a muffled, distant voice that is hard to understand?", "sees": "nothing", "when": {"voice": true}, "label_words": ["muffled", "can't hear", "hard to hear", "distant voice"]},
+  {"id": "defect.harsh-music", "ask": "Is there harsh, shrill music that hurts to listen to?", "sees": "nothing", "label_words": ["harsh", "shrill", "piercing"]},
+  {"id": "defect.glitch", "ask": "Is there a rendering glitch: broken or torn geometry, or corrupted, blocky video?", "hears": false, "label_words": ["glitch", "torn", "corrupted", "artifact"]},
+  {"id": "defect.fake", "ask": "Does the scene look fake: plastic and computer generated, like a cheap video game render?", "hears": false, "label_words": ["fake", "plastic", "cgi", "video game"]},
+  {"id": "defect.barren", "ask": "Is the scene empty and barren: a bare room or space with nothing in it and no detail?", "hears": false, "label_words": ["empty", "barren", "bare", "nothing in it"]},
+  {"id": "defect.unreadable-text", "ask": "Is there small or cluttered text that is hard to read?", "hears": false, "label_words": ["can't read", "unreadable", "too small", "cluttered"]},
+  {"id": "defect.shaky-camera", "ask": "Is the camera shaky, like an unsteady handheld shot?", "hears": false, "label_words": ["shaky", "wobbly", "unsteady", "jittery"]}
+]

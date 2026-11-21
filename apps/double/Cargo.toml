@@ -1,0 +1,23 @@
+[package]
+name = "raea-app-double"
+version = "0.1.0"
+edition = "2024"
+license = "FSL-1.1-ALv2"
+publish = false
+description = "The fingerprint's flags asked again of the decision model (docs/ask.feature AK8): each flagged moment in its axis's own words on its own window, the answers beside the flags and kept as another eye's evidence"
+
+[dependencies]
+# the runner every ask goes through, and the question format
+raea-app-ask = { path = "../ask" }
+raea-core-ask = { path = "../../core/ask" }
+# the score's moments, the axes' words and the evidence rows clef's answers become
+raea-sys-fingerprint = { path = "../../systems/fingerprint" }
+raea-sys-fingerprint-use = { path = "../../systems/fingerprint-use" }
+raea-sys-columns = { path = "../../systems/columns" }
+serde = { version = "1", features = ["derive"] }
+
+[dev-dependencies]
+# a clip made with FFmpeg, and clef's answers as the tests give them
+raea-io-assets = { path = "../../io/assets" }
+raea-io-clef = { path = "../../io/clef" }
+serde_json = "1"

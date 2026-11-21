@@ -1,7 +1,7 @@
 ---
 title: "raea index"
 summary: "Make every picture on a folder or a drive searchable by words, embedded on this Mac's Neural Engine, and keep the index open for the raea app."
-order: 32
+order: 31
 sources: ["engine/cli/src/cli.rs"]
 ---
 

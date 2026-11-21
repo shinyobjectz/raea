@@ -1,4 +1,4 @@
-//! PJ8: a project's files read as compositions, components and controllers, and what isn't connected linted.
+//! PJ8: a project's files read as compositions and components, and what isn't connected linted.
 use super::*;
 
 fn project() -> (tempdir::Dir, PathBuf) {
@@ -21,8 +21,6 @@ fn project() -> (tempdir::Dir, PathBuf) {
     w("bare.render.json", "{\"width\": 1080, \"height\": 1080, \"fps\": 30, \"frames\": [{}, {}, {}]}");
     w("anon.tsx", "export default () => <div />;\n");
     w("broken.tsx", "export default function (\n");
-    w("controllers/delivery.ts", "import { controller } from \"raea/brief\";\nexport default controller({ id: \"delivery\", title: \"Delivery\", groups: [] });\n");
-    w("settings/look.ts", "import { controller } from \"raea/brief\";\n\nexport default controller({ title: \"Look and feel\", groups: [] });\n");
     std::fs::write(t.0.join("outside.tsx"), "export const far = 1;\n").unwrap();
     (t, p)
 }
@@ -46,9 +44,9 @@ mod tempdir {
 }
 
 #[test]
-fn compositions_components_and_controllers_are_read_from_the_files() {
+fn compositions_and_components_are_read_from_the_files() {
     let (_t, p) = project();
-    let r = scan(&p, &[]);
+    let r = scan(&p);
     assert!(r.project);
     let comps: Vec<(&str, &str, How)> = r.compositions.iter().map(|c| (c.id.as_str(), c.file.as_str(), c.how)).collect();
     assert!(comps.contains(&("promo", "promo.tsx", How::Registered)));
@@ -65,14 +63,12 @@ fn compositions_components_and_controllers_are_read_from_the_files() {
     // card is imported by promo, glyph through card (a default export, but imported): both components, used by promo
     let comps: Vec<(&str, Vec<&str>)> = r.components.iter().map(|c| (c.file.as_str(), c.used_by.iter().map(String::as_str).collect())).collect();
     assert_eq!(comps, [("card.tsx", vec!["promo.tsx"]), ("lib/glyph.tsx", vec!["promo.tsx"])]);
-    let ctl: Vec<(Option<&str>, &str)> = r.controllers.iter().map(|c| (c.id.as_deref(), c.file.as_str())).collect();
-    assert_eq!(ctl, [(Some("delivery"), "controllers/delivery.ts"), (Some("look-and-feel"), "settings/look.ts")]);
 }
 
 #[test]
 fn what_isnt_connected_is_linted_with_its_place_and_fix() {
     let (_t, p) = project();
-    let r = scan(&p, &[]);
+    let r = scan(&p);
     let has = |rule: &str, file: &str, line: usize| r.lint.iter().any(|l| l.rule == rule && l.file == file && l.line == line);
     assert!(has("orphan", "stray.tsx", 1));
     assert!(!r.lint.iter().any(|l| l.rule == "orphan" && ["card.tsx", "lib/glyph.tsx", "promo.tsx"].contains(&l.file.as_str())));
@@ -83,8 +79,6 @@ fn what_isnt_connected_is_linted_with_its_place_and_fix() {
     assert!(has("duplicate-id", "teaser.tsx", 4));
     assert!(r.lint.iter().filter(|l| l.rule == "duplicate-id").all(|l| l.says.contains("teaser") || l.file == "teaser.tsx"));
     assert!(has("computed", "promo.tsx", 5));
-    assert!(has("controller-home", "settings/look.ts", 3));
-    assert!(!r.lint.iter().any(|l| l.file == "controllers/delivery.ts"));
     // a default export with a render is registered by --fix; a nameless one says how
     let bare = r.lint.iter().find(|l| l.rule == "unregistered" && l.file == "bare.tsx").unwrap();
     assert!(bare.action.is_some());
@@ -94,42 +88,35 @@ fn what_isnt_connected_is_linted_with_its_place_and_fix() {
     assert!(!r.lint.iter().any(|l| l.rule == "orphan" && l.file == "shots.tsx"));
     assert!(has("computed-root", "shots.tsx", 1));
     // as Findings (DR3): about the file at its line, a fix --fix applies saying so, the count last
-    let home = r.lint.iter().find(|l| l.rule == "controller-home").unwrap().finding();
-    assert_eq!((home.about[0].key.as_deref(), home.fix.as_deref().map(|f| f.starts_with("raea doctor --fix does it: move it to"))), (Some("settings/look.ts:3"), Some(true)));
+    let stray = r.lint.iter().find(|l| l.rule == "orphan" && l.file == "stray.tsx").unwrap().finding();
+    assert_eq!((stray.about[0].key.as_deref(), stray.fix.as_deref().map(|f| f.starts_with("register it"))), (Some("stray.tsx:1"), Some(true)));
+    let bare = bare.finding();
+    assert_eq!((bare.about[0].key.as_deref(), bare.fix.as_deref().map(|f| f.starts_with("raea doctor --fix registers it"))), (Some("bare.tsx:1"), Some(true)), "a fix --fix applies says so");
     assert!(r.text().lines().last().unwrap().starts_with("raea project scan: 0 errors, "));
 }
 
 #[test]
-fn fixes_register_a_default_export_and_move_a_controller_home() {
+fn a_fix_registers_a_default_export() {
     let (_t, p) = project();
-    let r = scan(&p, &[]);
+    let r = scan(&p);
     for l in r.lint.iter().filter(|l| l.action.is_some()) {
         lint::apply(l.action.as_ref().unwrap()).unwrap();
     }
     let bare = std::fs::read_to_string(p.join("bare.tsx")).unwrap();
     assert!(bare.starts_with("import { Composition, registerRoot } from \"raea\";\nimport { AbsoluteFill }"), "{bare}");
     assert!(bare.ends_with("registerRoot(() => <Composition id=\"bare\" component={Bare} width={1080} height={1080} fps={30} durationInFrames={3} />);\n"), "{bare}");
-    assert!(p.join("controllers/look-and-feel.ts").is_file() && !p.join("settings/look.ts").exists());
-    let again = scan(&p, &[]);
+    let again = scan(&p);
     assert_eq!(again.compositions.iter().find(|c| c.file == "bare.tsx").unwrap().how, How::Registered);
-    assert!(!again.lint.iter().any(|l| l.rule == "controller-home" || (l.rule == "unregistered" && l.file == "bare.tsx")));
+    assert!(!again.lint.iter().any(|l| l.rule == "unregistered" && l.file == "bare.tsx"));
 }
 
 #[test]
 fn a_folder_outside_any_project_says_so() {
     let t = tempdir::Dir::new();
     std::fs::write(t.0.join("a.tsx"), "export default function A() { return null; }\n").unwrap();
-    let r = scan(&t.0, &[]);
+    let r = scan(&t.0);
     assert!(!r.project);
     assert!(r.lint.iter().any(|l| l.rule == "not-a-project"));
-}
-
-#[test]
-fn an_override_naming_a_controller_that_isnt_there_is_linted() {
-    let (_t, p) = project();
-    let r = scan(&p, &["delivery".into(), "gone".into(), "gone".into()]);
-    let named: Vec<&str> = r.lint.iter().filter(|l| l.rule == "override-missing").map(|l| l.says.as_str()).collect();
-    assert_eq!(named, ["overrides controller \"gone\", which isn't there"], "once, and not for one that's there");
 }
 
 #[test]
@@ -145,7 +132,7 @@ fn versions_share_a_stem() {
 fn real_folder() {
     let Some(dir) = std::env::var_os("RAEA_SCAN_DIR") else { return };
     let t = std::time::Instant::now();
-    let r = scan(Path::new(&dir), &[]);
+    let r = scan(Path::new(&dir));
     println!("{}\n({} ms)", r.text(), t.elapsed().as_millis());
 }
 
@@ -165,7 +152,7 @@ fn a_project_in_the_layout_reaches_shared_and_says_whats_out_of_place() {
     w("projects/a/compositions/main.tsx", "import { Desk } from \"@shared/components/desk\";\nimport { Leg } from \"../components/leg\";\nimport { Desk as D2 } from \"../../../shared/components/desk\";\nexport default () => <><Desk /><Leg /><D2 /></>;\n");
     w("projects/a/components/leg.tsx", "export function Leg() { return <i />; }\n");
     w("projects/a/loose.tsx", "export default () => <b />;\n");
-    let r = scan(&t.0.join("projects/a"), &[]);
+    let r = scan(&t.0.join("projects/a"));
     let says = |rule: &str| r.lint.iter().filter(|l| l.rule == rule).map(|l| format!("{} {}: {}", l.file, l.says, l.fix)).collect::<Vec<_>>();
     assert!(says("unresolved").is_empty(), "{:?}", says("unresolved"));
     let outside = says("outside");
@@ -177,7 +164,7 @@ fn a_project_in_the_layout_reaches_shared_and_says_whats_out_of_place() {
     w("projects/old/.raea/project", "[project]\n\tid = pj-old\n");
     w("projects/old/promo.tsx", "import { Card } from \"./card\";\nexport default () => <Card />;\n");
     w("projects/old/card.tsx", "export function Card() { return <i />; }\n");
-    let r = scan(&t.0.join("projects/old"), &[]);
+    let r = scan(&t.0.join("projects/old"));
     let old: Vec<_> = r.lint.iter().filter(|l| l.rule == "old-layout").collect();
     assert!(old.len() == 1 && old[0].says.contains("2 files loose") && old[0].fix.contains("raea project tidy"), "{:?}", r.lint);
     assert!(!r.lint.iter().any(|l| l.rule == "misplaced"));

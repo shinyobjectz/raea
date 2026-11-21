@@ -76,9 +76,10 @@ struct Taste {
     line: String,
 }
 
-/// The checks among a person's taste rules (taste.ts and its kinds), each with the line it stands for.
+/// The checks among a person's taste rules (taste.ts and its kinds) that a video alone shows (the six forms), each
+/// with the line it stands for.
 fn taste_rules(tastes: &[raea_core_brief::Taste]) -> Vec<Taste> {
-    tastes.iter().flat_map(|t| &t.sections).flat_map(|s| &s.rules).filter_map(|r| r.check.map(|c| Taste { form: c.form(), value: c.value(), line: r.text.clone() })).collect()
+    tastes.iter().flat_map(|t| t.checks()).map(|(line, c)| Taste { form: c.form(), value: c.value(), line: line.to_string() }).collect()
 }
 
 fn taste_of<'a>(rules: &'a [Taste], form: &str) -> Option<&'a Taste> {

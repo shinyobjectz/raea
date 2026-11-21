@@ -1,6 +1,6 @@
 // The match cuts, checked in the render (`raea guide match-cuts`): at every cut of a chain (chain.ts), the hooked part
 // sits at its thirds place on the frame before the cut and on the frame after it. A project makes the check from its
-// chain in a file of its own, and a rule (a controller's, or a note's ask) names that file:
+// chain in a file of its own, and a rule (a taste line, or a note's ask) names that file:
 //
 //   // checks/film-cuts.ts
 //   import { landsOnThirds } from "./match-cuts/thirds";

@@ -9,3 +9,4 @@ export { checkPlan, createRegistry, defineKeywords, definePlanKind, defineProper
 export { agenda, board, outline, type Agenda, type AgendaDay, type Lane, type OutlineNode } from "./views.ts"
 export { planDigest, taskLine } from "./digest.ts"
 export { answerPlanTool, PLAN_TOOLS, planToolEdits, type NewTaskInput, type PlanTool, type PlanToolHost, type TaskChange } from "./tools.ts"
+export { keywordFor, statusFor, trackerStates, trackersOf, type Tracker, type TrackerStates } from "./trackers.ts"

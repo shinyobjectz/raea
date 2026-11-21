@@ -371,8 +371,9 @@ Feature: The timeline SDK (0.1.5): CapCut's timeline, on the composition, in the
         (file:line:col, docs/editing.feature E2)
       And a span written as an expression is a clip marked locked, with "set in code"
 
-    Scenario: TL0d. A feed item or a controller declares a timeline
-      Given an agent posts a feed item, or a controller has a field, that carries a timeline (tracks of clips over
+    Scenario: TL0d. A feed item declares a timeline
+      # 11-20 (projects.feature PJ9): controllers are gone, so a feed item is the one place a timeline of its own data is.
+      Given an agent posts a feed item that carries a timeline (tracks of clips over
         anything with a time: a film, a song, a scene's animation, a schedule)
       Then the app draws it with the same strip and tools, and its operations go back to the agent as TL9 says
 
@@ -738,7 +739,7 @@ Feature: The timeline SDK (0.1.5): CapCut's timeline, on the composition, in the
       Then they land in the open sitting's history as mine do, and I see each one happen
 
     Scenario: TL9d. A timeline with no composition behind it
-      Given a feed item or a controller whose timeline is its own data (TL0d)
+      Given a feed item whose timeline is its own data (TL0d)
       Then an operation changes that data where it is kept and is sent to its agent the same way
 
   Rule: TL10. Playing while editing: buffer, cache, and clearing it

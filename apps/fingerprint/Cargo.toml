@@ -13,6 +13,8 @@ raea-io-home = { path = "../../io/home" }
 raea-sys-fingerprint = { path = "../../systems/fingerprint" }
 # scoring and the sheet, which one judges a piece, diff and profiles
 raea-sys-fingerprint-use = { path = "../../systems/fingerprint-use" }
+# score --ask: each flag asked again of the decision model (docs/ask.feature AK8)
+raea-app-double = { path = "../double" }
 raea-sys-fingerprint-things = { path = "../../systems/fingerprint-things" }
 # the encoders and the columns they make
 raea-sys-columns = { path = "../../systems/columns" }

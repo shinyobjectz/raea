@@ -21,7 +21,7 @@ mirrors a Bevy type and has no comment of its own, the page shows Bevy's doc for
 - The sub-paths follow Bevy's crates: `raea/camera`, `raea/light`, `raea/pbr`, `raea/mesh`, `raea/transform`,
   `raea/post_process`, `raea/sprite`, `raea/ui` and the rest, so a Bevy example's imports map onto them.
 - `raea/3d` holds raea's scene layer: models, physics, splats, matchmoves and custom shader passes.
-- `raea/brief` holds the specs: `brief`, `script`, `taste`, `plan` and `controller`.
+- `raea/brief` holds the specs: `brief`, `script`, `taste` and `plan`.
 
 <!-- generated:begin by tools/manual-ref/sdk.ts from the SDK's exports and doc comments; edit outside this block -->
 
@@ -33,7 +33,7 @@ The composition, the app, and the specs and notes an agent writes.
 | --- | --- | --- |
 | [`raea`](raea.md) | The main entry: compositions, sequences, time, interpolation, springs, footage, sound and words. | 20 components, 9 hooks, 62 functions, 11 values, 107 types |
 | [`raea/app`](app.md) | The App, its plugins and schedules, and the registry a video's compositions are kept in. | 1 component, 1 hook, 4 functions, 3 classes, 17 values, 17 types |
-| [`raea/brief`](brief.md) | The specs an agent writes as data: brief, script, taste, plan and controller, checked against raea's schemas. | 6 functions, 32 types |
+| [`raea/brief`](brief.md) | The specs an agent writes as data: brief, script, taste and an object's parts, checked against raea's schemas. | 5 functions, 24 types |
 | [`raea/note`](note.md) | A person's note as a file in the project: their words kept as written, and the asks the agent restates it as. | 1 function, 4 types |
 
 ## Time and motion
@@ -95,9 +95,10 @@ Checks, lints and a headless App you can drive.
 
 | Import | What it's for | Exports |
 | --- | --- | --- |
-| [`raea/check`](check.md) | A check written as a system over a composition's world: what `raea check` runs for a rule a controller holds. | 8 functions, 1 class, 38 types |
+| [`raea/check`](check.md) | A check written as a system over a composition's world: what `raea check` runs for a taste line's rule. | 8 functions, 1 class, 38 types |
 | [`raea/fingerprint`](fingerprint.md) | A fingerprint (fingerprint.ts, docs/fingerprint.md): a person's or a team's sense of good work as axes, each with a small head over on-device encoders that `raea fingerprint` trains from their labels. `raea fingerprint new NAME` writes one with raea's base taxonomy; add an axis, reword one, or remove one, and raea retrains. Rust reads the default export (systems/fingerprint/src/taxonomy.rs), so these types follow its fields. | 1 function, 4 types |
 | [`raea/dev_tools`](dev_tools.md) | Checks and lints you can run from code: a motion performance's lint report. | 2 functions, 3 types |
 | [`raea/remote`](remote.md) | A headless Bevy App you open, step and query from TypeScript, through Bevy's remote protocol. | 1 class, 1 type |
+| [`raea/ask`](ask.md) | Ask about a piece's picture and sound from a script: the same questions, runner and record as raea ask, typed. | 2 functions, 1 value, 12 types |
 
 <!-- generated:end -->

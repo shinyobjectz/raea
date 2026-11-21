@@ -1,5 +1,6 @@
-//! An object's plan, written before any geometry and frozen when building starts (docs/handoff/solids.md, "The plan
-//! is the contract"). Generic over what's made: a crown, a feather and a rocking horse are all a concept and a tree of
+//! An object's parts (NAME.parts.ts, `parts()` from "raea/brief"), written before any geometry and frozen when
+//! building starts (docs/handoff/solids.md, "The plan is the contract"; named parts since 11-20, so "plan" is only a
+//! project's plan.org, docs/plan.feature PL8a). Generic over what's made: a crown, a feather and a rocking horse are all a concept and a tree of
 //! named parts, each with a level, a count, and a material and style it has or inherits.
 
 use std::collections::BTreeMap;
@@ -9,7 +10,7 @@ use ts_rs::TS;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS)]
 #[serde(deny_unknown_fields)]
-pub struct Plan {
+pub struct Parts {
     pub concept: Concept,
     /// by name; the build's parts are typed from these keys, so a planned part the build skips is a tsc error
     pub parts: BTreeMap<String, Part>,
@@ -77,7 +78,7 @@ pub struct Resolved {
 
 /// Everything wrong with a plan that would let a build leave something behind: a parent that isn't planned, a loop,
 /// no root, a range upside down, or a part that resolves to no material. Empty when the plan can be built against.
-pub fn check(plan: &Plan) -> Vec<String> {
+pub fn check(plan: &Parts) -> Vec<String> {
     let mut out = Vec::new();
     let roots: Vec<&String> = plan.parts.iter().filter(|(_, p)| p.parent.is_none()).map(|(n, _)| n).collect();
     if roots.is_empty() {
@@ -107,7 +108,7 @@ pub fn check(plan: &Plan) -> Vec<String> {
 }
 
 /// The part and its ancestors, nearest first; none on a loop or a missing parent.
-fn chain<'a>(plan: &'a Plan, name: &str) -> Option<Vec<&'a Part>> {
+fn chain<'a>(plan: &'a Parts, name: &str) -> Option<Vec<&'a Part>> {
     let mut out = Vec::new();
     let mut at = plan.parts.get(name)?;
     loop {
@@ -124,7 +125,7 @@ fn chain<'a>(plan: &'a Plan, name: &str) -> Option<Vec<&'a Part>> {
 
 /// A part's material and style, inherited up its parents to the concept. Style always resolves (the concept has
 /// one); material may not.
-pub fn resolve(plan: &Plan, name: &str) -> Option<Resolved> {
+pub fn resolve(plan: &Parts, name: &str) -> Option<Resolved> {
     let chain = chain(plan, name)?;
     let material = chain.iter().find_map(|p| p.material.clone()).or_else(|| plan.concept.material.clone())?;
     let style = chain.iter().find_map(|p| p.style.clone()).unwrap_or_else(|| plan.concept.style.clone());

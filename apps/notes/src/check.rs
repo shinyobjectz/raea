@@ -63,7 +63,7 @@ fn numbered<'a>(project: &Path, notes: &'a [Kept]) -> Vec<(u32, &'a Kept, &'a ra
 }
 
 /// The notes' asks that have a check, each as a rule: the ask's id (n3.2) and words, its check (a .ts check's path
-/// from the note's folder, as a controller's is from its own), its values, `by` the ask; and each note that can't be
+/// from the note's folder, as a taste line's is from its file's), its values, `by` the ask; and each note that can't be
 /// read, as a finding.
 pub fn rules(project: &Path, notes: &[Kept]) -> (Vec<Rule>, Vec<Finding>) {
     let bad = notes.iter().filter_map(|k| k.note.as_ref().err().map(|e| Finding::new("note", Level::Error, format!("raea can't read it: {e}"), "raea notes").about(k.file.display().to_string(), None))).collect();

@@ -2,10 +2,10 @@
 
 ## What to do
 
-- Start from what's asked for. The brief's deliverables say the pieces; the workspace's delivery controller, when
-  there is one (`raea controller ls`, or `controllers_read` in the app), says the shapes, lengths, platforms, caption
-  rule and loudness for every piece. Work to it. When neither says where a piece goes, ask once with your best guess,
-  or write the guess and add it to the brief's `assumed`.
+- Start from what's asked for. The brief's deliverables say the pieces; the taste (`raea context .`, or `rules_read`
+  in the app: the person's, the workspace's and the project's taste.ts) says the shapes, lengths, platforms, caption
+  rule and loudness every piece keeps. Work to it. When neither says where a piece goes, ask once with your best
+  guess, or write the guess and add it to the brief's `assumed`.
 - Make each shape as its own composition from the same scenes (`motion/compositions`), laid out for that shape: a
   vertical cut puts its type and faces where a vertical frame has room, it doesn't crop the wide one. Name them by
   shape (`launch-9x16`, `launch-1x1`, `launch-16x9`).
@@ -16,7 +16,7 @@
 - Keep text and faces out of the platform's UI zones for that shape (reference/platforms.md; `motion/placement` for
   how), then check the export against the platform:
   `raea check out/launch-9x16.mp4 --manifest out/render.json --shape 9:16 --platform tiktok`.
-- Captions: burn them in for feeds that play without sound, unless the delivery controller says captions off; then
+- Captions: burn them in for feeds that play without sound, unless the taste says captions off; then
   burn none, and leave the words file beside the export for the platform's own captions.
 - Sound to -14 LUFS integrated with true peak at or below -1 dBTP: raea's mix and master do it on every render
   (`motion/sound`). A spec that names another number wins: `<Mix lufs={…} ceiling={…} />` sets it.
@@ -71,7 +71,7 @@ exports and renders), so one file can't be right in both.
   vertical out as its own composition.
 - Text in the bottom quarter of a vertical frame, where every short-video network puts its caption and buttons.
 - A 15 s cutdown that is the first 15 seconds of the long cut, with no ending.
-- Captions burned in on a piece whose delivery controller says captions off, or burned in twice: once by the piece,
+- Captions burned in on a piece whose taste says captions off, or burned in twice: once by the piece,
   once by the platform's auto-captions the person turned on.
 - `final-v2-FINAL.mp4`, `Launch Video (1).mp4`, or a new render written over the version the person last saw.
 - Tags that change keys between items (`tiktok`, `platform:TikTok`, `network:tiktok`): the Table makes three columns.

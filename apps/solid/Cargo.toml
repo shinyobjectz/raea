@@ -16,6 +16,7 @@ serde_json = "1"
 raea-runtime-bundle = { path = "../../runtime/bundle" }
 # `raea judge`, dispatched with `raea solid` (verb())
 raea-app-judge = { path = "../judge" }
+raea-app-ask = { path = "../ask" }
 # `raea solid export`: the solid built, written as .glb and read back (core/shape), named and coloured (core/meshcheck)
 raea-core-shape = { path = "../../core/shape" }
 raea-core-meshcheck = { path = "../../core/meshcheck" }

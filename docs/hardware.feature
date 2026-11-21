@@ -96,6 +96,8 @@ Feature: Hardware: controls that feel like instruments, heard on raea's own mixe
 
   Rule: HW3. Where the kit is used
     Scenario: HW3a. Controllers
+      # 11-20 (projects.feature PJ9): controllers are gone, so this has no page to land on; the kit's controls are
+      # Settings' (HW3b) and the editor's.
       Then a controller's fields are the kit's: a toggle is a switch, a choice a segmented selector (a dial past five
         options), a number a knob or a fader with its readout, and each change sounds as it is made
 

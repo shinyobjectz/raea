@@ -57,9 +57,9 @@ leads. raea will add modes as its work grows; `raea context` says when a brief n
 5. **The floor:** read it right before you edit.
 6. **Make it.**
 7. **Evidence:** run `raea check`, look at the frames, critique against the mode's guide, fix, and look again.
-   A line the work must keep every round is a rule, not a reminder: a field `{ label, type: "rule", check, values }`
-   in the project's controller, whose check is one of raea's by name (`text-above`, `loudness`) or a `.ts` check you
-   write with `raea/check` (`check({ id, text }, (world, frame, values) => ...)` and `found(...)`). `raea check
+   A line the work must keep every round is a rule, not a reminder: a line `{ text, check, values }` in the project's
+   taste.ts, whose check is one of raea's by name (`text-above`, `loudness`) or a `.ts` check you write with
+   `raea/check` (`check({ id, text }, (world, frame, values) => ...)` and `found(...)`). `raea check
    PROJECT` runs every rule on every composition and says what waits for a render.
 
 A quick edit (one value, one word, one cut) skips to the floor and makes the change. "This isn't working" means a

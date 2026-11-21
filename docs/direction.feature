@@ -100,8 +100,8 @@ Feature: Direction that holds: one world of facts, findings and rules, so a pers
     4. A check is code where the ask can be measured, and a named clip the person signs where it can't; it says
        which. A row with a still is neither.
     5. Rounds hold. Every earlier round's checks run in every later round; a regression names the note it breaks.
-    6. A rule climbs: a note's check, kept for the project, becomes a project rule (a controller); kept across
-       projects, the person's taste. It is the same check at each level, moved, never rewritten.
+    6. A rule climbs: a note's check, kept for the project, becomes a project rule (a line in its taste.ts); kept
+       across projects, the person's taste. It is the same check at each level, moved, never rewritten.
     7. The order of work is components, blocking, look, cameras, sound, each reviewed before the next. A later stage
        is refused on a failing earlier one.
     8. Every prop is a component whose typed props are its rig, and which says what it is and where it belongs.
@@ -116,7 +116,7 @@ Feature: Direction that holds: one world of facts, findings and rules, so a pers
 
   Background:
     Given the raea skill is raea-skills' (the skills/ submodule); a change to it is a raea-skills PR and a pin bump
-    And a project is a folder in raea's format (projects.feature), its workspace's controllers in controllers/
+    And a project is a folder in raea's format (projects.feature), its rules in its own and its workspace's taste.ts
     And raea/ecs is the format: `spawn(components)`, `find({ with, without, where })`, relations as components,
       resources by name, a system `(world, frame) => void`, `world.at(frame)` the same whenever it's asked for
 
@@ -142,6 +142,8 @@ Feature: Direction that holds: one world of facts, findings and rules, so a pers
         its values or a path to a project check; a project rule is a controller with rule fields
       # Fixed in the code (DR4): the field's words are its `label`, as every controller field's are, and its values are
       # a field of their own: `{ label, type: "rule", check, values?, level? }`.
+      # 11-20 (projects.feature PJ9): controllers are gone; a rule is a taste line `{ text, check, values?, level? }`,
+      # its check one of the six forms, a name or a path, in the person's, the workspace's or the project's taste.ts.
       And the taste file's six forms become six of raea's named checks (same names, same values), so
         `{ form: "text-above", value: 62 }` still reads and no taste file changes
       And the stages are recorded in .raea/project (`[stage] components = passed <sha>` ...), set by the stage's
@@ -334,6 +336,9 @@ Feature: Direction that holds: one world of facts, findings and rules, so a pers
 
     @needs:DR1,DR3 @done
     Scenario: DR4. A check is a system; raea's own are written the same way
+      # 11-20 (projects.feature PJ9): the rules come from the taste files alone (the person's, the workspace's and now the
+      # project's own); a taste line holds what a controller's rule field held, and bench/direction/proof's rules are its
+      # taste.ts's lines.
       # Status 11-10: built. A rule is a line and the check that holds it (core/facts rule.rs): one of raea's checks by
       # name with its values, or a project's .ts check by its path. A controller field of type `rule` ({ label, check,
       # values?, level? }) is one; taste's six forms are six named checks with the same names and values. `raea check
@@ -593,13 +598,14 @@ Feature: Direction that holds: one world of facts, findings and rules, so a pers
       # Fixed in the code (DR4): the field type `rule` and reading rule fields as checks were planned here
       # (rule_field.rs, and rules.rs's first job). `raea check` needed both to run a project's rules, so DR4 built them:
       # Kind::Rule in core/brief controller.rs, and the rules read in apps/direction check.rs.
-      Then `raea notes keep` moves a note's check to controllers/<id>.ts as a rule field (project or workspace), or
-        to the person's taste as a rule; the note keeps a pointer; the check's text is not copied
+      # 11-20 (projects.feature PJ9): controllers are gone, so a kept check becomes a taste line, and the rules that
+      # apply are listed by `raea check --json` and the app's rules_read, not a controller verb.
+      Then `raea notes keep` moves a note's check to a line in a taste.ts (the project's, the workspace's or the
+        person's), its check named by path; the note keeps a pointer; the check's text is not copied
       And the taste loop (docs/craft-system.md J) proposes this when a correction repeats, as it does now, and now
         for any check, not six forms
-      And a rule's field (a limit, a list of kinds) is edited in the app's Controllers page like any field, and the
-        check reads it: "how do controllers become rules" is this
-      And `raea controller ls --rules` lists every rule that applies to a project and where it came from
+      And a rule's values (a limit, a list of kinds) are edited in its taste line, and the check reads them: "how do
+        rules get made" is this
 
     @needs:DR6
     Scenario: DR9. A check that can be gamed is found before it's trusted
@@ -717,9 +723,9 @@ Feature: Direction that holds: one world of facts, findings and rules, so a pers
   Rule: Part 6. A look of the project's own (finding 2)
 
     @needs:DR10
-    Scenario: DR18. The project's look is a file in the project, with its controller
+    Scenario: DR18. The project's look is a file in the project, with its props
       Given shaders.feature SH4 (`<SurfaceShader>`: one shader over every lit surface of a scene) and frame passes
-      Then looks/<name>.wesl is the project's shading, and looks/<name>.ts its controller: the uniforms as fields
+      Then looks/<name>.wesl is the project's shading, and looks/<name>.ts its props: the uniforms as typed props
         (colours, ramps, widths), so a look is tuned in the app and animated like any rig
       And `<ProjectLook name>` puts it on a scene; the look stage's review is one scene from blocking under it, in a
         clip, beside the brief's references
@@ -731,7 +737,7 @@ Feature: Direction that holds: one world of facts, findings and rules, so a pers
     @needs:DR18
     Scenario: DR24. A worked project look, from what was written on 11-10
       Then the gradient light, the world cuts (a mesh drawn only inside its ball, in the main pass and the prepass)
-        and the nine styles are an example project look under examples/, on SurfaceShader, with its controller
+        and the nine styles are an example project look under examples/, on SurfaceShader, with its props
       And the stock paint look is as it was before 11-10; the camera columns a continuous render refreshes each frame
         (runtime/scene/src/live.rs cam_keyed) take a look's declared uniforms, not a list of names
 

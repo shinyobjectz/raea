@@ -65,7 +65,9 @@ export const tagOf = (s: string) => s.trim().replace(/^[#:]+/, "").replace(/[^\p
 export const toggled = (t: { ref: string; state?: State }): PlanEdit => ({ op: "state", ref: t.ref, state: isClosed(t.state) ? "todo" : "done" })
 
 /** A new project's plan: its title, and raea's keywords spelled out for Emacs and any other Org reader. */
-export const newPlan = (title: string) => `#+TITLE: ${title.replace(/\s+/g, " ").trim()}\n#+TODO: TODO MAKING REVIEW | DONE DROPPED\n\n`
+/** A new plan.org's text. `keywords` is its #+TODO: sequence: raea's whole one unless the caller keeps fewer (the app
+ *  keeps TODO | DONE DROPPED: where a linked task stands is its item's, PL8). */
+export const newPlan = (title: string, keywords = "TODO MAKING REVIEW | DONE DROPPED") => `#+TITLE: ${title.replace(/\s+/g, " ").trim()}\n#+TODO: ${keywords}\n\n`
 
 const oneLine = (s: string) => s.replace(/\s+/g, " ").trim()
 const propOf = (s: Section, key: string) => s.props?.find(([k]) => k.toUpperCase() === key)?.[1]

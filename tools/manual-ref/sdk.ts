@@ -27,7 +27,7 @@ const GROUPS: [string, string, string[]][] = [
   ["Video, sound and text", "Footage, pictures, sound, words and colour, and the timeline they are edited on.", ["video", "audio", "text", "image", "asset", "color", "editor"]],
   ["3D", "Bevy's 3D: cameras, lights, materials, meshes and the frame after it's drawn.", ["3d", "camera", "light", "pbr", "mesh", "transform", "post_process", "picking", "gizmos"]],
   ["2D and UI", "Sprites and flat shapes, bevy_ui and Bevy's widgets.", ["sprite", "ui", "feathers"]],
-  ["Tools", "Checks, lints and a headless App you can drive.", ["check", "fingerprint", "dev_tools", "remote"]],
+  ["Tools", "Checks, lints and a headless App you can drive.", ["check", "fingerprint", "dev_tools", "remote", "ask"]],
 ]
 const groupAt = new Map(GROUPS.flatMap(([, , ps], g) => ps.map((p, i) => [p, g * 20 + i + 2] as const)))
 const BEGIN = "<!-- generated:begin by tools/manual-ref/sdk.ts from the SDK's exports and doc comments; edit outside this block -->"

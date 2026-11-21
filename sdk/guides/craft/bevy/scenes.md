@@ -28,7 +28,7 @@ The brief template, the builder prompt and the judge prompt to paste are in `bev
     - Printed matter.
     - Motion.
     - Budget: generation cents and judge rounds.
-- Each hero object gets a `plan.ts` (`plan()`) with its concept (what, style, size, seenFrom, material) and parts, each
+- Each hero object gets a `NAME.parts.ts` (`parts()`) with its concept (what, style, size, seenFrom, material) and parts, each
   with a role, a level (primary, secondary, tertiary), a parent, a count and `near` detail. Below it, add a connection
   map with one line per joint: `door <-> cabinet  hinge side  touches`.
 - Write the plan from how the real thing is built: look up the product, the catalogue or a drawing.
@@ -65,7 +65,7 @@ check names a script (`bevy/blender`). It never places, lights, frames, material
 
 ### 3. Build, one stage at a time; a stage that fails its check is fixed first
 
-0. **Plan.** Every object row has a route and a real size, and every hero has a `plan.ts`.
+0. **Plan.** Every object row has a route and a real size, and every hero has a `NAME.parts.ts`.
 1. **Space.** Block the room as boxes at real size. Place furniture by relations, not typed coordinates:
    `place({ room, objects, rules })` from raea/3d. Rules are `on`, `against` a wall, `beside`, `near`, `apart`,
    `facing`, `align` and `clear` (floor kept free in front). It returns each object's `center`, `base` and `yaw`,

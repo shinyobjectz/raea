@@ -1,6 +1,6 @@
 ---
 title: "raea/check"
-summary: "A check written as a system over a composition's world: what `raea check` runs for a rule a controller holds."
+summary: "A check written as a system over a composition's world: what `raea check` runs for a taste line's rule."
 order: 102
 sources: ["sdk/raea/src/check.ts", "sdk/raea/src/facts.gen.ts", "apps/direction/src/check.rs"]
 ---
@@ -8,15 +8,15 @@ sources: ["sdk/raea/src/check.ts", "sdk/raea/src/facts.gen.ts", "apps/direction/
 A check holds the work to one line. It is a system over each frame's world, the same world
 [`raea world`](../cli/world.md) prints: a caption, a footage cut, a sound cue and a 3D part are entities with
 components, so one check reads the same for any of them. It finds entities, measures, and calls `found` for each
-thing that breaks its line; it never prints. A rule in a project's controller names it by its path, with its values,
+thing that breaks its line; it never prints. A line in a project's taste.ts names it by its path, with its values,
 and [`raea check`](../cli/check.md) runs it on every composition, on the frames it says it ranges over. A check that
 reads what only a render has (`needs: "render"`) waits for one, and says so. raea's own checks are the same thing
 written in Rust, under the names `text-hold`, `text-above`, `text-below`, `text-margin`, `loudness`, `still-max`,
 `text-read` and `floor`.
 
 ```ts
-// controllers/rules.ts holds the rule:
-//   { label: "Captions clear the button band", type: "rule", check: "../checks/caption.ts", values: { band: 0.8 } }
+// taste.ts holds the rule:
+//   { text: "Captions clear the button band", check: "checks/caption.ts", values: { band: 0.8 } }
 
 // checks/caption.ts
 import { check, found, type Layer, type Text } from "raea/check";
@@ -442,7 +442,7 @@ type Text = { words: string, font?: string, /** * its letters' height in px of a
 
 ### `Values`
 
-A rule's values for its check (a controller's `values`, an ask's).
+A rule's values for its check (a taste line's `values`, an ask's).
 
 ```ts
 type Values = Record<string, number | string | boolean>

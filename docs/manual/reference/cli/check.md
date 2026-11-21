@@ -37,9 +37,9 @@ reported as a note, since the mix sets the delivery's level.
 ## Every rule a project holds
 
 On a project, or a composition's file, with no `--quick`, `raea check` runs every rule that applies to each
-composition: raea's floor on its newest render, your taste's measurable lines, and the rules in the workspace's and
-the project's controllers. A rule is a controller field of type `rule`: its words, and the check that holds it,
-either one of raea's by name with its values or a `.ts` check of your own.
+composition: raea's floor on its newest render, and every line with a check in your taste, the workspace's
+`taste.ts` and the project's own. A rule is such a line: its words, and the check that holds it, one of raea's six
+measured forms, one of raea's checks by name with its values, or a `.ts` check of your own by its path.
 
 raea's reading check, `text-read`, runs on the newest render too, with nothing asking for it. Each text's reading
 time (0.3 s a word, at least a second) is held to the frames it can be read on (in the frame, at an opacity, size and
@@ -48,8 +48,8 @@ Text that can be read where OCR doesn't read it is an error: it's broken. Render
 text is counted.
 
 ```ts
-// controllers/rules.ts
-{ label: "Captions clear the button band", type: "rule", check: "../checks/caption.ts", values: { band: 0.8 } }
+// taste.ts, in the project
+{ text: "Captions clear the button band", check: "checks/caption.ts", values: { band: 0.8 } }
 ```
 
 A check is a system over the composition's world, the same world `raea world` prints, so it reads a caption, a
@@ -79,7 +79,7 @@ last change is still joined, with a note that what it measured may have moved.
 
 ```sh
 raea check EDIT.tsx --quick [--shape S] [--platform P] [--taste T] [-o check.json]   (three stills of a composition checked for text: clipped, cramped, safe areas, sizes; about a second)
-raea check [PROJECT|EDIT.tsx] [--composition ID] [--only ID] [--taste T] [--render OUT | --no-render] [--json]   (every check that applies to each composition, over its frames: raea's floor on its newest render, the person's taste, the workspace's and the project's rules (a controller's rule fields: one of raea's checks by name, or a project's .ts check); what needs a render and has none waits, and says so)
+raea check [PROJECT|EDIT.tsx] [--composition ID] [--only ID] [--taste T] [--render OUT | --no-render] [--json]   (every check that applies to each composition, over its frames: raea's floor on its newest render, the person's, the workspace's and the project's taste.ts (each line's check: one of raea's forms or checks by name, or a project's .ts check); what needs a render and has none waits, and says so)
 raea check VIDEO.mp4 [--manifest render.json] [--words W.json] [--perception P.json] [--things T.json] [--shape 16:9|9:16|4:5|1:1] [--platform tiktok|reels|shorts] [--taste taste.ts|DIR] [-o check.json]   (an export against the floor: clipped text, contrast, safe areas, freezes, flashing, cues, loudness, blotching, a placeholder brand kit, and with --things what `raea fingerprint things --json` found: a thing floating or passing through another, the camera lurching mid-move, an empty frame; its findings errors, warns and notes)
 ```
 

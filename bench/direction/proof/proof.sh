@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # DR4's proof (docs/direction.feature): five checks written as systems over the world (checks/*.ts, none importing
-# Bevy), each run by `raea check` on a piece that holds it and on a cheat that must fail it, and a taste line run as
-# the named check of its form beside them. Its media are made here with ffmpeg (nothing downloaded); the two pieces
-# whose checks need a render are rendered first. Every case runs in a copy, so the bench folder stays clean.
+# Bevy), each a line in the project's taste.ts run by `raea check` on a piece that holds it and on a cheat that must
+# fail it, and a taste line run as the named check of its form beside them. Its media are made here with ffmpeg
+# (nothing downloaded); the two pieces whose checks need a render are rendered first. Every case runs in a copy, so the
+# bench folder stays clean.
 #
 #   RAEA_BIN=path/to/raea bash bench/direction/proof/proof.sh
 set -uo pipefail

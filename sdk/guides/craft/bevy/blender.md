@@ -202,8 +202,7 @@ import { BlenderShot } from "raea/blender/shot";
   server's env. It can otherwise send prompts, code and screenshots to its author.
 - `generate_3d` can cost the person a credit, and makes one object only; `raea gen` is the generation route. Ask first.
 
-In the raea app, a workspace gives it to the feed's agents with a controller's servers field holding
-`uvx mcp-for-blender` (`raea controller set PATH VALUE`).
+`raea skills install --agent NAME` adds it to that agent as an MCP server (`--no-mcp` leaves it out).
 
 ## Licences
 

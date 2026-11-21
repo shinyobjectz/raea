@@ -1,7 +1,7 @@
 //! A fingerprint's `videoform` section (docs/videoform.feature VF2): the kind of video a person makes again and again,
 //! read once from its references. It sits in fingerprint.ts beside the axes, so a videoform is found, inherited,
 //! taught and shared as any fingerprint is. Each part names the home that does its job already: references in a
-//! brief's shape, the structure as a NAME.script.ts template, the rules as a NAME.rules.ts controller; and the vocabulary.ts the
+//! brief's shape, the structure as a NAME.script.ts template, the rules as NAME.taste.ts, taste lines; and the vocabulary.ts the
 //! person's AI writes from the context (VF5).
 
 use crate::brief::Reference;
@@ -26,8 +26,8 @@ pub struct Videoform {
     /// The NAME.script.ts a project made to the videoform starts from: its slots, their order and lengths (VF7)
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub template: Option<String>,
-    /// The NAME.rules.ts its rules are written to (VF8): a controller whose fields are rules (docs/direction.feature
-    /// DR4), mined from the references, each with how strongly it holds and the check that holds it
+    /// The NAME.taste.ts its rules are written to (VF8): taste lines, each with the check that holds it (a standing rule
+    /// is a taste line, docs/projects.feature PJ9), mined from the references with how strongly each holds
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub rules: Option<String>,
     /// The person's word on what was found, by measure, over what the references show (VF4b): kept through references

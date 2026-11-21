@@ -8,7 +8,7 @@ description = "A project as one world of facts in raea/ecs's form: its layers, t
 
 [dependencies]
 dunce = "1"
-# a rule's taste form and controller field (rule.rs)
+# a taste line and its check, as a rule (rule.rs)
 raea-core-brief = { path = "../brief" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"

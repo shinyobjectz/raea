@@ -1,13 +1,13 @@
 ---
 title: "Extend raea with the SDK"
-summary: "Compositions and controllers are TypeScript on raea's SDK: write one, render it, post it to the feed with the feed's tools, or ask your agent to make new feed items and controllers for you."
+summary: "Compositions and the rules they keep are TypeScript on raea's SDK: write one, render it, post it to the feed with the feed's tools, or ask your agent to make new feed items and rules for you."
 order: 8
-sources: ["sdk/raea/src", "sdk/raea/src/brief.ts", "apps/app/src/acp/protocol.ts", "docs/manual/examples/title.tsx", "apps/workspace/src/controllers.rs"]
+sources: ["sdk/raea/src", "sdk/raea/src/brief.ts", "apps/app/src/acp/protocol.ts", "docs/manual/examples/title.tsx", "apps/direction/src/check.rs"]
 tutorial: "extend"
 ---
 
 Everything raea makes and every setting it keeps is TypeScript you can read and write. This tutorial writes a small
-composition, renders it, posts it to the feed, writes a controller, and then hands the same jobs to an agent.
+composition, renders it, posts it to the feed, writes a rule it must keep, and then hands the same jobs to an agent.
 
 ## The SDK
 
@@ -27,16 +27,16 @@ The agents raea starts get the feed's own tools. Feed post puts a render, a stil
 feed. It takes a title and the file, and to post a new version, it names the item it replaces, with one line on what
 changed. Feed propose suggests something to make next, for you to accept first.
 
-## A controller from code
+## A rule from code
 
-A controller is a TypeScript file too. It exports controller, from raea slash brief, with groups of typed fields. Write
-one, then run raea controller write, and it's on the Controllers page for every agent to read. Agents in the app use
-the controller write tool, and the page shows the new controller as soon as they do.
+The rules every piece keeps are a TypeScript file too: the project's taste. It exports taste, from raea slash brief,
+with lines in plain words, and a line raea can measure carries the check that holds it. Run raea check, and every
+composition is held to every line. Agents in the app add a line with the rule add tool.
 
 ## Ask your agent instead
 
 So you rarely write any of this yourself. Ask your agent in plain words, in New chat. It writes the composition, checks
-it, renders it, and posts it to the feed. Ask for a controller, and it builds one and puts it on the page. You review
+it, renders it, and posts it to the feed. Tell it a rule, and it adds the line and checks the work against it. You review
 what lands, and leave notes, as you would on anything else.
 
 ## Extend the engine
@@ -54,21 +54,21 @@ registerRoot(() => <Composition id="title" component={Title} width={1920} height
 ```sh
 raea render title.tsx --frame 30 -o title.png     # one frame, to look at
 raea render title.tsx -o title.mp4                # the whole piece
-raea controller write controllers/review.ts       # a controller, for every agent
+raea check .                                      # every composition, held to every rule
 ```
 
 ```ts
-// controllers/review.ts
-import { controller } from "raea/brief";
+// taste.ts
+import { taste } from "raea/brief";
 
-export default controller({
-  title: "Review",
-  groups: [
+export default taste({
+  title: "Rules",
+  sections: [
     {
-      title: "Sign-off",
-      fields: [
-        { label: "Watched to the end by a person", type: "toggle", value: true },
-        { label: "A redo is", type: "choice", options: ["a new version", "a new item"], value: "a new version" },
+      heading: "Every piece",
+      rules: [
+        { text: "A person watches it to the end before it ships." },
+        { text: "Titles sit above three quarters of the frame.", check: { form: "text-above", value: 75 } },
       ],
     },
   ],

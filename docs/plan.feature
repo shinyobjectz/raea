@@ -21,7 +21,7 @@ Feature: Plans: a project's plan.org, kept by its agents
   # src/plan/agent.test.ts driving a turn's plan tools end to end on a faked host; tsc -b clean; e2e todo.spec.ts and
   # outside.spec.ts (7) and messages, primary, heads, consolidate (26) in Chrome; todo.spec.ts (4) and outside.spec.ts
   # (3) in raea's window (BLITZ_E2E bundle, node blitz/pw-run.mjs). The board (feed/Board.tsx, board/Lanes.tsx,
-  # board/CardSheet.tsx) reads the plan now, but no route mounts it. Not done: `raea project new` writes no plan.org yet
+  # board/CardSheet.tsx), which no route mounted, was removed with PL8: the to-do list is the plan's one view. Not done: `raea project new` writes no plan.org yet
   # (Rust, engine/cli), so reference/files.md, generated from it, doesn't list one; the page makes it on the first
   # write. The brief page (BriefView, unmounted) still draws a brief's own ## Tasks. Compositions can't import
   # @raea/task until sdk/tsconfig.base.json and raea's bundler map it.
@@ -140,8 +140,8 @@ Feature: Plans: a project's plan.org, kept by its agents
         waits on; a critique's gate is "<title> passes check and critique" with :ITEM: the newest critique
       And an item carries the tags of the tasks linked to it, a workflow field places a channel by its plan's tasks, and
         a session outside raea holds the tasks whose :AGENT: is @its-name or its inbox
-      And the board (feed/Board.tsx, board/Lanes.tsx, board/CardSheet.tsx) reads and edits the plan the same way, by
-        task id; no route mounts it yet
+      And the to-do list (feed/TodoPanel.tsx) reads and edits the plan the same way, by task id (the board that did
+        too, never mounted, went with PL8)
 
     @done
     Scenario: PL4c. A brief's tasks move into the plan once
@@ -203,6 +203,8 @@ Feature: Plans: a project's plan.org, kept by its agents
       And none of it uses a dynamic import or dangerouslySetInnerHTML, so raea's window bundle (one IIFE) holds it
 
   Rule: PL7. An agent finishes what it planned
+    # 11-20 (PL8): the keeper's asks (PL7a, PL7b, PL7c, PL7f) are gone. Closing follows the work instead (PL8c), and the
+    # task per message and the starter task that filled plans with tasks nobody closed are gone too. PL7d and PL7e stay.
     # Shane, 2026-11-16: "i notice often that it makes tasks but never completes them itself". His plans that morning:
     # TarotChess's agent posted a first pass and left its own follow-ups TODO (frame rate, a clipping score, a dark
     # encode); Cadence's said "all six masters are finished and posted" over a plan still saying Track MAKING and Build,
@@ -258,3 +260,67 @@ Feature: Plans: a project's plan.org, kept by its agents
       And over the composer, while it asks or after it pauses with tasks open, one line: "Plan  3 of its tasks open",
         "Finishing · ask 2" with × to stop asking until the next message, or "Paused · Continue" with why on hover
 
+  Rule: PL8. One way to keep work, and any tracker beside it
+    # Shane, 2026-11-20: "we continually in the desktop app get issues with tasks and starting or adding tasks and it
+    # never actually closes any out. so maybe we should align plan to be simpler", then "make sure the project management
+    # structure is clear dry and we dont have competing methods", and "the planning api will need to be able to easily
+    # sync and extend to whatever system enterprise clients use so we dont want to be too opinionated about planning as
+    # long as its consistent and fixable by the agent itself too". Read 11-20 in his workspaces: plans kept by an agent in
+    # a terminal close their tasks (gambit 82 of 133, driveeasier 13 of 13, castle-busters 11 of 13); plans made in the
+    # app don't (ten new projects hold only the app's own "Write the plan", open; p-pong 0 of 5), with PL7's keeper
+    # installed. Tasks were written in four places (brief.ts stages, the composer's task per message, the starter task,
+    # the agents' plan tools) and closed in one: an agent remembering to. Agreed with raea cloud (11-20), whose
+    # agents keep their projects in plan.org on @raea/task and start them from Asana, Linear, Jira and other boards.
+
+    @done
+    Scenario: PL8a. plan.org is the one list
+      # core/brief (brief.rs, parts.rs, tests.rs), apps/workspace doctor.rs, the app's src/brief/spec.ts and format.ts
+      Then a project's tasks are in its plan.org and nowhere else: brief.ts says what to make (core/brief's Brief has no
+        stages or tasks), and a brief that still has them reads, its tasks unread, with `raea doctor` saying they
+        belong in plan.org
+      And the app's brief writer (src/brief/spec.ts) writes no stages, its starter brief has no ## Tasks, and a brief
+        that has them moves them into the plan once (PL4c, as before)
+      And core/brief's object plan, which was also called a plan, is `parts()` in NAME.parts.ts (`raea spec --as parts`)
+
+    @done
+    Scenario: PL8b. A message is a message, not a task
+      # the app's src/plan/turn.ts and plan.test.ts; e2e/chat-plan.spec.ts in raea's window
+      Then the composer writes no task for a message sent: an agent plans tasks when the work is more than its turn
+        (the skill's plan.md), and the person adds their own in the to-do list
+      And a new project's plan starts empty, with no "Write the plan" task
+
+    @done
+    Scenario: PL8c. Closing follows the work
+      Given a task linked to an item (:ITEM:)
+      When the person approves that item, or any version of it
+      Then the task closes DONE, stamped CLOSED, by the person, with no agent asked
+      And where an open task stands (making, waiting on the person) is read from its item and from a session at work
+        on it, as the to-do list already shows it (plan/words.ts standing), never from a keyword an agent must remember
+        to set
+      And it's checked in the app: src/plan/approve.test.ts, and e2e/todo.spec.ts in raea's window (checking off a
+        task on an item writes that task DONE)
+
+    @done
+    Scenario: PL8d. The keywords are the file's
+      # sdk/task newPlan (test/trackers.test.ts); the app's src/plan/keywords.ts and host/plan.test.ts
+      Then a plan's #+TODO: lines are its keywords and Org's | says which close a task; raea reads any sequence that way
+      And a plan the app makes keeps TODO | DONE DROPPED; raea cloud's TODO MAKING REVIEW | DONE DROPPED and a client's
+        own words read the same, and newPlan(title, keywords) takes the sequence its caller keeps
+
+    @done
+    Scenario: PL8e. A task kept in step with another tracker
+      # sdk/task src/trackers.ts; test/trackers.test.ts (with a raea cloud plan.org that passes checkPlan unflagged).
+      Then a task names its items in other trackers with one property, :LINK: linear:ENG-12 asana:1209876543 (each the
+        tracker's own key, never a URL; one per system), and the head maps each system's statuses to keywords, one line
+        a system: #+LINK_STATES: linear In Progress=MAKING; In Review=REVIEW; Done=DONE
+      And keywordFor(plan, system, status) is a status coming in and statusFor(plan, system, keyword) the status written
+        back (the first one listed for the keyword), so a sync needs a mapping, not code per client
+      And trackersOf(task) and trackerStates(plan) read them for a sync or a trigger's match
+
+    @done
+    Scenario: PL8f. An agent can fix its own plan
+      Then checkPlan says each problem with its fix: an id on two tasks, a :LINK: entry that isn't SYSTEM:ID or is a
+        URL, a system named twice on one task, one tracker item on two tasks, a #+LINK_STATES: keyword the plan doesn't
+        know, and a plugin's kinds and properties (PL6)
+      And nothing else is required: no :ID:, no keyword on a heading, no property, so headings that group, hold notes or
+        hold a cloud agent's settings are never flagged

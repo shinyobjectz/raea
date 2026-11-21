@@ -24,7 +24,7 @@ Feature: raea's plugin ecosystem: extending the engine and the app, made, shared
     - The Plugins page is a fixed catalog of integrations (src/plugins/catalog.ts): ACP agents, accounts on networks,
       keyed generation services. Its entries are connections, not code.
     - The app's extension points today are data and agents: any ACP agent, the feed tools an agent calls
-      (feed_post, controller_write, item_tags...), controllers as TypeScript files, and artifacts: since 11-09 (phase
+      (feed_post, rule_add, item_tags...), taste files as TypeScript, and artifacts: since 11-09 (phase
       1, EC12) an agent's own React file, posted with feed_post, built by the host and run in a sandboxed frame that
       talks to the app only through @raea/app (apps/app host/artifact.ts, src/artifacts/).
 
@@ -107,7 +107,7 @@ Feature: raea's plugin ecosystem: extending the engine and the app, made, shared
       Then the app runs each extension in a sandboxed frame of its own (as an artifact runs now: scripts, no same
         origin), never in the app's own JS realm, so it can't read keys, call /host/* or touch another extension
       And it talks to the app through `@raea/app`, a typed bridge over postMessage: read the project, the feed and an
-        item; read and write comments and pins; post items; read and write controllers; call raea's CLI verbs the
+        item; read and write comments and pins; post items; read the taste and add a rule; call raea's CLI verbs the
         manifest's permissions allow; open views; show a notice
       And every bridge call is checked against the permissions the person approved, and refused with which permission
         it lacked

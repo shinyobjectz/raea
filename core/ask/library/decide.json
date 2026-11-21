@@ -1,0 +1,5 @@
+[
+  {"id": "decide.best", "type": "choose", "ask": "Which of these best fits what the piece is for, for the audience it's for?", "picks": "all", "uses": ["brief"]},
+  {"id": "decide.nearest", "type": "choose", "ask": "The first is the reference. Of the others, which looks and sounds most like it?", "picks": "after-first"},
+  {"id": "decide.changed", "ask": "These are two versions, before and after a change. Does the second change what a viewer sees or hears?", "flags": ["no"], "uses": ["with"]}
+]

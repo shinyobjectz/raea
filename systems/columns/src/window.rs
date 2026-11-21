@@ -48,6 +48,11 @@ impl Modality {
     }
     /// Whether a file's columns have rows this modality reads: a script has no picture, a video no text
     pub fn in_file(self, c: &Columns) -> bool {
+        // a file with no sound track still gets one empty clip's CLAP vector (lib.rs sound()), so sound is there only
+        // when there are levels to read: a silent render's sound axes judged nothing and flagged it as a dropout
+        if matches!(self, Modality::Sound | Modality::Events) && c.level.is_empty() {
+            return false;
+        }
         !match self {
             Modality::Picture | Modality::Change => &c.sig,
             Modality::Look => &c.look,

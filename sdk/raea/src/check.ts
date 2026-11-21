@@ -5,8 +5,8 @@
 // the same thing written in Rust, run under the same names, and a check reads the same for a mesh, a caption, a cut
 // or a cue: nothing here is 3D's.
 //
-//   // checks/clear.ts, run by a rule a controller holds:
-//   //   { label: "Captions clear the button band", type: "rule", check: "../checks/clear.ts", values: { band: 0.8 } }
+//   // checks/clear.ts, run by a line in the project's taste.ts:
+//   //   { text: "Captions clear the button band", check: "checks/clear.ts", values: { band: 0.8 } }
 //   import { check, found, type Text } from "raea/check";
 //   export default check({ id: "caption-clear", text: "Captions clear the button band" }, (world, frame, values) => {
 //     for (const t of world.find({ with: ["Text", "Layer"] })) {
@@ -38,7 +38,7 @@ export interface CheckMeta {
   frames?: Frames;
 }
 
-/** A rule's values for its check (a controller's `values`, an ask's). */
+/** A rule's values for its check (a taste line's `values`, an ask's). */
 export type Values = Record<string, number | string | boolean>;
 /** What one rule's run of a check keeps from frame to frame: empty on its first frame, its own (two asks that run
  * one check each have theirs). */

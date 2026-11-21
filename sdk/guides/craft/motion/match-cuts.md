@@ -143,11 +143,11 @@ import { landsOnThirds } from "./match-cuts/thirds";
 import film from "../film.chain";
 export default landsOnThirds(film);
 
-// controllers/rules.ts: the project's controller, holding the rule; its check is a path from this file (a note's ask
-// names the same file in its `check`)
-import { controller } from "raea/brief";
-export default controller({ title: "Rules", groups: [{ title: "The cuts", fields: [
-  { label: "the cuts land on the thirds", type: "rule", check: "../checks/film-cuts.ts", values: { tolerance: 0.06 } },
+// taste.ts: the project's taste, holding the rule; its check is a path from this file (a note's ask names the same
+// file in its `check`)
+import { taste } from "raea/brief";
+export default taste({ title: "Rules", sections: [{ heading: "The cuts", rules: [
+  { text: "the cuts land on the thirds", check: "checks/film-cuts.ts", values: { tolerance: 0.06 } },
 ] }] });
 ```
 

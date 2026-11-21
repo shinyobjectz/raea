@@ -1,7 +1,7 @@
 ---
 title: "raea part"
 summary: "The old name of raea component: copy a ready-made component into the project's components/, to use and change as your own."
-order: 28
+order: 27
 sources: ["engine/cli/src/index.ts", "engine/cli/src/registry.gen.ts"]
 ---
 

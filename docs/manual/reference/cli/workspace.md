@@ -1,12 +1,12 @@
 ---
 title: "raea workspace"
-summary: "Make, adopt or show a workspace: the git repository that holds a studio's projects and controllers."
+summary: "Make, adopt or show a workspace: the git repository that holds a studio's projects and house taste."
 order: 23
 sources: ["apps/workspace/src/workspace.rs"]
 ---
 
 A workspace is a git repository, one per studio or client, under your raea root (`~/Documents/raea` unless
-`git config raea.root` says otherwise). It holds projects, controllers and the house taste in `taste.ts`. Every
+`git config raea.root` says otherwise). It holds projects and the house taste in `taste.ts`. Every
 change raea makes in it is a commit.
 
 ```sh
@@ -23,7 +23,7 @@ holding a `brief.ts` as a project. `raea workspace init` inside a cloned workspa
 ## Usage
 
 ```sh
-raea workspace init [NAME] [--layout LAYOUT] | raea workspace adopt DIR [--name NAME] | raea workspace [--json]   (a workspace: a git repo of projects and controllers under raea.root, ~/Documents/raea unless git config says)
+raea workspace init [NAME] [--layout LAYOUT] | raea workspace adopt DIR [--name NAME] | raea workspace [--json]   (a workspace: a git repo of projects under raea.root, ~/Documents/raea unless git config says)
 ```
 
 Headless: it needs nothing running and opens no window. Takes up to 2 arguments besides its flags.

@@ -13637,6 +13637,22 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "019b4b213425016d7d84a153c4c73afb0946fbb4840e4eece7ba8848b9d6da22"
 
 [[package]]
+name = "raea-app-ask"
+version = "0.1.0"
+dependencies = [
+ "dunce",
+ "raea-core-ask",
+ "raea-io-assets",
+ "raea-io-clef",
+ "raea-io-home",
+ "raea-io-trace",
+ "raea-sys-fingerprint",
+ "serde",
+ "serde_json",
+ "sha2 0.10.9",
+]
+
+[[package]]
 name = "raea-app-capcut"
 version = "0.1.0"
 dependencies = [
@@ -13740,6 +13756,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "raea-app-double"
+version = "0.1.0"
+dependencies = [
+ "raea-app-ask",
+ "raea-core-ask",
+ "raea-io-assets",
+ "raea-io-clef",
+ "raea-sys-columns",
+ "raea-sys-fingerprint",
+ "raea-sys-fingerprint-use",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "raea-app-engines"
 version = "0.1.0"
 dependencies = [
@@ -13762,6 +13793,7 @@ dependencies = [
  "dunce",
  "fastrand",
  "raea-app-check",
+ "raea-app-double",
  "raea-io-home",
  "raea-sys-columns",
  "raea-sys-fingerprint",
@@ -13808,14 +13840,13 @@ dependencies = [
 name = "raea-app-judge"
 version = "0.1.0"
 dependencies = [
- "base64 0.22.1",
  "dunce",
- "image",
+ "raea-core-ask",
  "raea-core-facts",
+ "raea-io-clef",
  "raea-io-home",
  "raea-runtime-bundle",
  "serde_json",
- "ureq 2.12.1",
 ]
 
 [[package]]
@@ -13902,6 +13933,7 @@ name = "raea-app-solid"
 version = "0.1.0"
 dependencies = [
  "dunce",
+ "raea-app-ask",
  "raea-app-judge",
  "raea-core-facts",
  "raea-core-meshcheck",
@@ -13974,7 +14006,6 @@ dependencies = [
  "dunce",
  "raea-app-check",
  "raea-app-registry",
- "raea-core-brief",
  "raea-core-facts",
  "raea-io-assets",
  "raea-io-home",
@@ -14195,6 +14226,7 @@ version = "0.1.0"
 dependencies = [
  "bevy",
  "dunce",
+ "raea-app-ask",
  "raea-app-capcut",
  "raea-app-check",
  "raea-app-ci",
@@ -14252,6 +14284,15 @@ dependencies = [
  "raea-core-ease",
  "serde",
  "serde_json",
+]
+
+[[package]]
+name = "raea-core-ask"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "ts-rs",
 ]
 
 [[package]]
@@ -14482,6 +14523,20 @@ version = "0.1.0"
 dependencies = [
  "raea-io-home",
  "serde_json",
+]
+
+[[package]]
+name = "raea-io-clef"
+version = "0.1.0"
+dependencies = [
+ "base64 0.22.1",
+ "raea-core-ask",
+ "raea-io-assets",
+ "raea-io-ffmpeg",
+ "raea-io-home",
+ "serde_json",
+ "sha2 0.10.9",
+ "ureq 2.12.1",
 ]
 
 [[package]]

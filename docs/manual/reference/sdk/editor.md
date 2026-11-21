@@ -423,7 +423,7 @@ function readAdds(raw: unknown): { adds: Adds; errors: string[]; }
 
 ### `readTimeline`
 
-A timeline as an agent wrote it on a feed item or a controller's field (its own data: a schedule, a set list, a
+A timeline as an agent wrote it on a feed item (its own data: a schedule, a set list, a
 shot plan), checked and made whole: what is well formed, and why the rest isn't. Frames are rounded to whole
 ones; a track with no kind is an overlay; ids must be there and not repeat.
 

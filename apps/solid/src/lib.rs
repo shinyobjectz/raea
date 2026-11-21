@@ -91,11 +91,13 @@ fn parse_set(s: &str) -> Result<Map<String, Value>, String> {
     Ok(m)
 }
 
-/// `raea solid ...` and `raea judge ...`, the scene loop's verbs (engine/cli hands them over), or None for another verb.
+/// `raea solid ...`, `raea judge ...` and `raea ask ...` (docs/ask.feature AK3, which prints as it goes and exits with
+/// its own code), the verbs that build and judge a piece (engine/cli hands them over), or None for another verb.
 pub fn verb(args: &[String]) -> Option<Result<String, String>> {
     match args.first().map(String::as_str) {
         Some("solid") => Some(cli(args)),
         Some("judge") => Some(raea_app_judge::cli(args)),
+        Some("ask") => std::process::exit(raea_app_ask::cli(&args[1..])),
         _ => None,
     }
 }

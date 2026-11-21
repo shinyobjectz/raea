@@ -1,7 +1,7 @@
 ---
 title: "raea add"
 summary: "Add, remove and install npm packages for a project, with no Node or npm: raea.lock and node_modules."
-order: 29
+order: 28
 sources: ["io/npm/src/lib.rs"]
 ---
 

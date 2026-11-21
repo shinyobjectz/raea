@@ -10,7 +10,6 @@
 //! each a fresh call) and the stall (the mean up by less than a point over two rounds) are read from it.
 
 mod agent;
-mod clef;
 mod eye;
 pub mod rubric;
 
@@ -23,6 +22,17 @@ use raea_runtime_bundle::flag;
 use serde_json::{Value, json};
 
 pub const USAGE: &str = "raea judge DIR [--by clef|kimi|claude] [--brief brief.ts] [--target T.png] [--json] [--dry] | judge eye DIR (CATEGORY=SCORE ... [--pass yes|no] | --by kimi|claude) | judge calibrate [--json]   (a --review folder's sheets judged blind: clef-omni on the frozen rubric, or a fresh kimi or claude session on the judge prompt; the pass decided in code; clef advises until calibrated against your eye or an agent's)";
+
+/// One call through raea's one clef client (raea-io-clef: the person's plan first, then their own Cloudflare keys),
+/// with the rubric's questions as written and each sheet as a JPEG still.
+fn ask(state: &str, questions: &Value, images: &[PathBuf]) -> Result<(Value, f64), String> {
+    let qs = questions.as_object().ok_or("judge: the questions aren't a map")?;
+    let questions = qs.iter().map(|(id, w)| raea_core_ask::Question::from_wire(id, w).ok_or(format!("judge: {id} isn't one of clef's question types"))).collect::<Result<_, _>>()?;
+    let stills = images.iter().map(|p| raea_io_clef::media::still(p, None)).collect::<Result<_, _>>()?;
+    let call = raea_io_clef::Call { state: state.into(), questions, media: raea_io_clef::Media { stills, ..Default::default() } };
+    let a = raea_io_clef::ask(&call).map_err(|f| f.to_string())?;
+    Ok((Value::Object(a.answers), a.cost))
+}
 
 /// The brief's words, from `raea spec brief.ts --as brief` (look, logline, notDoing), or nothing.
 fn brief_of(path: Option<&str>) -> Result<Value, String> {
@@ -104,7 +114,7 @@ pub fn cli(args: &[String]) -> Result<String, String> {
     let mut photo = Value::Null;
     let mut cost = 0.0;
     for (sheet, st, q, images) in &calls {
-        let (answers, c) = clef::ask(st, q, images)?;
+        let (answers, c) = ask(st, q, images)?;
         cost += c;
         if *sheet == "blind" {
             photo = json!(answers["photo"]["noul"].as_f64().map(|p| (p * 1000.0).round() / 1000.0));

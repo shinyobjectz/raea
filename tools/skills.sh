@@ -125,7 +125,7 @@ gen_feed() {
     "",
     "The tools the raea app offers every agent it launches, as the MCP server `feed` (apps/app host/acp/feed-mcp.ts).",
     "PAGE: the feed'"'"'s page answers it, so the app must be open (or a windowless page); PERSON: a click finishes it.",
-    "With no page, use the CLI instead: `raea controller` for the controllers, `raea context .` for the brief.",
+    "With no page, use the CLI instead: `raea context .` for the brief and the taste, `raea check` for the rules.",
     "",
     (.[] |
       "## \(.name)", "",
@@ -205,8 +205,8 @@ gen_files() {
     echo "## The spec files"
     echo
     echo "Each spec's fields, as raea/brief's types (sdk/raea/src/brief.gen.ts, generated from the schemas in core/brief that"
-    echo "\`raea spec\` checks against): brief.ts is a Brief, NAME.script.ts a Script, taste.ts a Taste, plan.ts a Plan and"
-    echo "controllers/ID.ts a Controller. A field marked ? may be left out."
+    echo "\`raea spec\` checks against): brief.ts is a Brief, NAME.script.ts a Script, taste.ts a Taste and NAME.parts.ts an object's Parts."
+    echo "A field marked ? may be left out."
     echo
     echo '```ts'
     grep -v '^// Generated' "$ROOT/sdk/raea/src/brief.gen.ts" | sed '/^$/d'

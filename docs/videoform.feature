@@ -12,7 +12,7 @@ Feature: Videoform: the kind of video a person makes again and again, read once 
        references, its vocabulary, its template and its rules. It's found, inherited, taught and shared as a
        fingerprint is.
     2. Each part flows into the part of raea that does that job already: its ranges into its profile (FP6e), its rules
-       into a controller's rule fields (DR4, DR8), its structure into a NAME.script.ts template, its references into
+       into taste lines with their checks (DR4; a standing rule is a taste line, PJ9), its structure into a NAME.script.ts template, its references into
        brief.ts's `references` shape.
     3. A reference is read once, from the local drive or streamed from a URL, and never needed again: its per-shot rows,
        its vocabulary's vectors, its ranges, its structure and its rules are all that following and checking read.
@@ -29,7 +29,8 @@ Feature: Videoform: the kind of video a person makes again and again, read once 
       Depth Anything 3, and raea check's one decode of the picture (raea-app-check-read once.rs)
     And Fingerprint's fingerprint.ts (`about`, `extends`, `applies`, axes, encoder pins), its profiles (FP6e: ranges by
       measure name, critique, leave-one-out), `which` (FP14c) and evidence rows (FP2c)
-    And controllers' `rule` fields and raea/check's `.ts` checks over the world (DR4), run by `raea check PROJECT`
+    And taste lines that carry a check (a form, a check of raea's by name, or a `.ts` check over the world: DR4), run by
+      `raea check PROJECT`
     And the crate limits (a file at most 500 lines, a crate at most 2,000): raea-sys-fingerprint, -fingerprint-use and
       raea-app-fingerprint are each within 150 lines of theirs, so a videoform's code is its own crates, and the
       fingerprint crates grow only by a field and a map
@@ -268,14 +269,17 @@ Feature: Videoform: the kind of video a person makes again and again, read once 
         game 31.4 s (25.4 to 37.2), the call to action 3.6 s (2.2 to 5.8), each in 8 of 8, and `raea spec` reads it
 
     @needs:VF6,VF7 @done
-    Scenario: VF8. Rules, with their strength, into a controller
+    Scenario: VF8. Rules, with their strength, as taste lines
       Given the plan
         | crate              | file                              | lines | job                                                                    |
-        | raea-sys-videoform-rules | systems/videoform-rules/src/lib.rs | 360 | coverage, order and event rules from the kept rows, each with how strongly it holds; written as rule fields of the controller `videoform.rules` names |
+        | raea-sys-videoform-rules | systems/videoform-rules/src/lib.rs | 360 | coverage, order and event rules from the kept rows, each with how strongly it holds; written as the taste lines of the NAME.taste.ts `videoform.rules` names |
       # Fixed in the code (VF8, 11-21): rules.rs was raea-sys-videoform's at 240 lines. It came to 360, and with
       # VF8b and VF8c still to come that crate was full, so the rules are a crate of their own beside it.
+      # Fixed in the code (VF8, 11-21): the plan wrote them as a controller's rule fields. Controllers went from raea
+      # while VF8 was built (PJ9: a standing rule is a taste line), so they're written as a taste file, each line with
+      # its check, values and level, the same shape.
       Then a rule that holds in most references (a punch-in when a number is said; a close-up of the counters in every
-        kitchen) is a rule field with its strength and its check
+        kitchen) is a taste line with its strength and its check
       And the person confirms the strongest rules once, on a contact sheet of shot-kind stills, and each answer is
         evidence in the videoform
       And on 11-21: seven sorts of rule, each held to a named check for VF10 (videoform-covers, -opens, -closes,
@@ -286,8 +290,8 @@ Feature: Videoform: the kind of video a person makes again and again, read once 
         on screen, are left to the opens rules). A rule holds in 70% of the references it could, three or more; strong
         (a warning) at 85% with five references or more, else a note; `raea videoform set NAME RULE keep` makes it an
         error, `free` a note, `ignore` drops it, kept in fingerprint.ts as a correction with why. Written as
-        NAME.rules.ts (a controller, `raea spec` checks it) and videoform/rules.json, and `videoform.rules` names the
-        file (it was a list of taste lines). Each reading keeps a 160 px still a shot (videoform/stills/HASH/N.jpg,
+        NAME.taste.ts (taste lines, each with its id and strength in a comment above it; `raea spec` checks it) and
+        videoform/rules.json, and `videoform.rules` names the file. Each reading keeps a 160 px still a shot (videoform/stills/HASH/N.jpg,
         about 10 KB each), and every report makes videoform/kinds/kind-N.jpg, a kind's stills across the references
       And on Flagstaff's 7 walkthrough reels (Brannon Harbur, Instagram): the brief's opening graphic is found, "Its
         first shot shows Flagstaff on screen" in 6 of 7 (the one without is a Scottsdale home) and the price in 6 of 7

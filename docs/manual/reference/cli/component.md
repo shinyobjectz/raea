@@ -1,7 +1,7 @@
 ---
 title: "raea component"
 summary: "Copy a ready-made component or set into the project's components/, or the workspace's shared/components/, to use and change as your own."
-order: 27
+order: 26
 sources: ["engine/cli/src/index.ts", "engine/cli/src/registry.gen.ts"]
 ---
 

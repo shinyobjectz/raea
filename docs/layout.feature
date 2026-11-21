@@ -1,4 +1,4 @@
-Feature: One project layout: compositions, components, controllers, assets, artifacts; and the workspace's shared/
+Feature: One project layout: compositions, components, assets, artifacts; and the workspace's shared/
   Shane, 11-12: "reorganize the default project organization to remove "parts" and really align around the folders of
   compositions, components, controllers, assets, artifacts. this should be the default, and at the workspace level
   having a library that any project can call upon from those global folders." On naming: "just make sure it doesn't
@@ -23,26 +23,28 @@ Feature: One project layout: compositions, components, controllers, assets, arti
   app pages (Compositions, Controllers, Source), LY4's examples/components rename and the guides and skill wording,
   LY5 (`raea project tidy`), LY6.
 
+  11-20 (projects.feature PJ9): controllers are gone, so a new project or shared/ has four folders, not five, and a
+  project's or workspace's rules are its taste.ts. The lines below that name controllers are kept as they were planned.
+
   The layout:
 
       <workspace>/
         .raea/workspace, taste.ts, projects/, attachments/   as now
         shared/                      what every project in the workspace can call on
-          compositions/  components/  controllers/  assets/  artifacts/
+          compositions/  components/  assets/  artifacts/
       <workspace>/projects/<name>/
         .raea/project, brief.ts, <name>.script.ts, AGENTS.md   what the project is (as now, at its root)
         compositions/    what renders: a registerRoot <Composition>, or a default export; versions NAME-v2.tsx
         components/      what compositions import: props as rigs (component-library-first), raea's sets
-        controllers/     the project's controllers (PJ2), over shared/controllers/ by id
         assets/          media in: footage, stills, audio, models, fonts, the brand kit (assets/brand/)
         artifacts/       the small React apps agents post to the feed
         out/             renders (LFS, as now)
 
   Scenario: LY1. A new project and a new workspace have the layout
     When `raea project new NAME` makes a project
-    Then its folder has compositions/, components/, controllers/, assets/ and artifacts/ (each kept with a .gitkeep),
+    Then its folder has compositions/, components/, assets/ and artifacts/ (each kept with a .gitkeep),
       out/, brief.ts and AGENTS.md, and no media/, brand/ or parts/
-    And `raea workspace init` makes shared/ with the same five folders, and no root controllers/ or artifacts/
+    And `raea workspace init` makes shared/ with the same four folders, and no root controllers/ or artifacts/
     And .gitattributes keeps assets/** and out/** in LFS (shared/assets/** too)
     And AGENTS.md says where each kind of file goes, in a line each, and that @shared/ is the workspace's
     And `raea init` in a loose folder makes compositions/edit.tsx and components/, not edit.tsx at the root
@@ -64,12 +66,10 @@ Feature: One project layout: compositions, components, controllers, assets, arti
       with @shared/ as the fix when the file is in shared/
 
   Scenario: LY3. One reading of the layout, everywhere
-    When `raea project scan`, the app's Compositions, Controllers and Source pages, and `raea context` read a project
+    When `raea project scan`, the app's Compositions and Source pages, and `raea context` read a project
     Then compositions come from compositions/ and components from components/, each also from shared/ (marked shared)
     And a .tsx elsewhere in the project is still read by what it is (PJ8), and linted as out of place with the folder
       it belongs in as the fix
-    And controllers are the project's controllers/ over shared/controllers/ by id (a project's own wins), so the 11-07
-      per-project copy is no longer needed: `raea controller ls` says which are shared
     And Source's Assets tab lists assets/ (and shared/assets/), and its Artifacts tab artifacts/ (and shared/artifacts/)
     And an agent's feed_post of an artifact writes it to the project's artifacts/
 
@@ -84,7 +84,7 @@ Feature: One project layout: compositions, components, controllers, assets, arti
     When `raea project tidy [NAME] [--dry-run]` runs on a project in the old layout
     Then each file goes where its kind belongs, as the scan reads it: compositions (and their versions) to
       compositions/, the .tsx they import to components/ (parts/ and its subfolders as components/<same path>),
-      controllers to controllers/, media/ and brand/ to assets/ (assets/brand/), artifacts to artifacts/
+      media/ and brand/ to assets/ (assets/brand/), artifacts to artifacts/
     And brief.ts, scripts, notes (.md) and out/ stay where they are; anything it can't place is listed, not moved
     And every import that names a moved file is rewritten (relative paths, media imports), and so are the paths the
       project's feed items, render manifests and checks name
@@ -92,7 +92,7 @@ Feature: One project layout: compositions, components, controllers, assets, arti
     And it proves the move before it commits: the scan has no new lint, tsc passes if it passed before, and each
       composition's first frame renders as it did (raea check --quick); a failure undoes the move
     And it is one commit per project, moves as renames (git mv), so history follows each file
-    And the workspace's root controllers/ and artifacts/ move to shared/ the same way (`raea workspace tidy`)
+    And the workspace's root artifacts/ move to shared/ the same way (`raea workspace tidy`)
 
   Scenario: LY6. The Raea workspace is tidied
     Given the Raea workspace (~/Documents/raea/raea): stay, orientation, v0-1-launch and two untitled projects

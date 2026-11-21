@@ -13,6 +13,6 @@ raea-io-home = { path = "../../io/home" }
 raea-core-facts = { path = "../../core/facts" }
 serde_json = "1"
 raea-runtime-bundle = { path = "../../runtime/bundle" }
-ureq = { version = "2", features = ["json"] }
-base64 = "0.22"
-image = { version = "0.25", default-features = false, features = ["png", "jpeg"] }
+# the one clef client: the question format and the call, routed to the person's plan first (docs/ask.feature AK1b)
+raea-core-ask = { path = "../../core/ask" }
+raea-io-clef = { path = "../../io/clef" }

@@ -1,13 +1,13 @@
 //! `raea check PROJECT|EDIT.tsx` (docs/direction.feature DR4): every check that applies, run over each
-//! composition's worlds. The rules come from raea's floor, the person's taste (and the workspace's), and the
-//! workspace's and the project's controllers; each is one of raea's named checks (systems.rs) or a project's TS check
-//! (ts.rs), and where it was written changes nothing about how it runs. A check that needs a render runs on the
+//! composition's worlds. The rules come from raea's floor and the taste files: the person's, the workspace's and the
+//! project's; each is one of raea's named checks (systems.rs) or a project's TS check (ts.rs), and where it was
+//! written changes nothing about how it runs. A check that needs a render runs on the
 //! composition's newest render; with none, it waits, and the command says what for. `raea check VIDEO.mp4` is the
 //! floor alone (apps/check).
 
 use std::path::{Path, PathBuf};
 
-use raea_core_brief::{controller, taste};
+use raea_core_brief::taste;
 use raea_core_facts::{finding, record, Facts, Finding, Level, Rule, Shot};
 use raea_runtime_bundle::flag;
 use raea_runtime_world::{Ask, Render};
@@ -18,7 +18,7 @@ use crate::ts;
 
 type R<T> = Result<T, String>;
 
-pub const USAGE: &str = "raea check [PROJECT|EDIT.tsx] [--composition ID] [--only ID] [--taste T] [--render OUT | --no-render] [--json]   (every check that applies to each composition, over its frames: raea's floor on its newest render, the person's taste, the workspace's and the project's rules (a controller's rule fields: one of raea's checks by name, or a project's .ts check); what needs a render and has none waits, and says so)";
+pub const USAGE: &str = "raea check [PROJECT|EDIT.tsx] [--composition ID] [--only ID] [--taste T] [--render OUT | --no-render] [--json]   (every check that applies to each composition, over its frames: raea's floor on its newest render, the person's, the workspace's and the project's taste.ts (each line's check: one of raea's forms or checks by name, or a project's .ts check); what needs a render and has none waits, and says so)";
 
 /// The flags raea check takes with a value (its own, and the floor's on a video).
 const TAKES: [&str; 10] = ["--composition", "--only", "--taste", "--render", "--manifest", "--words", "--perception", "--shape", "--platform", "-o"];
@@ -71,7 +71,12 @@ fn tastes(project: &Path, given: Vec<PathBuf>, host: &Host) -> Vec<PathBuf> {
             }
         }
     }
-    out.extend(record::up(project, ".raea/workspace").map(|ws| ws.join("taste.ts")).filter(|f| f.is_file()));
+    // the workspace's, then the project's own (the same file when the project is the workspace's folder)
+    for f in record::up(project, ".raea/workspace").map(|ws| ws.join("taste.ts")).into_iter().chain([project.join("taste.ts")]) {
+        if f.is_file() && !out.contains(&f) {
+            out.push(f);
+        }
+    }
     out
 }
 
@@ -98,8 +103,8 @@ fn rules(project: &Path, given: Vec<PathBuf>, host: &Host) -> (Vec<Rule>, Vec<Fi
     (out, bad, notes)
 }
 
-/// raea's floor, the person's taste and the workspace's and project's controllers' rules, and a finding for each file
-/// of them raea couldn't read.
+/// raea's floor and every taste file's rules (the person's, the workspace's, the project's), and a finding for each
+/// file of them raea couldn't read.
 fn held(project: &Path, given: Vec<PathBuf>, host: &Host) -> (Vec<Rule>, Vec<Finding>) {
     // raea's own: the floor, and the reading check (DR28: its findings keep their own levels, so no rule level)
     let read = Rule { level: None, ..Rule::named("text-read", "text can be read for as long as it needs, and OCR reads it", Default::default(), Level::Warn, "raea") };
@@ -107,24 +112,10 @@ fn held(project: &Path, given: Vec<PathBuf>, host: &Host) -> (Vec<Rule>, Vec<Fin
     let mut bad = Vec::new();
     let name = |f: &Path| f.strip_prefix(project).unwrap_or(f).display().to_string();
     for f in tastes(project, given, host) {
+        let (dir, by) = (f.parent().unwrap_or(Path::new(".")).to_path_buf(), format!("taste {}", name(&f)));
         match (host.ts.eval)(&f).and_then(|j| raea_core_brief::read::<taste::Taste>(&name(&f), &j)) {
-            Ok(t) => out.extend(t.sections.iter().flat_map(|s| &s.rules).filter_map(|r| Some(Rule::of_taste(&r.text, r.check?, &name(&f))))),
+            Ok(t) => out.extend(t.sections.iter().flat_map(|s| &s.rules).filter_map(|r| Rule::of_taste(r, &dir, &by))),
             Err(e) => bad.push(Finding::new("taste", Level::Error, format!("raea can't read it: {e}"), "raea check").about(name(&f), None)),
-        }
-    }
-    let ws = record::up(project, ".raea/workspace");
-    for (dir, scope) in ws.iter().map(|w| (raea_app_registry::shared_dir(w, "controllers"), "workspace")).chain([(project.join("controllers"), "project")]) {
-        // a workspace's own folder is its project's too: read once
-        if scope == "project" && ws.as_deref() == Some(project) {
-            continue;
-        }
-        let mut files: Vec<PathBuf> = std::fs::read_dir(&dir).into_iter().flatten().flatten().map(|e| e.path()).filter(|p| p.extension().is_some_and(|x| x == "ts")).collect();
-        files.sort();
-        for f in files {
-            match (host.ts.eval)(&f).and_then(|j| controller::of_json(&j)) {
-                Ok(c) => out.extend(Rule::of_controller(&c, &dir, &format!("{scope} {}", name(&f)))),
-                Err(e) => bad.push(Finding::new("controller", Level::Error, format!("raea can't read it: {e}"), "raea check").about(name(&f), None)),
-            }
         }
     }
     (out, bad)
@@ -134,7 +125,7 @@ fn held(project: &Path, given: Vec<PathBuf>, host: &Host) -> (Vec<Rule>, Vec<Fin
 fn compositions(target: &Path, args: &[String]) -> R<Vec<(PathBuf, Option<String>)>> {
     let one = flag(args, "--composition");
     let (dir, file) = if target.is_dir() { (target.to_path_buf(), None) } else { (target.parent().unwrap_or(Path::new(".")).to_path_buf(), Some(dunce::canonicalize(&target).map_err(|e| format!("{}: {e}", target.display()))?)) };
-    let reg = raea_app_registry::scan(&dir, &[]);
+    let reg = raea_app_registry::scan(&dir);
     let mut out: Vec<(PathBuf, Option<String>)> = Vec::new();
     for c in &reg.compositions {
         let path = reg.dir.join(&c.file);

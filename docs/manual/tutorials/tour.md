@@ -1,6 +1,6 @@
 ---
 title: "A tour of the app"
-summary: "What each part of the raea app's sidebar is for: the workspace, New chat, the Inbox, Publish, Plugins, projects with their Feed, Compositions and Controllers, Chats and Settings."
+summary: "What each part of the raea app's sidebar is for: the workspace, New chat, the Inbox, Publish, Plugins, projects with their Feed and Compositions, Chats and Settings."
 order: 3
 sources: ["apps/app/src/shell/Sidebar.tsx", "apps/app/src/shell/Channels.tsx", "docs/organize.md"]
 tutorial: "tour"
@@ -44,9 +44,8 @@ you publish to, generation services, and computers of your own.
 
 ## Projects
 
-Under Projects, each project is a folder. Open one, and it has three pages. The Feed shows the project's work. The
-Compositions page shows what each piece is made of. And Controllers holds the project's settings, which every agent
-works to. In the Feed, the Agents button lists the project's agents, and what each one is working on. While an agent
+Under Projects, each project is a folder. Open one, and it has two pages. The Feed shows the project's work, and the
+Compositions page shows what each piece is made of. In the Feed, the Agents button lists the project's agents, and what each one is working on. While an agent
 works, a stop button sits beside it, in that list, beside its status in the Feed's chat and on the message it's
 answering in the Inbox. Press it to stop that agent.
 

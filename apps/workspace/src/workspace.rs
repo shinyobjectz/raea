@@ -98,8 +98,8 @@ fn words(args: &[String]) -> Vec<&str> {
     raea_app_check::words(args, &["--layout", "--storage", "--name", "--remote"])
 }
 
-// a name as a folder (slug), and the nearest folder holding a marker (up): the registry's, which reads controller ids
-// and projects with them
+// a name as a folder (slug), and the nearest folder holding a marker (up): the registry's, which reads projects with
+// them
 pub use raea_app_registry::{slug, up};
 
 /// A new id: the prefix and eight hex digits from the clock and the process.
@@ -188,10 +188,10 @@ pub(crate) fn commit(repo: &Path, paths: &[&str], what: &str) -> R<()> {
     git(repo, &["commit", "-q", "-m", &format!("raea: {what}"), "--"]).map(|_| ())
 }
 
-const AGENTS_PROJECT: &str = "# Agents\n\nRun `raea context .` here before any work: the taste, this project's brief.ts and script.ts, its look and the guides\nits modes need, in the order to read them. Specs are TypeScript (`export default brief({...})` from \"raea/brief\").\n\nWhere files go (docs/layout.feature):\n\n- compositions/: what renders, a registerRoot <Composition> or a default export; versions are NAME-v2.tsx\n- components/: what compositions import; every prop is a component whose props animate it\n- controllers/: this project's controllers, over the workspace's shared ones by id\n- assets/: media in (footage, stills, audio, models, fonts) and the brand kit in assets/brand/\n- artifacts/: the small React apps posted to the feed\n- out/: renders\n\nThe workspace's shared/ holds the same five folders for every project: import them as\n`@shared/components/desk`, never by a relative path out of this folder.\n";
+const AGENTS_PROJECT: &str = "# Agents\n\nRun `raea context .` here before any work: the taste, this project's brief.ts and script.ts, its look and the guides\nits modes need, in the order to read them. Specs are TypeScript (`export default brief({...})` from \"raea/brief\").\n\nWhere files go (docs/layout.feature):\n\n- compositions/: what renders, a registerRoot <Composition> or a default export; versions are NAME-v2.tsx\n- components/: what compositions import; every prop is a component whose props animate it\n- assets/: media in (footage, stills, audio, models, fonts) and the brand kit in assets/brand/\n- artifacts/: the small React apps posted to the feed\n- out/: renders\n\nThe workspace's shared/ holds the same five folders for every project: import them as\n`@shared/components/desk`, never by a relative path out of this folder.\n";
 
 /// The kinds of file a project, and the workspace's shared/, keep a folder each for (docs/layout.feature).
-pub const KINDS: [&str; 5] = ["compositions", "components", "controllers", "assets", "artifacts"];
+pub const KINDS: [&str; 4] = ["compositions", "components", "assets", "artifacts"];
 
 /// LFS for media in and renders out, at any depth: in each project and in shared/ (a pattern with a slash is anchored to
 /// the workspace root, so the old media/** never matched a project's media/)
@@ -362,7 +362,7 @@ pub fn project(args: &[String]) -> R<String> {
         Some("new") => new_project(w.get(1).ok_or(USAGE)?, flag(args, "--storage")),
         Some("split") => storage::split(w.get(1).ok_or(USAGE)?, flag(args, "--remote")),
         Some("join") => storage::join(w.get(1).ok_or(USAGE)?),
-        // PJ8: the folder's compositions, components and controllers, and what isn't connected
+        // PJ8: the folder's compositions and components, and what isn't connected
         Some("scan") => {
             let dir = w.get(1).map(PathBuf::from).map_or_else(|| std::env::current_dir().map_err(|e| e.to_string()), Ok)?;
             let r = crate::registry::scan(&dir);
@@ -428,17 +428,12 @@ fn show_project(json_out: bool) -> R<String> {
     let dir = up(&here, ".raea/project").ok_or("not in a project: raea project new NAME (in a workspace) makes one")?;
     let file = dir.join(".raea/project");
     let ws = up(&dir, ".raea/workspace").filter(|w| *w != dir);
-    let overrides: Vec<(String, String)> = all(&file).into_iter().filter(|(k, _)| k.starts_with("controller.")).collect();
     if json_out {
-        let o: serde_json::Map<String, serde_json::Value> = overrides.iter().map(|(k, v)| (k.trim_start_matches("controller.").to_string(), json!(v))).collect();
-        return Ok(json!({"path": dir, "id": get(&file, "project.id"), "name": get(&file, "project.name"), "workspace": ws, "controllers": o}).to_string());
+        return Ok(json!({"path": dir, "id": get(&file, "project.id"), "name": get(&file, "project.name"), "workspace": ws}).to_string());
     }
     let mut out = format!("{} ({})\n{}\n", get(&file, "project.name").unwrap_or_default(), get(&file, "project.id").unwrap_or_default(), dir.display());
     if let Some(ws) = &ws {
         out.push_str(&format!("in workspace {}\n", ws.display()));
-    }
-    for (k, v) in overrides {
-        out.push_str(&format!("  {} = {v}\n", k.trim_start_matches("controller.")));
     }
     Ok(out.trim_end().to_string())
 }

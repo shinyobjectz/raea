@@ -1,7 +1,7 @@
 ---
 title: "raea library"
 summary: "Search and manage the person's media libraries in the raea app: folders and drives indexed on this machine, searched by meaning."
-order: 31
+order: 30
 sources: ["engine/cli/src/library.ts"]
 ---
 

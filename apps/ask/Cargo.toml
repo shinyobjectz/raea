@@ -1,0 +1,24 @@
+[package]
+name = "raea-app-ask"
+version = "0.1.0"
+edition = "2024"
+license = "FSL-1.1-ALv2"
+publish = false
+description = "raea ask: questions about a piece's picture and sound, prepared from what raea knows of it, asked of clef in parallel from the person's plan, and every answer kept"
+
+[dependencies]
+# the question format and the standard sets; the one clef client, routed to the person's plan first (docs/ask.feature)
+raea-core-ask = { path = "../../core/ask" }
+raea-io-clef = { path = "../../io/clef" }
+raea-io-home = { path = "../../io/home" }
+# the fingerprint's AUC, quantile and gates, so a question is calibrated as an axis is (AK7)
+raea-sys-fingerprint = { path = "../../systems/fingerprint" }
+# today's date for a calibration
+raea-io-trace = { path = "../../io/trace" }
+dunce = "1"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sha2 = "0.10"
+
+[dev-dependencies]
+raea-io-assets = { path = "../../io/assets" }

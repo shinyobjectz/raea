@@ -32,7 +32,7 @@ files directly.
 ## The primary
 
 Now open Settings, then Agents. The first row is the primary: the AI that runs your workspace. It answers in New chat
-when no project is picked, takes what you write in the Inbox and on the Controllers page, and starts any work you don't
+when no project is picked, takes what you write in the Inbox, and starts any work you don't
 hand to someone else. Pick any AI you've connected and one of its models, Kimi until you change it. That's all the
 primary is. raea doesn't add a director or a cast of agents on top.
 

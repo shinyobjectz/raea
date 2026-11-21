@@ -1,0 +1,9 @@
+[
+  {"id": "av.together", "type": "grade", "ask": "How well do the sound and the picture work together: does what you hear belong to what you see, moment by moment?", "uses": ["brief"]},
+  {"id": "av.sound-fits", "ask": "Does every sound fit what is on screen: an action that would make a sound has one, and each thing sounds like what it is made of?", "flags": ["no"]},
+  {"id": "av.music-mood", "ask": "Does the music's mood match what the picture shows at each point?", "flags": ["no"], "uses": ["brief"]},
+  {"id": "av.music-fights-voice", "ask": "At any point do the music or the effects make the voice hard to follow?", "when": {"voice": true}},
+  {"id": "av.voice-suits", "ask": "Does the voice suit the person shown speaking: their age, their manner and their energy?", "flags": ["no"], "when": {"voice": true}},
+  {"id": "av.ambience", "ask": "Does the background sound match the place the picture shows (a street, a kitchen, a room, outdoors)?", "flags": ["no"]},
+  {"id": "av.effects-mark", "ask": "Does each sound effect mark something happening on screen, rather than filling space?", "flags": ["no"]}
+]

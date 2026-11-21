@@ -1,6 +1,6 @@
 ---
 title: "Workspaces and projects"
-summary: "Where work lives in raea: a workspace is a git repository of projects and controllers, and each project has a brief and folders for media and renders."
+summary: "Where work lives in raea: a workspace is a git repository of projects, and each project has a brief, its taste and folders for media and renders."
 order: 3
 sources: ["apps/workspace/src", "core/brief/src", "skills/skills/raea/reference/files.md"]
 ---
@@ -11,7 +11,7 @@ and where the files go.
 
 ## A workspace
 
-A workspace is a git repository, one per studio or client, that holds projects and controllers. Workspaces live under
+A workspace is a git repository, one per studio or client, that holds projects and their house taste. Workspaces live under
 your raea root, which is `~/Studio` unless you set another:
 
 ```sh
@@ -55,8 +55,8 @@ raea's specs are TypeScript files whose default export is checked against a sche
 | `brief.ts` | The project's brief |
 | `NAME.script.ts` | A storyboard: scenes of beats, what's on screen, what each scene must land |
 | `~/.raea/taste/taste.ts` | The person's taste, which beats any guide's default |
-| `plan.ts` | A frozen plan for a build, checked by raea |
-| `controllers/ID.ts` | The workspace's settings and workflows |
+| `taste.ts` | A workspace's or a project's rules, which `raea check` holds every piece to |
+| `NAME.parts.ts` | An object's parts, frozen before it's built, checked by raea |
 
 ```sh
 raea spec brief.ts        # prints the brief as JSON, checked against its schema
@@ -80,15 +80,23 @@ export default brief({
 
 The full list of each spec's fields is in [Files and specs](../reference/files.md).
 
-## Controllers
+## Rules
 
-Controllers are the workspace's settings and workflows: delivery specs, who reviews what, the tools every agent gets.
-Every change to one is a git commit.
+A standing decision ("every ad is 9:16", "captions clear the button band") is a line in a taste file: the person's
+(`~/.raea/taste/taste.ts`), the workspace's or the project's own `taste.ts`. A line raea can measure carries a check:
+one of raea's by name, or the project's own `.ts` check, and `raea check` holds every piece to it.
 
-```sh
-raea controller ls                          # every controller, with its groups and fields
-raea controller get CONTROLLER.GROUP.FIELD  # one value
-raea controller set CONTROLLER.GROUP.FIELD VALUE   # change it, as a commit
+```ts
+import { taste } from "raea/brief";
+
+export default taste({
+  title: "Acme's rules",
+  sections: [{ heading: "Delivery", rules: [
+    { text: "Every ad is 9:16." },
+    { text: "Captions sit above three quarters of the frame.", check: { form: "text-above", value: 75 } },
+    { text: "Loud enough for a phone.", check: "loudness", values: { value: -14 } },
+  ] }],
+});
 ```
 
 ## Reading a project before working on it
@@ -98,5 +106,5 @@ raea context .
 ```
 
 prints, in order, everything an agent should read before making anything in the project: the person's taste, the
-workspace's taste, the brief, the look, the controllers, the craft floor and the guides for the brief's modes. See
+workspace's taste, the project's taste, the brief, the look, the craft floor and the guides for the brief's modes. See
 [How an agent should use raea](../start/agents.md).

@@ -1,7 +1,7 @@
 ---
 title: "raea brand"
 summary: "Read a brand kit from a website on this machine: colours, fonts and logos into brand/ and BRAND.md."
-order: 30
+order: 29
 sources: ["engine/cli/src/brand.ts", "engine/cli/src/scrape.ts"]
 ---
 

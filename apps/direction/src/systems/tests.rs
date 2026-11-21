@@ -53,7 +53,7 @@ fn placement_and_margin_name_the_worst_frame_of_a_run() {
 
 #[test]
 fn a_rule_with_no_value_says_so() {
-    let r = Rule { level: Some(Level::Warn), ..Rule::named("text-hold", "", Map::new(), Level::Error, "project controllers/rules.ts") };
+    let r = Rule { level: Some(Level::Warn), ..Rule::named("text-hold", "", Map::new(), Level::Error, "taste taste.ts") };
     let got = text(&r, &piece(3, |_| vec![]));
     assert_eq!((got.len(), got[0].level), (1, Level::Warn));
     assert!(got[0].says.contains("needs a value"));

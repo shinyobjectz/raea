@@ -1,6 +1,7 @@
 //! The rules (docs/videoform.feature VF8): what holds across the references, from their kept rows, each with how
-//! strongly it holds (the share of the references it holds in, of those it could), written as rule fields of a
-//! controller, NAME.rules.ts, that `videoform.rules` names; the checks they name are raea check's (VF10). The sorts:
+//! strongly it holds (the share of the references it holds in, of those it could), written as taste lines with their
+//! checks (a standing rule is a taste line, docs/projects.feature PJ9), NAME.taste.ts, that `videoform.rules` names;
+//! the checks they name are raea check's (VF10). The sorts:
 //!   - covers: every video has a kind of shot, or shows (says, has heard) a term
 //!   - opens and closes: its first shot and its last
 //!   - slot: what a section is made of, more than the rest of the video is; order: which section comes first
@@ -286,7 +287,7 @@ pub fn rules(refs: &[Rows], fired: &[Vec<Vec<bool>>], rep: &Report, places: &[(S
     out
 }
 
-/// The sorts' groups in NAME.rules.ts, in order
+/// The sorts' sections in NAME.taste.ts, in order
 const GROUPS: [(&str, &[&str]); 5] = [
     ("What every video has", &["covers"]),
     ("How it opens and closes", &["opens", "closes"]),
@@ -295,32 +296,27 @@ const GROUPS: [(&str, &[&str]); 5] = [
     ("What follows what", &["event"]),
 ];
 
-/// The rules as NAME.rules.ts: a controller whose fields are rules (docs/direction.feature DR4), each with how
-/// strongly it holds as its help
-pub fn rules_ts(rules: &[Rule], name: &str, n: usize) -> String {
-    // a field's id, from its rule's: a controller's are at most 48 of a-z, 0-9 and -, and two are never alike
-    let mut ids: Vec<String> = Vec::new();
-    for r in rules {
-        let base: String = slug(&r.id).chars().take(44).collect::<String>().trim_end_matches('-').to_string();
-        let (mut id, mut k) = (base.clone(), 1);
-        while ids.contains(&id) {
-            k += 1;
-            id = format!("{base}-{k}");
+/// The rules as NAME.taste.ts: a taste file (core/brief taste.rs), a section a sort, each rule a line with the check
+/// that holds it (raea check's, VF10), its values and its level; above each, its id and how strongly it holds
+pub fn taste_ts(rules: &[Rule], name: &str, n: usize) -> String {
+    let mut sections = String::new();
+    for (heading, sorts) in GROUPS {
+        let mine: Vec<&Rule> = rules.iter().filter(|r| sorts.contains(&r.sort.as_str())).collect();
+        if mine.is_empty() {
+            continue;
         }
-        ids.push(id);
-    }
-    let groups: Vec<Value> = GROUPS.iter().filter_map(|(title, sorts)| {
-        let fields: Vec<Value> = rules.iter().zip(&ids).filter(|(r, _)| sorts.contains(&r.sort.as_str())).map(|(r, id)| {
+        sections += &format!("    {{\n      heading: {},\n      rules: [\n", json!(heading));
+        for r in mine {
             let lift = r.lift.map(|l| format!(", {l} times as often as elsewhere")).unwrap_or_default();
-            let help = format!("holds in {} of the {} references it could ({n} in all){lift}; {}", r.holds.len(), r.of.len(), r.id);
-            json!({"id": id, "label": r.text, "help": help, "type": "rule", "check": r.check, "values": r.values, "level": r.level})
-        }).collect();
-        (!fields.is_empty()).then(|| json!({"title": title, "fields": fields}))
-    }).collect();
-    let c = json!({"title": format!("{name}'s rules"), "help": format!("Mined from {n} references by raea videoform (docs/videoform.feature VF8): confirm or drop each with raea videoform set {name} ID keep|free|ignore"), "groups": groups});
+            let line = json!({"text": r.text, "check": r.check, "values": r.values, "level": r.level});
+            sections += &format!("        // {}: holds in {} of the {} references it could{lift}\n        {line},\n", r.id, r.holds.len(), r.of.len());
+        }
+        sections += "      ],\n    },\n";
+    }
+    let title = json!(format!("{name}'s rules"));
+    let note = json!(format!("Mined from {n} references by raea videoform (docs/videoform.feature VF8); read by raea check with the person's taste"));
     format!(
-        "// The videoform's rules (docs/videoform.feature VF8), mined from its references by raea videoform and made again on\n// every add and report: your word on each is kept in fingerprint.ts (raea videoform set NAME ID keep|free|ignore).\nimport {{ controller }} from \"raea/brief\";\n\nexport default controller({});\n",
-        serde_json::to_string_pretty(&c).unwrap()
+        "// The videoform's rules (docs/videoform.feature VF8), mined from its references by raea videoform and made again on\n// every add and report: your word on each is kept in fingerprint.ts (raea videoform set {name} ID keep|free|ignore).\nimport {{ taste }} from \"raea/brief\";\n\nexport default taste({{\n  title: {title},\n  note: {note},\n  sections: [\n{sections}  ],\n}});\n"
     )
 }
 
@@ -379,7 +375,7 @@ mod tests {
         let got = rules(&refs, &fired, &rep, &[], &[c("opens:price", "keep"), c("covers:the-kitchen", "ignore")]);
         assert_eq!(got.iter().find(|r| r.id == "opens:price").map(|r| r.level.as_str()), Some("error"));
         assert!(got.iter().all(|r| r.id != "covers:the-kitchen"));
-        let ts = rules_ts(&got, "homes", 5);
-        assert!(ts.contains("\"check\": \"videoform-opens\"") && ts.contains("\"type\": \"rule\""), "{ts}");
+        let ts = taste_ts(&got, "homes", 5);
+        assert!(ts.contains("\"check\":\"videoform-opens\"") && ts.contains("// opens:price: holds in 5 of the 5"), "{ts}");
     }
 }

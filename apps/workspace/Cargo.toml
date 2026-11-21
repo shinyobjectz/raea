@@ -4,17 +4,15 @@ version = "0.1.0"
 edition = "2024"
 license = "FSL-1.1-ALv2"
 publish = false
-description = "`raea workspace`, `raea project` and `raea controller`: a workspace's folders, projects and controllers, each change a commit"
+description = "`raea workspace` and `raea project`: a workspace's folders and projects, each change a commit"
 
 [dependencies]
 dunce = "1"
-# the controller schema (core/brief controller.rs): a controller file is checked and normalized against it
-raea-core-brief = { path = "../../core/brief" }
 raea-io-home = { path = "../../io/home" }
 # git, which a workspace is: the PATH's, else on Windows the app's or raea's own (raea_io_assets::git)
 raea-io-assets = { path = "../../io/assets" }
 serde_json = "1"
-# a project's compositions, components and controllers read from their source (docs/projects.feature PJ8)
+# a project's compositions and components read from their source (docs/projects.feature PJ8)
 raea-app-registry = { path = "registry" }
 # the project's record of what renders and checks found, which raea next reads (docs/direction.feature DR3)
 raea-core-facts = { path = "../../core/facts" }

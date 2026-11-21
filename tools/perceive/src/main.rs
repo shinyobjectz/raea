@@ -227,9 +227,14 @@ fn main() {
             }
             #[cfg(target_vendor = "apple")]
             Some("analyze") => {
-                let (video, dir) = (args.get(1).ok_or("analyze VIDEO DIR")?, args.get(2).ok_or("analyze VIDEO DIR")?);
+                let (video, dir) = (args.get(1).ok_or("analyze VIDEO DIR [--shots S.json]")?, args.get(2).ok_or("analyze VIDEO DIR [--shots S.json]")?);
                 let backend = flag("--backend").unwrap_or_else(|| "apple".into());
-                let f = raea_sys_footage::ingest::video(std::path::Path::new(video), std::path::Path::new(dir), &backend, &raea_sys_vision::vision::AppleVision::default())?;
+                // --shots S.json: the shots, [{start, end, transition}], when they're known already
+                let given = match flag("--shots") {
+                    Some(f) => Some(serde_json::from_slice(&std::fs::read(&f).map_err(|e| format!("{f}: {e}"))?).map_err(|e| format!("{f}: {e}"))?),
+                    None => None,
+                };
+                let f = raea_sys_footage::ingest::video(std::path::Path::new(video), std::path::Path::new(dir), &backend, &raea_sys_vision::vision::AppleVision::default(), given)?;
                 println!("{}", serde_json::to_string(&f).unwrap());
                 Ok(())
             }

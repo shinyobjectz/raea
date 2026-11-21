@@ -25,19 +25,30 @@ pub(crate) fn frame(path: &Path, t: f64) -> R<image::RgbaImage> {
     to_image(d.frame_at(t)?)
 }
 
-/// `width`: the still made that wide (its height in proportion) when the picture is wider; never made bigger.
-pub fn still(path: &Path, at: f64, out: &Path, width: Option<u32>) -> R<Value> {
-    let img = if IMAGE_EXTS.contains(&ext(path).as_str()) {
-        image::open(path).map_err(|e| format!("{}: {e}", path.display()))?.to_rgba8()
-    } else {
-        frame(path, at)?
-    };
-    let img = match width.filter(|w| *w > 0 && *w < img.width()) {
+/// The image made `width` wide (its height in proportion) when it's wider; never made bigger.
+fn narrowed(img: image::RgbaImage, width: Option<u32>) -> image::RgbaImage {
+    match width.filter(|w| *w > 0 && *w < img.width()) {
         Some(w) => image::imageops::resize(&img, w, ((img.height() as f64 * w as f64 / img.width() as f64).round() as u32).max(1), image::imageops::FilterType::CatmullRom),
         None => img,
-    };
+    }
+}
+
+/// `width`: the still made that wide (its height in proportion) when the picture is wider; never made bigger.
+pub fn still(path: &Path, at: f64, out: &Path, width: Option<u32>) -> R<Value> {
+    let img = narrowed(if IMAGE_EXTS.contains(&ext(path).as_str()) { image::open(path).map_err(|e| format!("{}: {e}", path.display()))?.to_rgba8() } else { frame(path, at)? }, width);
     save(&img, out)?;
     Ok(json!({"wrote": out, "at": at, "width": img.width(), "height": img.height()}))
+}
+
+/// A still at each of `ats` (seconds, comma-separated), into the folder `out` as 0.jpg, 1.jpg ... (a videoform's shots)
+pub fn stills(path: &Path, ats: &str, out: &Path, width: Option<u32>) -> R<Value> {
+    let mut n = 0;
+    for a in ats.split(',').map(str::trim).filter(|a| !a.is_empty()) {
+        let at: f64 = a.parse().map_err(|_| format!("raea media still --at: {a} isn't a time"))?;
+        save(&narrowed(frame(path, at)?, width), &out.join(format!("{n}.jpg")))?;
+        n += 1;
+    }
+    Ok(json!({"wrote": out, "stills": n}))
 }
 
 pub fn sheet(files: &[PathBuf], n: usize, w: u32, out: &Path) -> R<Value> {

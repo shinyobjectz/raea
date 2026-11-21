@@ -8,12 +8,14 @@ pub mod controller;
 pub mod plan;
 pub mod script;
 pub mod taste;
+pub mod videoform;
 
 pub use brief::Brief;
 pub use controller::Controller;
 pub use plan::Plan;
 pub use script::Script;
 pub use taste::Taste;
+pub use videoform::{Correction, Videoform, Vocabulary};
 
 use serde::de::DeserializeOwned;
 use ts_rs::{Config, TS};
@@ -39,6 +41,9 @@ pub fn declarations() -> String {
         taste::Taste, taste::TasteSection, taste::Rule, taste::Check,
         plan::Plan, plan::Concept, plan::Level, plan::Count, plan::Part,
         controller::Controller, controller::Group, controller::Field, controller::Kind, controller::Step,
+        videoform::Videoform,
+        videoform::Correction,
+        videoform::Vocabulary, videoform::Term, videoform::Pattern, videoform::Section, videoform::Feel,
     ));
     out.join("\n\n") + "\n"
 }

@@ -1,0 +1,16 @@
+[package]
+name = "raea-sys-videoform"
+version = "0.1.0"
+edition = "2024"
+license = "FSL-1.1-ALv2"
+publish = false
+description = "A videoform's maths over its kept rows (docs/videoform.feature VF3): each reference shot's pooled vectors and measures, kept as f16 beside fingerprint.ts; what they hold measure by measure, with the person's corrections (VF4, VF4b); a vocabulary's terms against them (VF5)"
+
+[dependencies]
+# the person's corrections (the videoform section's type)
+raea-core-brief = { path = "../../core/brief" }
+half = "2"
+# a vocabulary's patterns over the words on screen and said
+regex = "1"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"

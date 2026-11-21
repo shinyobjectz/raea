@@ -96,7 +96,7 @@ pub(crate) fn run(args: &[String], flag: &dyn Fn(&str) -> Option<String>) -> Res
             let video = std::path::Path::new(args.get(1).ok_or("see-camera VIDEO")?);
             let v = raea_sys_vision::vision::AppleVision::default();
             let dir = std::env::temp_dir().join(format!("raea-camera-{}", std::process::id()));
-            let facts = raea_sys_footage::ingest::video(video, &dir, "apple", &v)?;
+            let facts = raea_sys_footage::ingest::video(video, &dir, "apple", &v, None)?;
             let _ = std::fs::remove_dir_all(&dir);
             let shots: Vec<(f64, f64)> = facts.shots.iter().map(|s| (s.start, s.end)).collect();
             let cams = raea_sys_footage::ingest::camera(video, &shots, "apple", &v)?;

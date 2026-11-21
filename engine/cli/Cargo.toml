@@ -70,6 +70,7 @@ raea-app-engines = { path = "../../apps/engines" }
 raea-app-solid = { path = "../../apps/solid" }
 # raea judge: review sheets judged by clef-omni
 raea-app-judge = { path = "../../apps/judge" }
+raea-app-videoform = { path = "../../apps/videoform" }
 raea-app-media = { path = "../../apps/media" }
 # `raea app run|check|bundle` and `raea rune` on either target (docs/targets.feature T0b)
 raea-app-targets = { path = "../../apps/targets" }

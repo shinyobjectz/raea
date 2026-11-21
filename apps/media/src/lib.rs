@@ -3,6 +3,7 @@
 //!
 //!   raea media probe FILE                                   duration, size, fps, codec, audio (JSON)
 //!   raea media still FILE --at S [--width W] -o OUT.png|.jpg   the frame showing at S (an image: itself), W px wide at most
+//!   raea media still FILE --at S,S,... [--width W] -o DIR      a still at each, as DIR/0.jpg, DIR/1.jpg ...
 //!   raea media sheet FILE... [--n 12] [--width 240] -o OUT  a contact sheet (n frames of one file, or each file's middle),
 //!                                                           and OUT.labels.json: each cell's time or file, for raea show
 //!   raea media audio FILE [--rate 16000] [--mono] [--from S --to S] -o OUT.wav|-   (- is f32le on stdout)
@@ -32,6 +33,7 @@ mod command;
 pub use command::command;
 /// a model at a lower level of detail (docs/preview.feature PV3c)
 mod lod;
+mod fragments;
 mod probe;
 use probe::*;
 mod picture;
@@ -136,8 +138,13 @@ fn run(verb: &str, pos: &[String], fl: &BTreeMap<String, String>) -> R<Option<Va
     match verb {
         "probe" => probe(&file()?).map(Some),
         "still" => {
-            let at = num(fl, "at")?.unwrap_or(0.0);
-            still(&file()?, at, &out()?, fl.get("width").and_then(|n| n.parse().ok())).map(Some)
+            let width = fl.get("width").and_then(|n| n.parse().ok());
+            // `--at T,T,...`: a still at each, one decode, into the folder OUT as 0.jpg, 1.jpg ...
+            match fl.get("at").filter(|a| a.contains(',')) {
+                Some(ats) => stills(&file()?, ats, &out()?, width),
+                None => still(&file()?, num(fl, "at")?.unwrap_or(0.0), &out()?, width),
+            }
+            .map(Some)
         }
         "sheet" => {
             let files: Vec<PathBuf> = pos.iter().map(PathBuf::from).collect();

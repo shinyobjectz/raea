@@ -38,8 +38,14 @@ fn which_one_judges_a_piece() {
         }
         Folder { dir: dir.join(name) }.create(&f).unwrap();
     };
-    make(&home, "me", &[]);
     let cut = proj.join("out/cut.mp4");
+    // a videoform judges only what it applies to: alone, and first by name, it's never the account's fallback (VF2)
+    let mut form = base("a-form");
+    form.videoform = Some(raea_core_brief::Videoform { context: "street interviews".into(), ..Default::default() });
+    form.applies = Some(raea_sys_fingerprint::taxonomy::Applies { kinds: vec![], tags: vec!["a-form".into()] });
+    Folder { dir: home.join("a-form") }.create(&form).unwrap();
+    assert!(which(&cut).is_none(), "a videoform the piece isn't tagged for doesn't judge it");
+    make(&home, "me", &[]);
     let c = which(&cut).unwrap();
     assert_eq!((c.name.as_str(), c.level.as_str()), ("me", "account"), "nothing nearer: the person's own");
 

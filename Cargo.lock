@@ -13949,6 +13949,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "raea-app-videoform"
+version = "0.1.0"
+dependencies = [
+ "dunce",
+ "raea-core-brief",
+ "raea-io-assets",
+ "raea-io-home",
+ "raea-io-resolve",
+ "raea-sys-columns",
+ "raea-sys-fingerprint",
+ "raea-sys-fingerprint-use",
+ "raea-sys-videoform",
+ "raea-sys-videoform-rules",
+ "regex",
+ "serde_json",
+ "sha2 0.10.9",
+]
+
+[[package]]
 name = "raea-app-workspace"
 version = "0.1.0"
 dependencies = [
@@ -14192,6 +14211,7 @@ dependencies = [
  "raea-app-sound",
  "raea-app-targets",
  "raea-app-tools",
+ "raea-app-videoform",
  "raea-app-workspace",
  "raea-bevy-plugins",
  "raea-core-alloc",
@@ -14602,6 +14622,16 @@ dependencies = [
  "pollster 0.4.0",
  "rfd",
  "serde_json",
+]
+
+[[package]]
+name = "raea-io-resolve"
+version = "0.1.0"
+dependencies = [
+ "raea-io-home",
+ "serde_json",
+ "sha2 0.10.9",
+ "ureq 2.12.1",
 ]
 
 [[package]]
@@ -15758,6 +15788,7 @@ name = "raea-sys-fingerprint"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "raea-core-brief",
  "raea-io-home",
  "raea-sys-columns",
  "serde",
@@ -15785,6 +15816,7 @@ dependencies = [
  "dunce",
  "fastrand",
  "image",
+ "raea-core-brief",
  "raea-io-ffmpeg",
  "raea-sys-columns",
  "raea-sys-fingerprint",
@@ -16411,6 +16443,27 @@ name = "raea-sys-tweak"
 version = "0.1.0"
 dependencies = [
  "oxc",
+ "serde_json",
+]
+
+[[package]]
+name = "raea-sys-videoform"
+version = "0.1.0"
+dependencies = [
+ "half",
+ "raea-core-brief",
+ "regex",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "raea-sys-videoform-rules"
+version = "0.1.0"
+dependencies = [
+ "raea-core-brief",
+ "raea-sys-videoform",
+ "serde",
  "serde_json",
 ]
 

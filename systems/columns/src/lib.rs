@@ -39,6 +39,8 @@ pub const YAM_HOP: f64 = 0.48;
 pub const SIG: usize = 768;
 pub const CLAP: usize = 512;
 pub const YAM: usize = 1024;
+/// AudioSet's classes, as YAMNet scores them
+pub const YAM_CLASSES: usize = 521;
 pub const TEXT: usize = gemma::DIM;
 /// The column version: a change to how any column is made bumps it, and the cache makes them again
 pub const STEP: u32 = 1;
@@ -182,6 +184,12 @@ impl Encoders {
     }
 
     /// Words as CLAP text vectors (sound axes), L2-normalised, one row each
+    /// YAMNet's AudioSet class scores every YAM_HOP s of 16 kHz mono, [patches][YAM_CLASSES]: what's heard by name
+    /// (a videoform's speech and music, docs/videoform.feature VF3)
+    pub fn sound_classes(&mut self, pcm16: &[f32]) -> Result<Vec<f32>> {
+        self.yam.as_mut().ok_or_else(|| anyhow::anyhow!("YAMNet isn't installed"))?.classes(pcm16)
+    }
+
     pub fn words_sound(&mut self, texts: &[String]) -> Result<Vec<f32>> {
         if self.clap_text.is_none() {
             self.clap_text = Some(clap_text::Text::load(&self.files.clap_text, &self.files.clap_tokenizer)?);

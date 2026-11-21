@@ -45,7 +45,8 @@ pub fn probe_of(path: &Path) -> R<Probe> {
         return Err(format!("{}: no picture or sound raea can read{why}", path.display()));
     }
     // the container's own duration when it says one (ffprobe's format duration), else the longest stream
-    let duration = container_duration(path).unwrap_or_else(|| video.as_ref().map(|v| v.duration).unwrap_or(0.0).max(audio.map(|a| a.2).unwrap_or(0.0)));
+    // (a fragmented file's mvhd can say 0)
+    let duration = container_duration(path).filter(|d| *d > 0.0).unwrap_or_else(|| video.as_ref().map(|v| v.duration).unwrap_or(0.0).max(audio.map(|a| a.2).unwrap_or(0.0)));
     Ok(Probe { kind: if video.is_some() { "video" } else { "audio" }, video, audio, image: None, duration, bytes, track })
 }
 
@@ -220,7 +221,12 @@ pub fn video_track(path: &Path) -> Option<Track> {
             dts += *d as i64;
             t
         }).collect();
-        if let Some(ctts) = child(stbl, b"ctts") {
+        // a fragmented file's samples are in its moofs, not here
+        let fragmented = deltas.is_empty();
+        if fragmented {
+            (deltas, times) = super::fragments::samples(path, &moov, super::fragments::track_id(trak)?)?;
+        }
+        if let (false, Some(ctts)) = (fragmented, child(stbl, b"ctts")) {
             let mut i = 0usize;
             for e in 0..be32(ctts, 4)? as usize {
                 let n = be32(ctts, 8 + e * 8)? as usize;
@@ -252,6 +258,8 @@ pub fn video_track(path: &Path) -> Option<Track> {
             *count.entry(*d).or_default() += 1;
         }
         let common = count.into_iter().max_by_key(|(_, n)| *n).map(|(d, _)| d).unwrap_or(1).max(1);
+        // a fragmented file's mdhd can say 0: the samples' own span then
+        let dur = if dur > 0.0 { dur } else { deltas.iter().map(|d| *d as f64).sum() };
         return Some(Track { pts, duration: dur / scale, grid_fps: scale / common as f64 });
     }
     None

@@ -58,6 +58,9 @@ pub struct Fingerprint {
     /// each encoder's id and its file's sha256 (FP2a): heads trained on other encoders' columns are refused
     #[serde(default)]
     pub encoders: std::collections::BTreeMap<String, String>,
+    /// what makes it a videoform: its context, references, vocabulary, template and rules (docs/videoform.feature VF2)
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub videoform: Option<raea_core_brief::Videoform>,
 }
 
 /// The kinds of piece (film, ad, game, playable, still, sound) and the project tags a fingerprint is for
@@ -120,7 +123,7 @@ pub fn base(name: &str) -> Fingerprint {
         ax("design and type", "unreadable text", Picture, &["small, cluttered text that is hard to read"], None, true),
         ax("camera", "shaky camera", Change, &["a shaky handheld camera"], None, false),
     ];
-    Fingerprint { name: name.into(), who: None, about: None, extends: None, applies: None, axes, encoders: Default::default() }
+    Fingerprint { name: name.into(), who: None, about: None, extends: None, applies: None, axes, encoders: Default::default(), videoform: None }
 }
 
 /// The background vocabularies a word head is calibrated against (earshot's method: an axis's similarity as a z

@@ -3,6 +3,24 @@
 
 use super::*;
 
+/// The rate a track's sound decodes at. Symphonia's AAC decoder reads HE-AAC's core alone (its spectral band
+/// replication, the top octave, it doesn't), at half the rate the track states: an Instagram or Facebook reel's
+/// 44.1 kHz sound comes out at 22.05 kHz, and read at the stated rate it lasted half as long (docs/videoform.feature
+/// VF1). The AudioSpecificConfig's object type says so: 5 (SBR) or 29 (parametric stereo).
+fn decoded_rate(p: &symphonia::core::codecs::CodecParameters) -> u32 {
+    let rate = p.sample_rate.unwrap_or(0);
+    let aot = p.extra_data.as_deref().and_then(|b| {
+        let t = b.first()? >> 3;
+        if t == 31 { Some(32 + (((b[0] & 7) << 3) | (b.get(1)? >> 5))) } else { Some(t) }
+    });
+    if p.codec == symphonia::core::codecs::CODEC_TYPE_AAC && matches!(aot, Some(5 | 29)) { rate / 2 } else { rate }
+}
+
+/// A count of the track's samples (priming, a stated length) in the decoded sound's
+fn decoded(n: usize, stated: u32, rate: u32) -> usize {
+    if stated == 0 || stated == rate { n } else { (n as u64 * rate as u64 / stated as u64) as usize }
+}
+
 pub fn decode_audio_symphonia(path: &Path) -> R<Audio> {
     use symphonia::core::audio::{AudioBufferRef, Signal};
     use symphonia::core::codecs::DecoderOptions;
@@ -38,7 +56,8 @@ pub fn decode_audio_symphonia(path: &Path) -> R<Audio> {
     let mut dec = symphonia::default::get_codecs()
         .make(&track.codec_params, &DecoderOptions::default())
         .map_err(|e| format!("symphonia: {e}"))?;
-    let mut rate = track.codec_params.sample_rate.unwrap_or(0);
+    let stated = track.codec_params.sample_rate.unwrap_or(0);
+    let mut rate = decoded_rate(&track.codec_params);
     let mut cols: Vec<Vec<f32>> = Vec::new();
     while let Ok(packet) = format.next_packet() {
         if packet.track_id() != track.id {
@@ -51,7 +70,8 @@ pub fn decode_audio_symphonia(path: &Path) -> R<Audio> {
         };
         // the track can say 0 (Symphonia's MP4 reader on a 96 kHz AAC track, void's colitt take09): the decoded
         // buffer knows its rate
-        if rate == 0 {
+        // and it's the decoder's own word on the rate it gives
+        if buf.spec().rate > 0 {
             rate = buf.spec().rate;
         }
         let mut push = |planes: &[&[f32]]| {
@@ -83,12 +103,15 @@ pub fn decode_audio_symphonia(path: &Path) -> R<Audio> {
     // MP4 priming: the audio track's edit list says where the sound starts (AAC encoders put 1024-2112 silent
     // samples first); Symphonia 0.5 doesn't apply it, ffmpeg and AVFoundation do
     // (Apple's encoders write it as an iTunSMPB tag instead: priming, padding, and the true length)
+    // (both in the track's samples, so in the decoded sound's when HE-AAC decodes at half)
     if let Some((skip, len)) = itunsmpb(path) {
+        let (skip, len) = (decoded(skip, stated, rate), decoded(len, stated, rate));
         for c in &mut cols {
             c.drain(..skip.min(c.len()));
             c.truncate(len);
         }
     } else if let Some(skip) = mp4_audio_skip(path) {
+        let skip = decoded(skip, stated, rate);
         for c in &mut cols {
             c.drain(..skip.min(c.len()));
         }
@@ -130,18 +153,20 @@ pub fn decode_audio_window_symphonia(path: &Path, start: f64, secs: f64) -> R<Au
     let mut format = probed.format;
     let track = format.tracks().iter().find(|t| t.codec_params.sample_rate.is_some()).ok_or("no audio track")?.clone();
     let mut dec = symphonia::default::get_codecs().make(&track.codec_params, &DecoderOptions::default()).map_err(|e| format!("symphonia: {e}"))?;
-    let rate = track.codec_params.sample_rate.unwrap_or(0);
+    let (stated, rate) = (track.codec_params.sample_rate.unwrap_or(0), decoded_rate(&track.codec_params));
     if rate == 0 {
         return Err(format!("{}: the sound track has no sample rate", path.display()));
     }
-    // samples in the file's own count (priming included), where the window starts and how many it holds
-    let first = (start.max(0.0) * rate as f64).round() as u64 + skip as u64;
+    // a packet's timestamp is in the track's samples; the window is counted in the decoded sound's
+    let ts_of = |t: u64| decoded(t as usize, stated, rate) as u64;
+    // samples in the decoded sound's count (priming included), where the window starts and how many it holds
+    let first = (start.max(0.0) * rate as f64).round() as u64 + decoded(skip, stated, rate) as u64;
     let want = (secs * rate as f64).round() as usize;
     // seek a little before: AAC's first packet after a seek decodes without its overlap, so the decoder warms up on
     // packets that are then thrown away
     let t = first.saturating_sub(4096) as f64 / rate as f64;
     let seeked = format.seek(SeekMode::Accurate, SeekTo::Time { time: Time::new(t as u64, t.fract()), track_id: Some(track.id) });
-    let mut at = seeked.map(|s| s.actual_ts).unwrap_or(0);
+    let mut at = seeked.map(|s| ts_of(s.actual_ts)).unwrap_or(0);
     dec.reset();
     let mut cols: Vec<Vec<f32>> = Vec::new();
     let mut have = 0usize;
@@ -161,7 +186,7 @@ pub fn decode_audio_window_symphonia(path: &Path, start: f64, secs: f64) -> R<Au
             other => other.convert(&mut f),
         }
         let n = f.frames();
-        let ts = packet.ts().max(at);
+        let ts = ts_of(packet.ts()).max(at);
         // the part of this packet inside the window
         let from = first.saturating_sub(ts) as usize;
         if from < n {
@@ -354,5 +379,27 @@ mod window_tests {
             let err = (0..n).map(|i| (w.channels[0][i] - whole.channels[0][s0 + i]).abs()).fold(0.0f32, f32::max);
             assert!(err < 1e-4, "window at {start}: max difference {err}");
         }
+    }
+}
+
+
+#[cfg(test)]
+mod he_aac {
+    use super::{decoded, decoded_rate};
+    use symphonia::core::codecs::{CODEC_TYPE_AAC, CodecParameters};
+
+    #[test]
+    fn he_aac_decodes_at_half_the_rate_its_track_states() {
+        let aac = |config: &[u8]| {
+            let mut p = CodecParameters::new();
+            p.for_codec(CODEC_TYPE_AAC).with_sample_rate(44100).with_extra_data(config.into());
+            p
+        };
+        // an Instagram reel's: object type 5 (SBR)
+        assert_eq!(decoded_rate(&aac(&[0x2b, 0x92, 0x08, 0x00])), 22050);
+        // plain AAC (object type 2) decodes at its own
+        assert_eq!(decoded_rate(&aac(&[0x12, 0x10])), 44100);
+        // the track's 2112 samples of priming are 1056 of the decoded sound's
+        assert_eq!(decoded(2112, 44100, 22050), 1056);
     }
 }

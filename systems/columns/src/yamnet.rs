@@ -20,4 +20,13 @@ impl Yamnet {
         }
         Ok(run(&mut self.0, ("waveform", vec![w.len() as i64], Input::F32(w)), &["embeddings"])?.remove(0))
     }
+
+    /// [patches][521]: each AudioSet class's score (0 Speech, 132 Music, ...), from the same graph's head, padded the
+    /// same way
+    pub fn classes(&mut self, pcm16: &[f32]) -> Result<Vec<f32>> {
+        let padded: Vec<f32> = pcm16.iter().copied().chain(std::iter::repeat(0.0)).take(pcm16.len().max(MIN)).collect();
+        let shape = vec![padded.len() as i64];
+        let mut scores = run(&mut self.0, ("waveform", shape, Input::F32(padded)), &["scores"])?;
+        Ok(scores.swap_remove(0))
+    }
 }

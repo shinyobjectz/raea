@@ -20,6 +20,7 @@ raea-web = "runtime"
 raea-core-wire = "core"
 raea-core-alloc = "core"
 raea-io-net = "io"
+raea-io-resolve = "io"
 raea-io-net-calls = "io"
 raea-io-os = "io"
 # raea's own build: the CLI with the signer installed (private)
@@ -195,6 +196,9 @@ raea-app-motion = "apps"
 raea-app-engines = "apps"
 raea-app-interchange = "apps"
 raea-app-judge = "apps"
+raea-app-videoform = "apps"
+raea-sys-videoform = "systems"
+raea-sys-videoform-rules = "systems"
 raea-app-solid = "apps"
 raea-app-media = "apps"
 raea-app-targets = "apps"
@@ -235,6 +239,8 @@ raea-hands-audit = "tools"
 # systems that hold only a facility another system may build on (docs/overhaul.md: the mixer graph, ONNX sessions,
 # Vision requests, K kernels on the GPU)
 [facility]
+# a videoform's kept rows, its vocabulary's report, shot kinds and structure (its rules build on them: VF8)
+raea-sys-videoform = true
 # the frame's rows every pass reads (FrameRows, the edit, the clock, row helpers)
 raea-sys-frame = true
 # cuts between cameras: the frames that start a shot and the last cut drawn (raea-sys-frame re-exports it)

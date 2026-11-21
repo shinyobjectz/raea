@@ -1,0 +1,15 @@
+[package]
+name = "raea-sys-videoform-rules"
+version = "0.1.0"
+edition = "2024"
+license = "FSL-1.1-ALv2"
+publish = false
+description = "A videoform's rules (docs/videoform.feature VF8): what holds across its references, mined from their kept rows, each with how strongly it holds, written as NAME.rules.ts, a controller of rule fields; the person's word on each kept as a correction"
+
+[dependencies]
+# the person's word on a rule (the videoform section's Correction)
+raea-core-brief = { path = "../../core/brief" }
+# the kept rows, the vocabulary's report, the shot kinds and the structure's spans
+raea-sys-videoform = { path = "../videoform" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"

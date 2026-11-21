@@ -22,3 +22,7 @@ serde_json = "1"
 image = { version = "0.25", default-features = false, features = ["png"] }
 # a patch head's held-out folds pick their frames, seeded (patch.rs)
 fastrand = "2"
+
+[dev-dependencies]
+# a videoform in which()'s test (VF2)
+raea-core-brief = { path = "../../core/brief" }

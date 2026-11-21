@@ -136,6 +136,7 @@ fn context_body(out: &mut String, dir: &Path, taste_dir: Option<PathBuf>, modes:
         section(name, text);
     }
     section(format!("BRIEF {}", brief_path.display()), brief.clone());
+    if let Some((name, text)) = raea_app_videoform::context(dir) { section(name, text); } // the videoform that judges it (docs/videoform.feature VF2)
     for (p, t) in &subs {
         section(format!("{} {}", if p.to_string_lossy().contains("script") { "SCRIPT" } else { "BRIEF" }, p.display()), t.clone());
     }

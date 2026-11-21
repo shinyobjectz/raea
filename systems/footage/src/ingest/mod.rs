@@ -104,19 +104,23 @@ fn fit(f: &raea_io_media::Frame, max: u32) -> (Vec<u8>, usize, usize) {
     (image::imageops::resize(&img, nw, nh, image::imageops::FilterType::Triangle).into_raw(), nw as usize, nh as usize)
 }
 
-/// Reads a video and writes facts.json and a still per shot into `dir`.
-pub fn video(path: &Path, dir: &Path, backend: &str, v: &dyn Vision) -> Result<Facts, String> {
+/// Reads a video and writes facts.json and a still per shot into `dir`; on the shots `given` when they're known
+/// already: an edited video's cuts found frame by frame (a videoform's reference, docs/videoform.feature VF3) include
+/// the cuts inside one scene, a push-in or a jump between two angles on one person, which the rule here leaves alone
+/// in raw footage
+pub fn video(path: &Path, dir: &Path, backend: &str, v: &dyn Vision, given: Option<Vec<Bound>>) -> Result<Facts, String> {
     std::fs::create_dir_all(dir).map_err(|e| e.to_string())?;
     let (duration, samples) = shots::samples(path, backend)?;
     if samples.is_empty() {
         return Err(format!("{}: no frames could be read", path.display()));
     }
-    let bounds: Vec<Bound> = shots::shot_bounds(&samples, duration);
+    let bounds: Vec<Bound> = given.filter(|b| !b.is_empty()).unwrap_or_else(|| shots::shot_bounds(&samples, duration));
     let mut d = raea_io_media::backend(backend)?.open_video(path)?;
     let info = d.info().clone();
     let mut frame_at = |t: f64| -> Result<(Vec<u8>, usize, usize), String> { Ok(fit(&d.frame_at(t.clamp(0.0, (duration - 1e-3).max(0.0)))?, 960)) };
     let (mut out, mut reads) = (Vec::new(), Vec::new());
-    let (mut ocr_budget, mut layout_budget) = (30, 40);
+    // a text read every 2 s of the video, 30 at least, 300 at most: at 30 a reel's captions stopped a minute in (11-21)
+    let (mut ocr_budget, mut layout_budget) = (((duration / 2.0).ceil() as usize).clamp(30, 300), 40);
     for (i, b) in bounds.iter().enumerate() {
         let mid = (b.start + b.end) / 2.0;
         let (motion, brightness) = shots::motion_and_brightness(&samples, b);
@@ -178,7 +182,12 @@ pub fn video(path: &Path, dir: &Path, backend: &str, v: &dyn Vision) -> Result<F
         seconds: r2(duration),
         shots: out,
         text: spans(reads),
-        sound: raea_sys_vision::sound::spans(&raea_sys_vision::sound::model()?, path, backend)?,
+        // what's heard needs YAMNet's Core ML package, which a release doesn't ship yet: without it the facts go
+        // without, rather than every shot's reading being lost at the last step
+        sound: match raea_sys_vision::sound::model() {
+            Ok(m) => raea_sys_vision::sound::spans(&m, path, backend)?,
+            Err(_) => Vec::new(),
+        },
         scene,
     };
     std::fs::write(dir.join("facts.json"), serde_json::to_string_pretty(&facts).unwrap()).map_err(|e| e.to_string())?;
@@ -303,7 +312,7 @@ pub fn ingest(path: &Path, store: &Path, backend: &str, v: &dyn Vision) -> Resul
         return Ok((dir, m));
     }
     if !m.steps.contains_key("facts") {
-        let s = timed(&mut || video(path, &dir, backend, v).map(|_| ()))?;
+        let s = timed(&mut || video(path, &dir, backend, v, None).map(|_| ()))?;
         m.steps.insert("facts".into(), s);
         save(&m)?;
     }

@@ -1,7 +1,7 @@
 ---
 title: "raea findings"
 summary: "What each render and check found, read back from the project's record: fixed, new and carried since the one before."
-order: 45
+order: 46
 sources: ["apps/direction/src/findings.rs", "core/facts/src/record.rs"]
 ---
 

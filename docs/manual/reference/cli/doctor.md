@@ -1,7 +1,7 @@
 ---
 title: "raea doctor"
 summary: "Find what doesn't match this version of raea: old brief files, an older workspace format, an agent's stale skill."
-order: 51
+order: 52
 sources: ["apps/workspace/src/doctor.rs"]
 ---
 

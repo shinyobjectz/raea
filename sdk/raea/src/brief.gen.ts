@@ -199,3 +199,99 @@ export type Field = { id: string, label: string, help?: string, } & ({ "type": "
 export type Kind = { "type": "toggle", value: boolean, } | { "type": "choice", options: Array<string>, value: string, } | { "type": "number", value: number, unit?: string, min?: number, max?: number, step?: number, } | { "type": "text", value: string, placeholder?: string, multiline?: boolean, } | { "type": "list", value: Array<string>, placeholder?: string, } | { "type": "agents", value: Array<string>, } | { "type": "channels", value: Array<string>, } | { "type": "workflow", value: Array<Step>, channels?: Array<string>, } | { "type": "servers", value: Array<string>, } | { "type": "skills", value: Array<string>, } | { "type": "rule", check: string, values: Record<string, number | string | boolean>, level?: string, };
 
 export type Step = { name: string, by?: string, back?: string, };
+
+export type Videoform = { 
+/**
+ * What the videos are, in the person's words ("street interviews for a brand: the host, a stranger, the product in
+ * hand"); the person's own AI expands it into the vocabulary
+ */
+context: string, 
+/**
+ * Each reference as a brief names one: its link or its path as the target, its title and creator as the note.
+ * What was read of each is kept beside fingerprint.ts in videoform/references.jsonl, by content hash.
+ */
+references?: Array<Reference>, 
+/**
+ * The vocabulary.ts the person's AI wrote from the context: the things to look out for (VF5)
+ */
+vocabulary?: string, 
+/**
+ * The NAME.script.ts a project made to the videoform starts from: its slots, their order and lengths (VF7)
+ */
+template?: string, 
+/**
+ * The NAME.rules.ts its rules are written to (VF8): a controller whose fields are rules (docs/direction.feature
+ * DR4), mined from the references, each with how strongly it holds and the check that holds it
+ */
+rules?: string, 
+/**
+ * The person's word on what was found, by measure, over what the references show (VF4b): kept through references
+ * added and read again, each with why
+ */
+corrections?: Array<Correction>, };
+
+export type Correction = { measure: string, say: string, range?: [number, number], why?: string, };
+
+export type Vocabulary = { 
+/**
+ * The context it was written from
+ */
+context: string, 
+/**
+ * The places the videos are in, each with the things in it
+ */
+places?: Array<Term>, 
+/**
+ * Things seen anywhere (the host with a microphone, the product in hand)
+ */
+things?: Array<Term>, 
+/**
+ * Things heard, each with how it sounds (a crowd laughing, a whoosh)
+ */
+sounds?: Array<Term>, 
+/**
+ * Words on screen, as patterns (a price, a store's name)
+ */
+text?: Array<Pattern>, 
+/**
+ * Words said, as patterns ("available at", "link in bio")
+ */
+said?: Array<Pattern>, 
+/**
+ * The parts the videos move through (the host's opener, the challenge, the call to action), each found by the
+ * terms and patterns it names
+ */
+sections?: Array<Section>, 
+/**
+ * The context's words for how it feels ("snappy"), each with the measures that say it (raea videoform report
+ * names them): those measures are checked, by the context's word, even where the references vary
+ */
+feel?: Array<Feel>, 
+/**
+ * What's in the references but not the videoform's (a watermark, a sponsor's end card), phrased as looks
+ */
+ignore?: Array<string>, };
+
+export type Term = { name: string, 
+/**
+ * Several ways to say it, as a caption would ("a man holding a microphone on a city street")
+ */
+looks: Array<string>, 
+/**
+ * What it's easily taken for, so a shot nearer those isn't counted
+ */
+unlike?: Array<string>, 
+/**
+ * A place's things
+ */
+things?: Array<Term>, 
+/**
+ * What the context says of it: always (in every video) or usually
+ */
+how?: string, };
+
+export type Pattern = { name: string, pattern: string, how?: string, };
+
+export type Section = { name: string, at?: string, shows: Array<string>, how?: string, };
+
+export type Feel = { word: string, measures: Array<string>, };

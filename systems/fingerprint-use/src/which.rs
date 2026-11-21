@@ -124,8 +124,9 @@ pub fn which(path: &Path) -> Option<Choice> {
             return Some(choice(found, level, format!("the {level}'s default")));
         }
     }
-    // the account always has one: its default, else "me", else the first it has
-    let here = at_level(&root());
+    // the account always has one: its default, else "me", else the first it has that isn't a videoform (one judges
+    // only the pieces it applies to, or where it's pinned)
+    let here: Vec<_> = at_level(&root()).into_iter().filter(|x| x.1.videoform.is_none()).collect();
     let me = here.iter().position(|x| x.1.name == "me").unwrap_or(0);
     here.into_iter().nth(me).map(|x| choice(x, "account", "the account's only fingerprint, with no default set".into()))
 }

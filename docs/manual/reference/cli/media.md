@@ -31,7 +31,9 @@ What agents used ffmpeg and ffprobe for, on raea-media (the platform's decoders 
 
   raea media probe FILE                                   duration, size, fps, codec, audio (JSON)
   raea media still FILE --at S [--width W] -o OUT.png|.jpg   the frame showing at S (an image: itself), W px wide at most
-  raea media sheet FILE... [--n 12] [--width 240] -o OUT  a contact sheet (n frames of one file, or each file's middle)
+  raea media still FILE --at S,S,... [--width W] -o DIR      a still at each, as DIR/0.jpg, DIR/1.jpg ...
+  raea media sheet FILE... [--n 12] [--width 240] -o OUT  a contact sheet (n frames of one file, or each file's middle),
+                                                          and OUT.labels.json: each cell's time or file, for raea show
   raea media audio FILE [--rate 16000] [--mono] [--from S --to S] -o OUT.wav|-   (- is f32le on stdout)
   raea media loudness FILE [--from S --to S]              integrated LUFS, mean and peak dB, true peak
   raea media motion FILE [--from S --to S] [--fps 6]      how much the picture changes (mean luma difference, YDIF)

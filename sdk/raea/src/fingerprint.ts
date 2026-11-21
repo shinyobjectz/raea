@@ -3,6 +3,8 @@
 // writes one with raea's base taxonomy; add an axis, reword one, or remove one, and raea retrains. Rust reads the
 // default export (systems/fingerprint/src/taxonomy.rs), so these types follow its fields.
 
+import type { Videoform } from "./brief.gen";
+
 /** What an axis's head reads: the frames (SigLIP 2), how they change, their look, the sound (CLAP) or its events (YAMNet). */
 export type Modality = "picture" | "change" | "look" | "sound" | "events" | "text";
 
@@ -48,6 +50,9 @@ export interface Fingerprint {
   axes: Axis[];
   /** Each encoder's id and its file's sha256: heads trained on other encoders' columns are refused. */
   encoders?: Record<string, string>;
+  /** What makes it a videoform, the kind of video a person makes again and again: its context, references, vocabulary,
+   * template and rules (docs/videoform.md). `raea videoform new` writes it. */
+  videoform?: Videoform;
 }
 
 /** A fingerprint (fingerprint.ts): its axes and the encoders its heads were trained on. */

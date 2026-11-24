@@ -151,7 +151,7 @@ api=$(cat "$check"/raea/bin/* | grep -aoE '(api|sign)\.raea\.io|RAEA_(SIGN|GEN)_
 keys=$(grep -rlE 'sk-or-v1-[0-9a-f]{20}|sk-ant-[A-Za-z0-9_-]{20}|(^|[^A-Za-z0-9+/])AKIA[0-9A-Z]{16}([^A-Za-z0-9+/=]|$)|BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY' "$check/raea" 2>/dev/null | head -5 || true)
 [ -z "$keys" ] || fail "key-shaped text in: $keys"
 # Windows: our binaries, and Microsoft's only where raea ships them on purpose, with their licences: ONNX Runtime's
-# onnxruntime.dll (MIT, #110) and the VC++ runtime's four DLLs (tools/release/win-bundle.sh). Any other DLL, or a file
+# onnxruntime.dll (MIT, #110), the VC++ runtime's four DLLs and DXC's two (#215; tools/release/win-bundle.sh). Any other DLL, or a file
 # named like the CRT, the SDK or DirectX's redistributables, isn't ours to ship.
 bundle=$(tr -d '\r' < "$(dirname "$0")/release/win-bundle.files")
 allowed=$(printf './bin/%s\n' raea_bundle.dll onnxruntime.dll $bundle)

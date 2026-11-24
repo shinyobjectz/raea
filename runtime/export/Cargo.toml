@@ -7,6 +7,7 @@ publish = false
 description = "A composition rendered to frames and files: React stepped frame by frame, its pages, 3D and sound made into one raea-render program; and its commits baked by frame"
 
 [dependencies]
+raea-io-trace = { path = "../../io/trace" }
 dunce = "1"
 raea-runtime-view = { path = "../view" }
 raea-io-assets = { path = "../../io/assets" }
@@ -17,6 +18,8 @@ raea-runtime-bake = { path = "../bake" }
 raea-render = { path = "../../engine/render", default-features = false, features = ["native", "raytracing"] }
 # a GPU that stopped drawing fails the render (gpu::said)
 raea-sys-frame = { path = "../../systems/frame" }
+# the draws a render takes of each frame (<Pathtracer samples>)
+raea-sys-rt = { path = "../../systems/rt" }
 # renders to files: RenderOpts, render, render_fed
 raea-runtime-encode = { path = "../encode" }
 raea-page = { path = "../../engine/page" }
@@ -31,6 +34,10 @@ raea-core-program = { path = "../../core/program" }
 raea-core-scene = { path = "../../core/scene" }
 raea-runtime-scene = { path = "../scene" }
 raea-sys-contact = { path = "../../systems/contact" }
+# the staging checks a render runs at its end (docs/stage-guards.feature SG10-SG14)
+raea-sys-stage = { path = "../../systems/stage" }
+# the end checks as the frames come (SG4a)
+raea-runtime-endchecks = { path = "../endchecks" }
 # a render's findings, in one shape (docs/direction.feature DR3)
 raea-core-facts = { path = "../../core/facts" }
 raea-sys-light-meter = { path = "../../systems/light-meter" }

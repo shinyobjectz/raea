@@ -132,6 +132,7 @@ multiplied into (scale, opacity) or replacing (color, visible) what the block's 
 | Field | Type | What it is |
 | --- | --- | --- |
 | `name` | `string` | what it's called across frames, and its glyphs' names over world.* (`${name}:${index}`) |
+| `read` | `boolean` | false: scenery, not words to read (a shop sign seen in passing, a page in a book), so raea render doesn't hold it to type that reads: its size on screen, its angle to the camera, its reveal and its reading time |
 | `pass` | `string` | the composition pass it draws in ("scene" by default): a frame-wide effect told to skip a pass (<Look skip>, <Outline skip>, <Bloom skip>, <Grade skip>) leaves its pixels as drawn, and <Look passes> gives one its own paint; a piece names at most three passes besides "scene"; keyed per frame |
 | `position` | `Vec3` | where the block's origin is, metres (x, y, z) |
 | `rotation` | `Vec3` | the block's rotation, radians (x, y, z) |
@@ -184,6 +185,7 @@ multiplied into (scale, opacity) or replacing (color, visible) what the block's 
 | `depth` | `number` | extrusion depth (default 0.2) |
 | `font` | `string` | a family (Inter by default, or another of raea's bundled faces) |
 | `weight` | `number` | 100..900 (800 by default) |
+| `read` | `boolean` | false: scenery (a sign seen in passing), not held to the type checks raea render runs on 3D type: its size on screen, its angle to the camera, the title-safe area, its reading time and parts in front of it. Words meant to be read are better as page type: a Label |
 
 ### `WordOptions`
 

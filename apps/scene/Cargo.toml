@@ -1,0 +1,21 @@
+[package]
+name = "raea-app-scene"
+version = "0.1.0"
+edition = "2024"
+license = "FSL-1.1-ALv2"
+publish = false
+description = "raea scene lint|explain|light|stage: a composition's frames stepped without drawing and held to the contact, light and stage checks"
+
+[dependencies]
+raea-runtime-bundle = { path = "../../runtime/bundle" }
+raea-runtime-export = { path = "../../runtime/export" }
+raea-sys-contact = { path = "../../systems/contact" }
+raea-sys-light-meter = { path = "../../systems/light-meter" }
+raea-sys-stage = { path = "../../systems/stage" }
+# its results as Findings (docs/direction.feature DR3)
+raea-core-facts = { path = "../../core/facts" }
+# camera clearance (MK16): the parts, their models' triangles, and the camera's point in space
+raea-core-scene = { path = "../../core/scene" }
+bevy = { version = "=0.20.0", default-features = false, features = ["std"] }
+dunce = "1"
+serde_json = "1"

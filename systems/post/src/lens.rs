@@ -12,7 +12,6 @@
 //! all.
 
 use super::*;
-use bevy::asset::{load_internal_asset, uuid_handle};
 use bevy::core_pipeline::{schedule::Core3d, tonemapping::tonemapping, Core3dSystems, FullscreenShader};
 use bevy::render::{
     extract_component::{ComponentUniforms, DynamicUniformIndex, ExtractComponent, ExtractComponentPlugin, UniformComponentPlugin},
@@ -24,9 +23,7 @@ use bevy::render::{
     view::ViewTarget,
     RenderApp, RenderStartup,
 };
-use bevy::shader::Shader;
 
-const LENS_SHADER: Handle<Shader> = uuid_handle!("2f8b1c4d-6e3a-4d7b-9a51-0c4e7f2b8d63");
 
 /// The lens on the camera, as the shader reads it (lens.wesl's `Lens`).
 #[derive(Component, Clone, Copy, Debug, Default, PartialEq, ExtractComponent, ShaderType)]
@@ -87,11 +84,12 @@ pub fn render_fov(vals: &BTreeMap<String, V>, cam_fov: f32) -> f32 {
 
 /// The pass, on every engine (a camera without a Lens never runs it).
 pub fn install(app: &mut App) {
-    load_internal_asset!(app, LENS_SHADER, "lens.wesl", Shader::from_wesl);
+    // embedded, so a project's engine-shaders/ and <ShaderConstants> reach it (docs/nobuild.feature NB5b)
+    bevy::asset::embedded_asset!(app, "lens.wesl");
     app.add_plugins((ExtractComponentPlugin::<Lens>::default(), UniformComponentPlugin::<Lens>::default()));
-    let Some(render_app) = app.get_sub_app_mut(RenderApp) else { return };
-    render_app.add_systems(RenderStartup, init_pipeline);
-    render_app.add_systems(Core3d, lens_pass.after(tonemapping).in_set(Core3dSystems::PostProcess));
+    if let Some(render_app) = app.get_sub_app_mut(RenderApp) {
+        render_app.add_systems(RenderStartup, init_pipeline).add_systems(Core3d, lens_pass.after(tonemapping).in_set(Core3dSystems::PostProcess));
+    }
 }
 
 #[derive(Resource)]
@@ -102,7 +100,8 @@ struct LensPipeline {
     ids: Vec<(TextureFormat, CachedRenderPipelineId)>,
 }
 
-fn init_pipeline(mut commands: Commands, device: Res<RenderDevice>, fullscreen: Res<FullscreenShader>, cache: Res<PipelineCache>) {
+fn init_pipeline(mut commands: Commands, device: Res<RenderDevice>, fullscreen: Res<FullscreenShader>, cache: Res<PipelineCache>, assets: Res<AssetServer>) {
+    let shader = bevy::asset::load_embedded_asset!(assets.as_ref(), "lens.wesl");
     let layout = BindGroupLayoutDescriptor::new(
         "raea_lens",
         &BindGroupLayoutEntries::sequential(
@@ -125,7 +124,7 @@ fn init_pipeline(mut commands: Commands, device: Res<RenderDevice>, fullscreen: 
             layout: vec![layout.clone()],
             vertex: fullscreen.to_vertex_state(),
             fragment: Some(FragmentState {
-                shader: LENS_SHADER,
+                shader: shader.clone(),
                 targets: vec![Some(ColorTargetState { format, blend: None, write_mask: ColorWrites::ALL })],
                 ..default()
             }),

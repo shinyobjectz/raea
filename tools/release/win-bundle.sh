@@ -9,6 +9,10 @@
 #   - FFmpeg (ffmpeg.exe, ffprobe.exe): raea's own LGPL build (tools/release/ffmpeg-win.sh), the one setup.rs fetches
 #     where it isn't, with its licence and where its source is
 #   - uv (uv.exe), the release every local model's setup was measured with (MIT or Apache 2.0), with both licences
+#   - DXC (dxcompiler.dll, dxil.dll), Microsoft's shader compiler, from its release v1.8.2502 (wgpu's minimum), with its
+#     three licences: wgpu compiles DX12's shaders with it when it sits beside raea.exe, else with the old FXC, which cost
+#     6 to 13 s of hitches at start and as new 3D appeared on every PC DX12 is chosen for: Intel, AMD and Arc (#215; the
+#     chat page 17.7 s with FXC, 12.0 s with DXC on the test PC)
 # The pins are setup.rs's, so what ships and what's fetched are the same build.
 #   tools/release/win-bundle.sh DEST          (on the Windows runner, in Git's bash)
 set -euo pipefail
@@ -59,4 +63,10 @@ unzip -q -o "$tmp/uv.zip" uv.exe -d "$dest"
 fetch "https://raw.githubusercontent.com/astral-sh/uv/$uv/LICENSE-MIT" "$dest/uv-LICENSE-MIT.txt" 860e3d7a86b84e6a7012c7a635fc64df475cebc6cce34dfeb73a5982ec58176c
 fetch "https://raw.githubusercontent.com/astral-sh/uv/$uv/LICENSE-APACHE" "$dest/uv-LICENSE-APACHE.txt" c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4
 
-echo "win-bundle: in $dest: the VC++ runtime $ver, FFmpeg ($top), uv $uv, with their licences"
+# DXC: Microsoft's distributable dxcompiler.dll and dxil.dll (LICENSE-MS.txt), the x64 ones, and the release's licences
+dxc=v1.8.2502
+fetch "https://github.com/microsoft/DirectXShaderCompiler/releases/download/$dxc/dxc_2025_02_20.zip" "$tmp/dxc.zip" 70b1913a1bfce4a3e1a5311d16246f4ecdf3a3e613abec8aa529e57668426f85
+unzip -q -o -j "$tmp/dxc.zip" bin/x64/dxcompiler.dll bin/x64/dxil.dll -d "$dest"
+for l in MS LLVM MIT; do unzip -p "$tmp/dxc.zip" "LICENSE-$l.txt" > "$dest/dxc-LICENSE-$l.txt"; done
+
+echo "win-bundle: in $dest: the VC++ runtime $ver, FFmpeg ($top), uv $uv, DXC $dxc, with their licences"

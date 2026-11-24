@@ -31,9 +31,9 @@ The composition, the app, and the specs and notes an agent writes.
 
 | Import | What it's for | Exports |
 | --- | --- | --- |
-| [`raea`](raea.md) | The main entry: compositions, sequences, time, interpolation, springs, footage, sound and words. | 20 components, 9 hooks, 62 functions, 11 values, 107 types |
+| [`raea`](raea.md) | The main entry: compositions, sequences, time, interpolation, springs, footage, sound and words. | 21 components, 9 hooks, 64 functions, 11 values, 108 types |
 | [`raea/app`](app.md) | The App, its plugins and schedules, and the registry a video's compositions are kept in. | 1 component, 1 hook, 4 functions, 3 classes, 17 values, 17 types |
-| [`raea/brief`](brief.md) | The specs an agent writes as data: brief, script, taste and an object's parts, checked against raea's schemas. | 5 functions, 24 types |
+| [`raea/brief`](brief.md) | The specs an agent writes as data: brief, script, taste and an object's parts, checked against raea's schemas. | 8 functions, 34 types |
 | [`raea/note`](note.md) | A person's note as a file in the project: their words kept as written, and the asks the agent restates it as. | 1 function, 4 types |
 
 ## Time and motion
@@ -70,12 +70,12 @@ Bevy's 3D: cameras, lights, materials, meshes and the frame after it's drawn.
 | Import | What it's for | Exports |
 | --- | --- | --- |
 | [`raea/3d`](3d.md) | raea's scene layer: models, physics, splats, matchmoves, instancing, custom shader passes and 3D text. | 70 components, 4 hooks, 26 functions, 3 classes, 12 values, 126 types |
-| [`raea/camera`](camera.md) | Cameras and the views they make: Camera3d, the Canvas3D a 2D scene draws in, HDR and matchmoved cameras. | 5 components, 1 hook, 3 functions, 9 types |
+| [`raea/camera`](camera.md) | Cameras and the views they make: Camera3d, the Canvas3D a 2D scene draws in, HDR and matchmoved cameras. | 6 components, 1 hook, 9 functions, 4 values, 19 types |
 | [`raea/light`](light.md) | Bevy's lights in Bevy's units, environments, skies and daylight. | 15 components, 9 functions, 2 values, 15 types |
-| [`raea/pbr`](pbr.md) | Materials and volumes: StandardMaterial, extended and toon materials, custom shaders, decals, fog and fire. | 22 components, 1 function, 1 value, 35 types |
-| [`raea/mesh`](mesh.md) | Shapes and solids: Mesh3d and Mesh2d, Bevy's primitives, buffer meshes, instancing and exact solids. | 14 components, 1 function, 2 classes, 10 values, 24 types |
+| [`raea/pbr`](pbr.md) | Materials and volumes: StandardMaterial, extended and toon materials, custom shaders, decals, fog and fire. | 23 components, 1 function, 1 value, 37 types |
+| [`raea/mesh`](mesh.md) | Shapes and solids: Mesh3d and Mesh2d, Bevy's primitives, buffer meshes, instancing and exact solids. | 16 components, 1 function, 2 classes, 10 values, 26 types |
 | [`raea/transform`](transform.md) | Where things are: Bevy's Transform and Quat, and nesting. | 2 functions, 2 values, 4 types |
-| [`raea/post_process`](post_process.md) | What's done to the frame after it's drawn: tone mapping, bloom, depth of field, motion blur, grading and outlines. | 12 components, 14 types |
+| [`raea/post_process`](post_process.md) | What's done to the frame after it's drawn: tone mapping, bloom, depth of field, motion blur, grading and outlines. | 12 components, 1 function, 1 value, 15 types |
 | [`raea/picking`](picking.md) | What the pointer is over: the nearest part under it, and the ray it casts. | 2 functions, 3 types |
 | [`raea/gizmos`](gizmos.md) | Lines drawn for looking: Bevy's gizmos and debug overlays. | 2 components, 1 function, 3 types |
 

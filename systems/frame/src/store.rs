@@ -86,16 +86,35 @@ pub fn spawn(world: &mut World, t: &Tup) -> Entity {
     e
 }
 
-/// Remove a row (the entity goes with it, and whatever else was attached to it).
-pub fn despawn(world: &mut World, e: Entity) {
-    if let Some(k) = world.get::<RowKey>(e).cloned() {
-        let s = schema(world);
-        s.order.retain(|x| *x != e);
-        if let Some(m) = s.by.get_mut(&k.kind) {
-            m.remove(&k.id);
+/// Remove a row (the entity goes with it, and whatever else was attached to it). A row whose entity is already gone
+/// (despawned with another row it hung from) is dropped from the store all the same, and named in the error: Bevy's
+/// own "Could not despawn entity" was a log line nobody read while the row's part was drawn wrong (docs/stage-guards.feature SG4).
+pub fn despawn(world: &mut World, e: Entity) -> Result<(), String> {
+    let key = world.get::<RowKey>(e).cloned();
+    let s = schema(world);
+    s.order.retain(|x| *x != e);
+    let named = match &key {
+        Some(k) => {
+            if let Some(m) = s.by.get_mut(&k.kind) {
+                m.remove(&k.id);
+            }
+            None
         }
-    }
-    world.despawn(e);
+        // gone: its kind and id from the store's index, which still holds it
+        None => {
+            let found = s.by.iter().find_map(|(kind, m)| m.iter().find(|(_, x)| **x == e).map(|(id, _)| (kind.clone(), id.clone())));
+            if let Some((kind, id)) = &found {
+                if let Some(m) = s.by.get_mut(kind) {
+                    m.remove(id);
+                }
+            }
+            found
+        }
+    };
+    world.try_despawn(e).map_err(|err| match named {
+        Some((kind, id)) => format!("Could not despawn entity: the {kind} part '{id}' had already gone, despawned with another part it hung from ({err})"),
+        None => format!("Could not despawn entity: {err}"),
+    })
 }
 
 /// Remove every row.
@@ -252,7 +271,13 @@ mod tests {
         assert_eq!(get(&s.world, e, "y"), Some(V::N(5.0)));
         assert_eq!(s.gather().to_tups()[1].vals["y"], V::N(5.0));
         let a = find(&s.world, "title", "a").unwrap();
-        despawn(&mut s.world, a);
+        despawn(&mut s.world, a).unwrap();
         assert_eq!(s.tups().len(), 2);
+        // a row whose entity went with another (SG4) is an error naming it, and leaves the store
+        let b = find(&s.world, "title", "b").unwrap();
+        s.world.despawn(b);
+        let err = despawn(&mut s.world, b).unwrap_err();
+        assert!(err.contains("the title part 'b' had already gone"), "{err}");
+        assert_eq!(find(&s.world, "title", "b"), None);
     }
 }

@@ -26,6 +26,22 @@ fn flush(a: &[String]) -> Result<Ret, String> {
 /// `__raea_log(level, text)`: to Bevy's log
 fn log(a: &[String]) -> Result<Ret, String> {
     let text = arg(a, 1);
+    // a headless program's console to the terminal, as node's: log and info to stdout, warn and error to stderr (#168)
+    let (on, echo) = (native::CONSOLE.load(std::sync::atomic::Ordering::Relaxed), native::ECHO.load(std::sync::atomic::Ordering::Relaxed));
+    if on && echo {
+        use std::io::Write;
+        match arg(a, 0) {
+            "1" | "2" => {
+                let _ = writeln!(std::io::stderr().lock(), "{text}");
+            }
+            _ => {
+                let mut o = std::io::stdout().lock();
+                let _ = writeln!(o, "{text}");
+                let _ = o.flush();
+            }
+        }
+        return Ok(Ret::Undefined);
+    }
     match arg(a, 0) {
         "2" => error!("[js] {text}"),
         "1" => warn!("[js] {text}"),

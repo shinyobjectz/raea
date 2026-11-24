@@ -67,13 +67,14 @@ pub fn gaps(rms: &[f64]) -> Vec<(usize, usize)> {
 
 /// `a` with each dropout filled by the room's tone: the quietest TONE of sound (not silence) in the LOOK before it,
 /// looped with 10 ms crossfades and faded in and out at the gap's edges. Its gaps are found as the master will play
-/// it, `gain` dB up, where the check hears them. Unchanged where there's none.
-pub fn filled(a: &Audio, gain: f64) -> Audio {
+/// it, `gain` dB up, where the check hears them. `a` itself where there's none, not a copy of it (a 7-minute film's
+/// sound is 169 MB, SG4a).
+pub fn filled(a: &Audio, gain: f64) -> std::borrow::Cow<'_, Audio> {
     let hop = (a.rate as usize / 100).max(1);
     let rms: Vec<f64> = steps(a, hop).into_iter().map(|l| l + gain).collect();
     let found = gaps(&rms);
     if found.is_empty() {
-        return a.clone();
+        return std::borrow::Cow::Borrowed(a);
     }
     let mut out = a.clone();
     let longest = (TONE * 100.0) as usize;
@@ -107,7 +108,7 @@ pub fn filled(a: &Audio, gain: f64) -> Audio {
             }
         }
     }
-    out
+    std::borrow::Cow::Owned(out)
 }
 
 #[cfg(test)]

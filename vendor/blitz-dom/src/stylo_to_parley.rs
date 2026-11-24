@@ -499,6 +499,8 @@ pub(crate) fn style(
     if !bevy_fallback && !families.iter().any(|f| matches!(f, parley::FontFamilyName::Generic(_))) {
         families.push(parley::FontFamilyName::Generic(parley::GenericFamily::Serif));
     }
+    // raea: the list's first family, if named, is checked against the fonts once the layout is built (#174)
+    crate::not_applied::ask_family(&families);
 
     // Wrapping and breaking
     let word_break = match itext_styles.word_break {

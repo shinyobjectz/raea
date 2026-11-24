@@ -25,6 +25,9 @@ struct Params {
 } @else {
 @group(0) @binding(5) var depth_texture: texture_depth_2d;
 }
+// the light Solari's lights scatter at each cell (froxel_solari.wesl), added to the light pass's
+@if(SOLARI)
+@group(0) @binding(6) var solari_light: texture_2d<f32>;
 
 // the far side of slice s (the last's is the grid's far depth)
 fn boundary(s: f32) -> f32 {
@@ -51,7 +54,10 @@ fn integrate(@builtin(global_invocation_id) id: vec3<u32>) {
         let back = boundary(f32(s));
         let len = (back - front) * stretch;
         front = back;
-        let cell = textureLoad(atlas, vec2(id.x + (s % g.w) * g.x, id.y + (s / g.w) * g.y), 0);
+        let at = vec2(id.x + (s % g.w) * g.x, id.y + (s / g.w) * g.y);
+        var cell = textureLoad(atlas, at, 0);
+        @if(SOLARI)
+        cell = vec4(cell.rgb + textureLoad(solari_light, at, 0).rgb, cell.a);
         let sigma_t = cell.a;
         let through = exp(-sigma_t * len);
         // Hillaire's step: the light scattered along the cell, dimmed by what of the cell lies in front of it

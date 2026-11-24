@@ -38,7 +38,7 @@ See [Your first video](../../start/first-video.md) for the whole loop, and
 import { AbsoluteFill, ACTION_KEY, actionsIn, Animate } from "raea"
 ```
 
-`raea` exports 20 components, 9 hooks, 62 functions, 11 values, 107 types. Source: [sdk/raea/src/index.tsx](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/src/index.tsx).
+`raea` exports 21 components, 9 hooks, 64 functions, 11 values, 108 types. Source: [sdk/raea/src/index.tsx](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/src/index.tsx).
 
 ## Components
 
@@ -198,6 +198,18 @@ component, whose box it can't reach, or a part with a mask, is placed inside a f
 | `adjust` | `Adjust` | its brightness, contrast, saturation, exposure, sharpen, highlights, shadows, temperature, tint, fade, vignette and grain, each 0 as shot (sdk/video adjust.ts, TL7g) |
 | `keys` | `Partial<Record<NudgeProp, NudgeKey[]>>` | any of the above over time: its keys, each [frame, value, ease?], in frames from where this part's time starts (its <Sequence>'s first frame), by the names in NUDGE_KEYED ("mask.x", "chroma.strength", "crop.left" for what is inside a mask, a key or a crop). A keyed property's still value is ignored. |
 | `children` | `ReactNode` | the part it places: an element, or a component, which moves inside a full-frame layer |
+
+### `OffthreadVideo`
+
+`<Video>` under the name a project moving from another React video tool may use for it, with its props.
+
+| Prop | Type | What it does |
+| --- | --- | --- |
+| `framing` | `"face"` | ours: frame the take on the largest face |
+| `punchIn` | `number` | ours: multiplies the framing's scale (1.15 is the usual) |
+| `matte` | `VideoMatte` | ours: its cutout: the mattes made of its file, which it wears as its mask, so what is cut out shows what is under it |
+
+Also takes the props of [`MediaProps`](video.md#mediaprops).
 
 ### `Overlay`
 
@@ -541,6 +553,17 @@ function interpolate(x: number, input: readonly number[], output: readonly numbe
 
 Used in: [manual: turntable](https://github.com/shinyobjectz/raea/blob/main/docs/manual/examples/turntable.tsx), [manual: hello](https://github.com/shinyobjectz/raea/blob/main/docs/manual/examples/hello.tsx).
 
+### `interpolateColors`
+
+`interpolate` for CSS colours: `input` mapped through `inputRange` to a colour between the two of `outputRange` it
+falls between, mixed in sRGB with alpha, as `rgba(r, g, b, a)` (channels rounded to whole numbers). Any CSS colour
+the canvas parses: a name, #rgb, #rrggbb(aa), rgb(a)() or hsl(a)(). Held at the end colours outside the range;
+`options` can change that and add an easing, as `interpolate`'s.
+
+```ts
+function interpolateColors(input: number, inputRange: readonly number[], outputRange: readonly string[], options?: InterpolateOptions): string
+```
+
 ### `isGeneratedAsset`
 
 Whether a value is a generated asset (what sao, tokensynthNote and lyria return), not a file path.
@@ -650,6 +673,16 @@ a slow push-in on footage: scale 1 to 1 + `amount` (0.04) across `frames` (90), 
 
 ```ts
 function pushIn(o?: { amount?: number; frames?: number; }): Move
+```
+
+### `random`
+
+A number in [0, 1) from a seed, a string or a number: the same on every frame, every run and every machine, so a
+scatter seeded `random("star" + i)` holds still while the frames change. A number seeds as its text (1 and "1" give
+the same). `null` is `Math.random()`, which raea seeds per frame. `hash01` is the same for integers only.
+
+```ts
+function random(seed: string | number | null): number
 ```
 
 ### `regionBand`
@@ -1440,6 +1473,14 @@ A number, dragged on a slider when it has both ends.
 | `group` | `string` | the panel's group it sits in ("Grade", "Camera"); ungrouped controls come first |
 | `cost` | `ControlCost` | how a change reaches the picture: "live" unless said |
 | `about` | `string` | one line on what it changes, for the panel's tooltip and an agent reading the code |
+
+### `OffthreadVideoProps`
+
+`<OffthreadVideo>`'s props: `<Video>`'s.
+
+```ts
+type OffthreadVideoProps = VideoProps
+```
 
 ### `PanelAction`
 

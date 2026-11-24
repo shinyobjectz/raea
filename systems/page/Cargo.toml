@@ -7,6 +7,7 @@ publish = false
 description = "HTML and CSS pages in Bevy: a Blitz document restyled, laid out and painted by Vello on Bevy's own GPU device into a Bevy Image"
 
 [dependencies]
+raea-io-trace = { path = "../../io/trace" }
 raea-sys-fonts = { path = "../fonts" }
 raea-sys-image = { path = "../image" }
 # a 3D view's clearColor parsed as CSS parses a colour (view3d/props.rs): linebender's, as peniko and Vello take it
@@ -29,6 +30,8 @@ raea-gpu-device = { path = "../../gpu/device" }
 # CSS filters on the GPU
 raea-sys-filters = { path = "../filters" }
 serde_json = "1"
+# what a render says once its frames are out, as findings (render_said: #174's missing fonts)
+raea-core-facts = { path = "../../core/facts" }
 # text layout as Blitz lays it out (its parley, B0d); the faces are raea-sys-fonts'
 parley = { version = "=0.12.0", default-features = false, features = ["std"] }
 # an iframe's HTML parsed by Blitz

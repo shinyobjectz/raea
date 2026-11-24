@@ -13,10 +13,11 @@
   (`motion/brand`).
 - Describe generated sound as values: `sao(prompt, {seconds})` for foley, given to `<Audio src>` (`motion/sound`),
   and `Tone.tokensynth(timbre, notes)` for an instrument's notes in a `Tone.Sampler` (`motion/music`).
-- Recorded instruments and drum hits come from the open sample libraries: `raea sounds WORDS` finds one, `raea sounds
-  get PACK/INSTRUMENT` copies its files into `media/sounds/PACK-INSTRUMENT/` with a `LICENCE.txt`, and prints the
-  `staticFile` paths and the Sampler that plays them. Orchestras, drum kits, effect packs and MIDI grooves fetched by
-  hand, and how to set up SAO and TokenSynth, are in `motion/sources`.
+- Recorded instruments are cast for each part from the thousands of free sampled instruments (Pianobook, Karoryfer,
+  the SFZ index, Decent Samples, Versilian and more: `motion/music` "Cast the instruments", `motion/sources`). For a
+  sketch, `raea sounds WORDS` searches the four packs raea carries, and `raea sounds get PACK/INSTRUMENT` copies one
+  into `media/sounds/PACK-INSTRUMENT/` with a `LICENCE.txt` and prints the `staticFile` paths and the Sampler that
+  plays them. How to set up SAO and TokenSynth is in `motion/sources`.
 - Show stills with `<Img src>`. The frame waits for the image to load, and a missing one fails the render, naming
   `src`.
 - Keep pictures real: the person's footage, stock already in the object's media, or things you build (components,

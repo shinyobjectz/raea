@@ -7,9 +7,11 @@ use std::collections::BTreeMap;
 use bevy::math::Mat4;
 use serde_json::{Map, Value};
 
+mod kept;
 mod media;
 mod parts;
 mod props;
+pub use kept::*;
 pub use media::*;
 pub use parts::*;
 pub use props::*;
@@ -88,29 +90,70 @@ fn surface_ident(it: &Item) -> String {
     }
 }
 
-/// `tracks` over items already walked: only the parts of these kinds are copied
-pub fn tracks_of(all: &[Vec<Item>], kinds: &[&str]) -> Vec<(String, Vec<Option<Item>>)> {
+/// A part's track over only the frames it's in: from its first to its last, None where it's out between.
+#[derive(Clone)]
+pub struct Span {
+    pub first: usize,
+    pub items: Vec<Option<Item>>,
+}
+
+impl Span {
+    /// Its item at frame `k`, when it's in that frame.
+    pub fn at(&self, k: usize) -> Option<&Item> {
+        self.items.get(k.checked_sub(self.first)?)?.as_ref()
+    }
+}
+
+/// `tracks_of`'s tracks as spans: each part's slots from its first frame to its last, not one for every frame of the
+/// render. A long film's parts each live in a scene; a slot a frame for every one of them made the clipping check of a
+/// 13,175-frame film ask for 28 GB at its end (docs/stage-guards.feature SG4a).
+pub fn spans_of(all: &[Vec<Item>], kinds: &[&str]) -> Vec<(String, Span)> {
     let mut order: Vec<String> = Vec::new();
-    let mut by: BTreeMap<String, Vec<Option<Item>>> = BTreeMap::new();
-    let frames = all;
+    let mut by: BTreeMap<String, Span> = BTreeMap::new();
     for (i, its) in all.iter().enumerate() {
-        let mut seen: BTreeMap<String, usize> = BTreeMap::new();
-        for it in its.iter().filter(|it| kinds.contains(&it.kind)).cloned() {
-            let base = format!("{}|{}{}", it.kind, base_ident(&it), surface_ident(&it));
-            let k = seen.entry(base.clone()).or_insert(0);
-            let id = format!("{base}#{k}");
-            *k += 1;
-            let slot = by.entry(id.clone()).or_insert_with(|| {
+        for (id, it) in ids_of(its, kinds) {
+            let span = by.entry(id.clone()).or_insert_with(|| {
                 order.push(id.clone());
-                vec![None; frames.len()]
+                Span { first: i, items: Vec::new() }
             });
-            slot[i] = Some(it);
+            span.items.resize(i - span.first, None);
+            span.items.push(Some(it.clone()));
         }
     }
     order.into_iter().map(|id| {
-        let v = by.remove(&id).unwrap();
-        (id, v)
+        let s = by.remove(&id).unwrap();
+        (id, s)
     }).collect()
+}
+
+/// A frame's parts of these kinds, each with its id as spans_of names it across frames: its kind, what it is and draws,
+/// and which of the frame's parts alike it is (#0, #1, ...). A check taking frames as they come (raea-sys-contact's
+/// Clipping) follows a part from frame to frame by it.
+pub fn ids_of<'a>(its: &'a [Item], kinds: &[&str]) -> Vec<(String, &'a Item)> {
+    let mut seen: BTreeMap<String, usize> = BTreeMap::new();
+    its.iter()
+        .filter(|it| kinds.contains(&it.kind))
+        .map(|it| {
+            let base = format!("{}|{}{}", it.kind, base_ident(it), surface_ident(it));
+            let k = seen.entry(base.clone()).or_insert(0);
+            let id = format!("{base}#{k}");
+            *k += 1;
+            (id, it)
+        })
+        .collect()
+}
+
+/// `tracks` over items already walked: only the parts of these kinds are copied, a slot for every frame
+pub fn tracks_of(all: &[Vec<Item>], kinds: &[&str]) -> Vec<(String, Vec<Option<Item>>)> {
+    spans_of(all, kinds)
+        .into_iter()
+        .map(|(id, s)| {
+            let mut v = vec![None; s.first];
+            v.extend(s.items);
+            v.resize(all.len(), None);
+            (id, v)
+        })
+        .collect()
 }
 
 /// Each frame's item, a missing frame holding the nearest present one (a hidden part stays where it was).
@@ -159,6 +202,19 @@ mod surface_tracks {
         let b = mesh("box", "MeshStandardMaterial", Some(("fn surface(in: VertexOutput, pbr: ptr<function, PbrInput>) { (*pbr).material.base_color = in.color; }", 1.0)));
         let t = tracks_of(&[vec![a], vec![b]], &["mesh"]);
         assert_eq!(t.len(), 2, "{:?}", t.iter().map(|x| &x.0).collect::<Vec<_>>());
+    }
+
+    #[test]
+    fn a_span_covers_only_the_frames_a_part_is_in() {
+        let m = || mesh("box", "MeshStandardMaterial", None);
+        // in frames 2 and 4 of 6, out in 3
+        let all = vec![vec![], vec![], vec![m()], vec![], vec![m()], vec![]];
+        let s = &spans_of(&all, &["mesh"])[0].1;
+        assert_eq!((s.first, s.items.len()), (2, 3));
+        assert!(s.at(1).is_none() && s.at(2).is_some() && s.at(3).is_none() && s.at(4).is_some() && s.at(5).is_none());
+        // the dense tracks are the same parts, a slot a frame
+        let t = &tracks_of(&all, &["mesh"])[0].1;
+        assert_eq!(t.iter().map(Option::is_some).collect::<Vec<_>>(), [false, false, true, false, true, false]);
     }
 
     #[test]

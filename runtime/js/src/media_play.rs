@@ -92,7 +92,7 @@ impl<'a> Player<'a> {
             Source::Audio(a) => (a.duration(), 0.0),
         };
         let fps = if fps.is_finite() && fps > 1.0 { fps } else { 30.0 };
-        Player { path, source, duration, fps, sound: None, muted: false, volume: 1.0, clock: None, looping: false, cursor: 0, lap: 0.0, skipped: 0, told: None, halvings: 0, still: Some(0.0), stats: (std::env::var("RAEA_MEDIA_STATS").as_deref() == Ok("1")).then(Stats::new) }
+        Player { path, source, duration, fps, sound: None, muted: false, volume: 1.0, clock: None, looping: false, cursor: 0, lap: 0.0, skipped: 0, told: None, halvings: 0, still: Some(0.0), stats: (raea_io_trace::stat("RAEA_MEDIA_STATS")).then(Stats::new) }
     }
 
     /// Answers the element's asks until it's gone (its stream dropped).

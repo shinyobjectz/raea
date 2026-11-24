@@ -5,9 +5,9 @@ import bevy_render::utils::octahedral_encode;
 import package::scene::brdf::{brdf_pdf, evaluate_and_sample_brdf, evaluate_brdf, EvaluateAndSampleBrdfResult, F_AB};
 import package::realtime::presample_light_tiles::unpack_resolved_light_sample;
 import package::realtime::bindings::{empty_reservoir, light_tile_resolved_samples, light_tile_samples, Reservoir, constants, view};
-import package::scene::sampling::{calculate_resolved_light_contribution, isinf, LightSample, NULL_LIGHT_ID, power_heuristic, trace_visibility, sample_environment_map_light_and_sun};
-import package::scene::bindings::{light_sources, MIRROR_ROUGHNESS_THRESHOLD, RAY_T_MAX, RAY_T_MIN, resolve_ray_hit_full, ResolvedMaterial, ResolvedRayHitFull, trace_ray};
-import package::realtime::world_cache_query::{get_cell_size, query_world_cache, WORLD_CACHE_CELL_LIFETIME};
+import package::scene::sampling::{calculate_resolved_light_contribution, isinf, LightSample, NULL_LIGHT_ID, power_heuristic, trace_visibility, sample_environment_map_light_and_sun, sky_portal_mis_weight};
+import package::scene::bindings::{face_hit, light_sources, MIRROR_ROUGHNESS_THRESHOLD, RAY_T_MAX, RAY_T_MIN, resolve_ray_hit_full, ResolvedMaterial, ResolvedRayHitFull, trace_ray};
+import package::realtime::world_cache_query::{get_cell_size, query_world_cache, query_world_cache_found, WORLD_CACHE_CELL_LIFETIME};
 
 @if(DLSS_RR_GUIDE_BUFFERS)
 import package::realtime::resolve_dlss_rr_textures::{is_delta_mirror, primary_surface_glossy, psr_bounce_reflectance, psr_chain_mirror, psr_environment_miss, psr_init, replace_primary_surface};
@@ -19,6 +19,8 @@ const RECONNECTION_ROUGHNESS_MIN = 0.6;
 const RECONNECTION_RELAX_DISTANCE = 1.0;
 
 const CACHE_TERMINATION_MIN_SOLID_ANGLE = PI;
+// raea: the least chance a glossy surface's path samples a light directly (NEE), so a small bright light shows in it
+const GLOSSY_NEE_FLOOR = 0.25;
 
 /// What tracing one path produced.
 ///
@@ -34,6 +36,8 @@ struct InitialSamplingResult {
 /// surface), x2 = first BRDF-sampled hit (the reconnection vertex).
 struct PathState {
     ray_origin: vec3<f32>,
+    // raea: what ray_origin is off the vertex along, RAY_T_MIN out (path_origin)
+    origin_normal: vec3<f32>,
     normal: vec3<f32>,
     wo: vec3<f32>,
     material: ResolvedMaterial,
@@ -57,6 +61,7 @@ struct PathState {
 fn new_path_state(world_position: vec3<f32>, world_normal: vec3<f32>, wo: vec3<f32>, material: ResolvedMaterial) -> PathState {
     var path: PathState;
     path.ray_origin = world_position + (world_normal * RAY_T_MIN);
+    path.origin_normal = world_normal;
     path.normal = world_normal;
     path.wo = wo;
     path.material = material;
@@ -96,23 +101,34 @@ fn generate_initial_path(world_position: vec3<f32>, world_normal: vec3<f32>, mat
         // panorama's sun, EnvironmentSun) is sampled often enough to show; NEE's weights divide by p_nee, so this stays
         // unbiased. A perfect mirror still never samples lights and sees the sun in the environment map.
         let p_nee_upstream = mix(1.0, path.material.perceptual_roughness, path.material.metallic);
-        let p_nee = select(max(p_nee_upstream, 0.25), p_nee_upstream, path.material.roughness <= MIRROR_ROUGHNESS_THRESHOLD);
+        let p_nee = select(max(p_nee_upstream, GLOSSY_NEE_FLOOR), p_nee_upstream, path.material.roughness <= MIRROR_ROUGHNESS_THRESHOLD);
         let di_samples = select(constants.secondary_di_samples, constants.primary_di_samples, bounce == 0u);
         generate_nee_candidate(&path, F_ab, p_nee, di_samples, workgroup_id, bounce, rng);
 
+        // raea: Russian roulette on the first bounce (SolariLighting::first_bounce_probability): a workgroup (8 x 8
+        // pixels) traces it with probability q, and its light counts 1 / q (in the throughput every bounce-0 candidate
+        // is weighted by), so the estimate keeps its mean; a skipped pixel keeps its primary light sample and takes its
+        // bounce from reuse. The coin is the workgroup's, not each pixel's: a SIMD group waits for its slowest ray, so
+        // pixels skipped at random saved little (photo 3's forest, q 0.5: 10.25 -> 8.97 ms). At 1 nothing is drawn.
+        let q = constants.first_bounce_probability;
+        if bounce == 0u && q < 1.0 && first_bounce_coin(workgroup_id) >= q { break; }
+
         // Sample the BRDF and trace the next ray
-        let next_bounce = evaluate_and_sample_brdf(path.wo, path.normal, path.material, F_ab, rng);
+        var next_bounce = evaluate_and_sample_brdf(path.wo, path.normal, path.material, F_ab, rng);
         if next_bounce.pdf == 0.0 { break; }
-        let ray = trace_ray(path.ray_origin, next_bounce.wi, RAY_T_MIN, RAY_T_MAX, RAY_FLAG_NONE);
+        if bounce == 0u && q < 1.0 { next_bounce.throughput /= q; }
+        let ray = trace_ray(path_origin(path, next_bounce.wi), next_bounce.wi, RAY_T_MIN, RAY_T_MAX, RAY_FLAG_NONE);
 
         if ray.kind == RAY_QUERY_INTERSECTION_NONE {
             @if(DLSS_RR_GUIDE_BUFFERS)
             if !psr.finished && !next_bounce.diffuse_selected {
-                psr_environment_miss(pixel_id, wo);
+                psr_environment_miss(pixel_id, wo, psr.replace_fully, material, world_normal);
             }
 
             // raea: the sun only off a mirror's specular lobe, which light sampling can't reach; elsewhere it finds the sun
-            let environment_map_light_radiance = sample_environment_map_light_and_sun(next_bounce.wi, path.material.roughness <= MIRROR_ROUGHNESS_THRESHOLD && !next_bounce.diffuse_selected);
+            // raea: and through a sky portal, weighted against light sampling, which finds that light too
+            let environment_map_light_radiance = sample_environment_map_light_and_sun(next_bounce.wi, path.material.roughness <= MIRROR_ROUGHNESS_THRESHOLD && !next_bounce.diffuse_selected)
+                * sky_portal_mis_weight(path.ray_origin, next_bounce.wi, next_bounce.pdf, p_nee * f32(di_samples));
             @if(RESTIR) {
                 generate_environment_map_light_candidate(&path, next_bounce, environment_map_light_radiance, primary_F_ab, bounce, rng);
             } @else {
@@ -122,7 +138,12 @@ fn generate_initial_path(world_position: vec3<f32>, world_normal: vec3<f32>, mat
             break;
         }
 
-        let ray_hit = resolve_ray_hit_full(ray);
+        var ray_hit = resolve_ray_hit_full(ray);
+        // raea: a hit seen from its back shaded as its front (bindings.wesl face_hit), and a normal turned from the ray (a
+        // crest seen in a mirror) bent back to face it, as the primary's is. Its light only from its front, as light
+        // sampling finds it
+        let hit_front = dot(ray_hit.geometric_world_normal, next_bounce.wi) <= 0.0;
+        ray_hit = face_hit(ray_hit, -next_bounce.wi);
         let p_brdf = next_bounce.pdf;
 
         @if(DLSS_RR_GUIDE_BUFFERS)
@@ -169,17 +190,21 @@ fn generate_initial_path(world_position: vec3<f32>, world_normal: vec3<f32>, mat
         }
 
         // Resample emissive hits
-        if any(ray_hit.material.emissive > vec3(0.0)) && dot(ray_hit.world_normal, -next_bounce.wi) > 0.0 {
+        if any(ray_hit.material.emissive > vec3(0.0)) && hit_front {
             generate_emissive_candidate(&path, ray_hit, next_bounce.wi, p_brdf, ray.t, p_nee, di_samples, bounce, rng);
         }
 
+        // raea: a closed solid's inside (face_hit): dark, nothing more to find
+        if !hit_front && !ray_hit.back_lit { break; }
+
         // Try terminating into the world cache
-        if terminate_into_cache(&path, ray_hit, ray.t, p_brdf, bounce, rng) {
+        if terminate_into_cache(&path, ray_hit, next_bounce.wi, ray.t, p_brdf, bounce, workgroup_id, rng) {
             break;
         }
 
         // Advance to the next vertex
         path.ray_origin = ray_hit.world_position + (ray_hit.geometric_world_normal * RAY_T_MIN);
+        path.origin_normal = ray_hit.geometric_world_normal;
         path.normal = ray_hit.world_normal;
         path.wo = -next_bounce.wi;
         path.material = ray_hit.material;
@@ -210,6 +235,19 @@ fn generate_initial_path(world_position: vec3<f32>, world_normal: vec3<f32>, mat
     return result;
 }
 
+// raea: where a ray from the path's vertex toward wi starts: ray_origin, off the side the normal faces, or as far off the
+// other for a ray through to the far side (diffuse transmission)
+fn path_origin(path: PathState, wi: vec3<f32>) -> vec3<f32> {
+    return select(path.ray_origin - path.origin_normal * (2.0 * RAY_T_MIN), path.ray_origin, dot(path.normal, wi) >= 0.0);
+}
+
+// raea: one draw in [0, 1) for a whole workgroup this frame (first_bounce_probability's coin)
+fn first_bounce_coin(workgroup_id: vec2<u32>) -> f32 {
+    var wg_rng = (workgroup_id.x * 5782582u) ^ (workgroup_id.y * 1103515245u) ^ constants.frame_rng;
+    wg_rng = wg_rng * 747796405u + 2891336453u;
+    return rand_f(&wg_rng);
+}
+
 fn generate_nee_candidate(
     path: ptr<function, PathState>,
     F_ab: vec2<f32>,
@@ -221,7 +259,7 @@ fn generate_nee_candidate(
 ) {
     if rand_f(rng) >= p_nee { return; }
 
-    let di = sample_light_ris((*path).ray_origin, (*path).normal, (*path).wo, (*path).material, F_ab, di_samples, workgroup_id, bounce, rng);
+    let di = sample_light_ris((*path).ray_origin, (*path).origin_normal, (*path).normal, (*path).wo, (*path).material, F_ab, di_samples, workgroup_id, bounce, rng);
     let di_target_function = luminance(di.brdf_radiance);
     if di_target_function <= 0.0 { return; }
 
@@ -270,7 +308,7 @@ struct DiSample {
     brdf_rays_can_hit: bool,
 }
 
-fn sample_light_ris(ray_origin: vec3<f32>, normal: vec3<f32>, wo: vec3<f32>, material: ResolvedMaterial, F_ab: vec2<f32>, di_samples: u32, workgroup_id: vec2<u32>, bounce: u32, rng: ptr<function, u32>) -> DiSample {
+fn sample_light_ris(ray_origin: vec3<f32>, origin_normal: vec3<f32>, normal: vec3<f32>, wo: vec3<f32>, material: ResolvedMaterial, F_ab: vec2<f32>, di_samples: u32, workgroup_id: vec2<u32>, bounce: u32, rng: ptr<function, u32>) -> DiSample {
     var workgroup_rng = (workgroup_id.x * 5782582u) + workgroup_id.y + bounce;
     let light_tile_start = rand_range_u(128u, &workgroup_rng) * 1024u;
 
@@ -309,7 +347,9 @@ fn sample_light_ris(ray_origin: vec3<f32>, normal: vec3<f32>, wo: vec3<f32>, mat
     var unbiased_contribution_weight = 0.0;
     if selected_target_function > 0.0 {
         unbiased_contribution_weight = weight_sum / selected_target_function;
-        unbiased_contribution_weight *= trace_visibility(ray_origin, selected_world_position);
+        // raea: from the far side for light let through to this one (diffuse transmission)
+        let origin = select(ray_origin - origin_normal * (2.0 * RAY_T_MIN), ray_origin, dot(normal, selected_wi) >= 0.0);
+        unbiased_contribution_weight *= trace_visibility(origin, selected_world_position);
     }
 
     return DiSample(unbiased_contribution_weight, light_tile_samples[selected_tile_sample], selected_wi, selected_brdf_radiance, selected_inverse_solid_angle_pdf, selected_brdf_rays_can_hit);
@@ -406,9 +446,11 @@ fn generate_environment_map_light_candidate(
 fn terminate_into_cache(
     path: ptr<function, PathState>,
     ray_hit: ResolvedRayHitFull,
+    wi: vec3<f32>,
     ray_t: f32,
     p_brdf: f32,
     bounce: u32,
+    workgroup_id: vec2<u32>,
     rng: ptr<function, u32>,
 ) -> bool {
     // Only terminate into the world cache when the bounce was from a wide-enough BRDF sample
@@ -421,13 +463,31 @@ fn terminate_into_cache(
 
     // Only use the cache when the ray cleared the cache cell (diagonal = sqrt(3) * cell_size). Short
     // rays land in a cell that may straddle occluders and leak light through corners.
+    // raea: a miss continues the path rather than end it on a zero. On the last bounce there is nothing to continue to,
+    // so the path ends here anyway, with the lights' light on the hit and no cache: before, it ended with nothing, and
+    // with max_bounces 1 every short first bounce (under a sofa, a trunk's foot, between moss pillows) lost its light
     var rng_copy = *rng;
     let world_cache_cell_size = get_cell_size(ray_hit.world_position, view.world_position, ray_t, &rng_copy);
-    if ray_t <= sqrt(3.0) * world_cache_cell_size { return false; }
+    var cached_radiance = vec3(0.0);
+    if ray_t > sqrt(3.0) * world_cache_cell_size {
+        let cached = query_world_cache_found(ray_hit.world_position, ray_hit.geometric_world_normal, view.world_position, ray_t, WORLD_CACHE_CELL_LIFETIME, rng);
+        if cached.w == 0.0 && !forced_terminate { return false; }
+        cached_radiance = cached.rgb * f32(cached.w != 0.0);
+    } else if !forced_terminate {
+        return false;
+    }
 
-    let cached_radiance = query_world_cache(ray_hit.world_position, ray_hit.geometric_world_normal, view.world_position, ray_t, WORLD_CACHE_CELL_LIFETIME, rng);
+    // raea: the cache holds only light that has bounced (and the sky's, which no light sample finds); the lights' own
+    // light on the hit is sampled at the hit with its full BRDF, alone since the path ends here (world_cache_update.wesl).
+    // With as many candidates as the cache took for it (world_cache_direct_light_sample_count): with secondary_di_samples
+    // (2) the sun on a sunlit desk, picked among photo 2's lights, came in spikes the denoiser dropped (0.79 of the path
+    // tracer's light, from 0.86)
+    let hit_wo = -wi;
+    let hit_F_ab = F_AB(ray_hit.material.perceptual_roughness, max(dot(ray_hit.world_normal, hit_wo), 0.0001));
+    let hit_origin = ray_hit.world_position + (ray_hit.geometric_world_normal * RAY_T_MIN);
+    let di = sample_light_ris(hit_origin, ray_hit.geometric_world_normal, ray_hit.world_normal, hit_wo, ray_hit.material, hit_F_ab, max(constants.world_cache_direct_light_sample_count, 1u), workgroup_id, bounce + 1u, rng);
 
-    let cache_outgoing = (ray_hit.material.base_color / PI) * cached_radiance;
+    let cache_outgoing = di.brdf_radiance * di.unbiased_contribution_weight + (ray_hit.material.base_color / PI) * cached_radiance;
     let cache_L_at_reconnection = (*path).throughput_past_first_hit * cache_outgoing;
 
     @if(RESTIR) {

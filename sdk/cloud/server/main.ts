@@ -9,7 +9,7 @@
 //   POST /v1/shell {command, cwd?, timeout_ms?}
 //                                       a bash command line in the workspace, the same NDJSON; past its timeout
 //                                       (10 min unless given, 1 h at most) its process group is stopped and the last
-//                                       line says {exit, timed_out: true}. For an agent's shell tool (raea-bot)
+//                                       line says {exit, timed_out: true}. For an agent's shell tool (raea cloud)
 //   POST /v1/login?agent=ID             an agent's terminal sign-in: {url, code, state, output}; GET says where it is
 //   WS   /v1/acp?agent=ID               one agent process per socket: a text frame is one ACP message to its stdin,
 //                                       each line it prints is one frame back

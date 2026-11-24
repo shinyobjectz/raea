@@ -16,26 +16,33 @@ use bevy::solari::pathtracer::{Pathtracer, PathtracingPlugin};
 use bevy::solari::prelude::{RaytracingMesh3d, SolariLighting, SolariPlugins};
 
 pub fn add(app: &mut App) {
-    app.add_plugins((SolariPlugins, PathtracingPlugin)).add_systems(PostUpdate, (cameras, meshes).before(bevy::camera::CameraUpdateSystems));
-    if dynamic() {
-        // a twin posed after its joints are placed and before this frame's asset events go out, so the traced scene
-        // gets the pose with the frame that draws it; a part's visibility read once it is propagated
-        app.add_systems(
-            PostUpdate,
-            (
-                skin_twins.after(bevy::transform::TransformSystems::Propagate).before(bevy::asset::AssetEventSystems),
-                hidden.after(bevy::camera::visibility::VisibilitySystems::VisibilityPropagate),
-            ),
-        );
-    }
+    app.add_plugins((SolariPlugins, PathtracingPlugin))
+        .init_resource::<Dynamic>()
+        .add_systems(PostUpdate, (cameras, meshes, deferred, shadow_maps).before(bevy::camera::CameraUpdateSystems))
+        .add_systems(PostUpdate, dynamic.before(meshes));
+    // a twin posed after its joints are placed and before this frame's asset events go out, so the traced scene gets
+    // the pose with the frame that draws it
+    app.add_systems(
+        PostUpdate,
+        skin_twins.after(bevy::transform::TransformSystems::Propagate).before(bevy::asset::AssetEventSystems).run_if(|d: Res<Dynamic>| d.0),
+    );
+    // a part's visibility read once it is propagated, on every traced render (it was RT5's trial alone: SG9)
+    app.add_systems(PostUpdate, hidden.after(bevy::camera::visibility::VisibilitySystems::VisibilityPropagate));
 }
 
-/// RAEA_SOLARI_DYNAMIC=1 (RT5, a trial; unset, everything is as before): the traced scene follows what moves. A skinned
-/// mesh gets a traced twin, posed on the CPU each frame as the GPU skins the drawn one (it casts traced shadows, stops
-/// and bounces light), and a hidden part leaves the traced scene until it is shown again (hidden, it still shadowed).
-fn dynamic() -> bool {
-    static ON: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
-    *ON.get_or_init(|| raea_io_home::env_on("RAEA_SOLARI_DYNAMIC"))
+/// Whether the traced scene follows what moves (RT5, a trial: <SolariLighting dynamic>, or RAEA_SOLARI_DYNAMIC on every
+/// camera; off, everything is as before): a skinned mesh gets a traced twin, posed on the CPU each frame as the GPU
+/// skins the drawn one (it casts traced shadows, stops and bounces light). (A hidden part leaving the traced scene was
+/// part of this trial until SG9; it is on for every traced render now: `hidden`.) On while any traced camera asks for
+/// it; a mesh is decided the first frame it is traced, so ask from the first frame.
+#[derive(Resource, Default)]
+struct Dynamic(bool);
+
+fn dynamic(mut d: ResMut<Dynamic>, cams: Query<Option<&super::SolariSettings>, Or<(With<SolariLighting>, With<Pathtracer>)>>) {
+    let on = cams.iter().any(|s| super::settings::of(s).dynamic);
+    if d.0 != on {
+        d.0 = on;
+    }
 }
 
 /// A skinned mesh's traced twin: the mesh's bind pose in Solari's layout and its skin, and the joints last posed from.
@@ -135,10 +142,14 @@ struct Untraced(Handle<Mesh>);
 
 /// Solari traces every RaytracingMesh3d, shown or not: a hidden part (one a frame leaves out, a `visible={false}`)
 /// kept shadowing and bouncing light where it last stood. Hidden, it gives its traced mesh up; shown, it has it back.
+/// A part a scene leaves is hidden, not despawned (its row stays), so until 0.1.10 (SG9) every part a film had left
+/// stayed in the traced scene unseen: a whole render's later places drew in the shade of all the earlier ones' parts
+/// (Stay, far darker than each shot rendered alone; kept-scenes.tsx, the room 0.943 SSIM to its still, 0.997 after).
+/// Only a part whose visibility changed, or just traced, is looked at.
 fn hidden(
     mut cmd: Commands,
-    shown: Query<(Entity, &InheritedVisibility, &RaytracingMesh3d)>,
-    parked: Query<(Entity, &InheritedVisibility, &Untraced), Without<RaytracingMesh3d>>,
+    shown: Query<(Entity, &InheritedVisibility, &RaytracingMesh3d), Or<(Changed<InheritedVisibility>, Added<RaytracingMesh3d>)>>,
+    parked: Query<(Entity, &InheritedVisibility, &Untraced), (Without<RaytracingMesh3d>, Or<(Changed<InheritedVisibility>, Added<Untraced>)>)>,
 ) {
     for (e, v, rt) in &shown {
         if !v.get() {
@@ -180,6 +191,7 @@ fn meshes(
     mut assets: ResMut<Assets<Mesh>>,
     mut copies: Local<HashMap<(AssetId<Mesh>, bool), Option<Handle<Mesh>>>>,
     mut said: Local<bool>,
+    dynamic: Res<Dynamic>,
 ) {
     if on.is_empty() {
         return;
@@ -196,7 +208,7 @@ fn meshes(
             None => continue,
             Some(true) => {}
         }
-        if skinned && !morphed && dynamic() {
+        if skinned && !morphed && dynamic.0 {
             let mapped = mats.get(&mat.0).is_some_and(|m| m.normal_map_texture.is_some());
             let Some(twin) = assets.get(&m.0).map(|src| skin_twin(src, mapped)) else { continue };
             match twin {
@@ -242,6 +254,67 @@ fn meshes(
     }
 }
 
+/// A light whose shadow maps this module turned off, to turn them back on.
+#[derive(Component)]
+struct MapsOff;
+
+/// RT10: Solari and the path tracer trace their shadows and never read a light's shadow maps, yet Bevy still draws
+/// them each frame (photo 2's sun's cascades: 1.5 ms of a 22 ms live frame). So while every active 3D camera traces its
+/// light and nothing is drawn raster-lit by them (a skinned or morphed mesh, a <Character>: RT5), the lights draw none;
+/// each one this turned off gets its maps back when that stops. A light marked `volumetric` keeps its maps: the fog's
+/// shafts are cut by them (photo 5's skylight through steam).
+fn shadow_maps(
+    mut cmd: Commands,
+    cams: Query<(&Camera, Has<SolariLighting>, Has<Pathtracer>), With<Camera3d>>,
+    raster: Query<(), Or<(With<bevy::mesh::skinning::SkinnedMesh>, With<bevy::mesh::morph::MeshMorphWeights>)>>,
+    mut dir: Query<(Entity, &mut DirectionalLight, Has<MapsOff>, Has<bevy::light::VolumetricLight>)>,
+    mut point: Query<(Entity, &mut PointLight, Has<MapsOff>, Has<bevy::light::VolumetricLight>)>,
+    mut spot: Query<(Entity, &mut SpotLight, Has<MapsOff>, Has<bevy::light::VolumetricLight>)>,
+) {
+    let (mut any, mut all) = (false, true);
+    for (c, solari, path) in &cams {
+        if c.is_active {
+            any = true;
+            all &= solari || path;
+        }
+    }
+    let off = any && all && raster.is_empty();
+    macro_rules! each {
+        ($q:expr) => {
+            for (e, mut l, mine, fog) in &mut $q {
+                if off && !fog && l.shadow_maps_enabled {
+                    l.shadow_maps_enabled = false;
+                    cmd.entity(e).insert(MapsOff);
+                } else if (!off || fog) && mine {
+                    l.shadow_maps_enabled = true;
+                    cmd.entity(e).remove::<MapsOff>();
+                }
+            }
+        };
+    }
+    each!(dir);
+    each!(point);
+    each!(spot);
+}
+
+/// Under Solari, a material that lets light through (`diffuse_transmission`: a leaf, a sheer curtain, a lampshade)
+/// is pinned to the deferred path. Left on Auto, Bevy draws it forward, as the G-buffer has no room for transmission,
+/// so it skipped Solari's lighting and drew raster-lit over the traced frame, its emissive shown raw: photo 2's lamp
+/// and curtain came out white (1.85x the photo's lamp), its leaves flat. Solari 0.20 traces no transmission, so as a
+/// G-buffer surface it is lit like any other (the lamp 1.12x, the curtain 1.26x, as the path tracer has them).
+fn deferred(on: Query<(), With<SolariLighting>>, mut mats: ResMut<Assets<StandardMaterial>>) {
+    if on.is_empty() {
+        return;
+    }
+    use bevy::material::OpaqueRendererMethod;
+    let forward: Vec<_> = mats.iter().filter(|(_, m)| m.opaque_render_method == OpaqueRendererMethod::Auto && m.diffuse_transmission > 0.0).map(|(id, _)| id).collect();
+    for id in forward {
+        if let Some(mut m) = mats.get_mut(id) {
+            m.opaque_render_method = OpaqueRendererMethod::Deferred;
+        }
+    }
+}
+
 /// Whether a surface of this alpha mode is in the traced scene: not one that only adds light to what is behind it or
 /// multiplies it (a glow, a spark, dust, a tint), which has nothing of its own to block or bounce.
 fn traced_alpha(mode: AlphaMode) -> bool {
@@ -266,7 +339,7 @@ fn traceable(src: &Mesh, mapped: bool) -> Option<Traceable> {
     // draws into the G-buffer, lit by Solari; it just isn't in the traced scene
     let ids: Vec<_> = src.try_attributes().ok()?.map(|(a, _)| a.id).collect();
     let indices = src.try_indices_option().ok()?;
-    let layout = [Mesh::ATTRIBUTE_POSITION.id, Mesh::ATTRIBUTE_NORMAL.id, Mesh::ATTRIBUTE_UV_0.id, Mesh::ATTRIBUTE_TANGENT.id];
+    let layout = [Mesh::ATTRIBUTE_POSITION.id, Mesh::ATTRIBUTE_NORMAL.id, Mesh::ATTRIBUTE_UV_0.id, Mesh::ATTRIBUTE_TANGENT.id, Mesh::ATTRIBUTE_COLOR.id];
     if ids == layout && matches!(indices, Some(Indices::U32(_))) {
         return Some(Traceable::Same);
     }
@@ -278,6 +351,13 @@ fn traceable(src: &Mesh, mapped: bool) -> Option<Traceable> {
     out.insert_attribute(Mesh::ATTRIBUTE_POSITION, pos);
     out.insert_attribute(Mesh::ATTRIBUTE_NORMAL, normal);
     out.insert_attribute(Mesh::ATTRIBUTE_UV_0, uv);
+    // its vertex colours, which the base colour is multiplied by traced as in raster (vendored Solari's PackedVertex),
+    // or white. Without them a forest's vertex-coloured bark and moss traced grey
+    let color = match src.attribute(Mesh::ATTRIBUTE_COLOR) {
+        Some(VertexAttributeValues::Float32x4(c)) if c.len() == n => c.clone(),
+        _ => vec![[1.0f32; 4]; n],
+    };
+    out.insert_attribute(Mesh::ATTRIBUTE_COLOR, color);
     let idx: Vec<u32> = match indices {
         Some(Indices::U32(v)) => v.clone(),
         Some(Indices::U16(v)) => v.iter().map(|&i| i as u32).collect(),
@@ -325,6 +405,23 @@ mod tests {
             assert!((v.length() - 1.0).abs() < 1e-5 && v.dot(Vec3::Z).abs() < 1e-5 && t[3] == 1.0, "{t:?}");
         }
         assert_eq!(tangents(true).len(), 3);
+    }
+
+    /// A mesh's vertex colours go into its traced copy, which the tracer multiplies the base colour by; a mesh with none
+    /// is traced white.
+    #[test]
+    fn vertex_colours_are_traced() {
+        let colour = |m: &Mesh| match traceable(m, false) {
+            Some(Traceable::Copy(c)) => match c.attribute(Mesh::ATTRIBUTE_COLOR) {
+                Some(VertexAttributeValues::Float32x4(v)) => v.clone(),
+                _ => panic!("no colour in the copy"),
+            },
+            _ => panic!("not a copy"),
+        };
+        assert_eq!(colour(&quad(RenderAssetUsages::default())), vec![[1.0f32; 4]; 3]);
+        let mut green = quad(RenderAssetUsages::default());
+        green.insert_attribute(Mesh::ATTRIBUTE_COLOR, vec![[0.1f32, 0.3, 0.05, 1.0]; 3]);
+        assert_eq!(colour(&green), vec![[0.1f32, 0.3, 0.05, 1.0]; 3]);
     }
 
     #[test]

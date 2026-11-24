@@ -192,12 +192,8 @@ splice() { # FILE NAME CONTENT-FILE
 }
 
 cmd_sync() {
-  local files=()
-  if [ $# -gt 0 ]; then
-    files=("$@")
-  else
-    while read -r f; do files+=("$f"); done < <(declarations)
-  fi
+  local files=("$@")
+  [ $# -gt 0 ] || while read -r f; do files+=("$f"); done < <(declarations)
   [ ${#files[@]} -gt 0 ] || die "no package.json declares raea.plugins"
   local all minor deps feats cdeps cfeats reg list name spec crate src fl dname dspec dline seen="" skipped="" own=""
   all=$(merged "${files[@]}")
@@ -277,7 +273,7 @@ cmd_sync() {
     local cfg="#[cfg(feature = \"$name\")]"
     local lcfg="$cfg"
     [ "$builtin" = true ] && lcfg=""
-    echo "    $lcfg v.push(Declared { name: \"$name\", krate: \"$crate\", source: $(jq -Rn --arg s "$src" '$s'), prefixes: &[$prefixes], headless: &[$headless], on_demand: $ondemand });" >> "$list"
+    echo "    $lcfg v.push(Declared { name: \"$name\", krate: \"$crate\", source: $(jq -Rn --arg s "$src" '$s'), prefixes: &[$prefixes], needs: &[$(needs_of "$spec" | sed 's/^, //')], headless: &[$headless], on_demand: $ondemand });" >> "$list"
     # Blitz widgets (docs/sdk.feature S8b): each tag backed in every page App by the widget its expression makes
     local widgets; widgets=$(jq -r '.widgets // {} | to_entries[] | " raea_sys_page::widgets::AppPageWidgets::page_widget(app, \"\(.key)\", || Box::new(\(.value)));"' <<<"$spec" | tr -d '\n')
     [ -z "$widgets" ] || printf '    %s\n    raea_sys_page::widgets::register_page_plugin(|app| {%s });\n' "$cfg" "$widgets" >> "$reg"
@@ -324,6 +320,8 @@ cmd_sync() {
       fi
     done
   done
+  # the catalog the release builds in (docs/nobuild.feature NB4a): every plugin but those declared "catalog": false
+  echo "catalog = [$(jq -r 'to_entries[] | select(.value.catalog != false) | .key' <<<"$all" | grep -Fxf <(cut -d' ' -f1 "$feats") | sed 's/.*/"&"/' | paste -sd, - | sed 's/,/, /g')]" >> "$feats"
   splice "$TOML" "declared dependencies" "$deps"
   splice "$TOML" "declared features" "$feats"
   splice "$CRATE/src/lib.rs" "declared modules" "$mods"

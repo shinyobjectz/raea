@@ -75,6 +75,9 @@ struct SolariLightingUniforms {
     world_cache_position_lod_scale: f32,
     frame_rng: u32,
     reset: u32,
+    // raea: SolariLighting::first_bounce_probability, padded to keep the uniform a multiple of 16 bytes
+    first_bounce_probability: f32,
+    pad: [u32; 3],
 }
 
 impl SolariLightingUniforms {
@@ -92,6 +95,8 @@ impl SolariLightingUniforms {
             world_cache_position_lod_scale: settings.world_cache_position_lod_scale,
             frame_rng: frame_count.wrapping_mul(5782582),
             reset: (settings.reset || force_reset) as u32,
+            first_bounce_probability: settings.first_bounce_probability.clamp(0.05, 1.0),
+            pad: [0; 3],
         }
     }
 }
@@ -146,6 +151,8 @@ pub fn prepare_solari_lighting_resources(
     render_device: Res<RenderDevice>,
     render_queue: Res<RenderQueue>,
     frame_count: Res<FrameCount>,
+    // raea: the guides for a denoiser other than DLSS-RR (guides.rs)
+    guides: Option<Res<super::guides::SolariGuideBuffers>>,
     mut commands: Commands,
 ) {
     for query_item in &query {
@@ -245,6 +252,11 @@ pub fn prepare_solari_lighting_resources(
             world_cache_active_cells_dispatch,
             view_size,
         });
+        if guides.is_some() {
+            commands
+                .entity(entity)
+                .insert(super::guides::make(&render_device, view_size));
+        }
 
         #[cfg(all(feature = "dlss", not(feature = "force_disable_dlss")))]
         if has_dlss_rr {

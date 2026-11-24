@@ -33,7 +33,7 @@ pub(crate) fn session(entry: &str, file: Option<&Path>, rest: &[String], secs: f
     let bridge = blender_bridge::start(&bin, file, rest)?;
     *BRIDGE.lock().map_err(|e| e.to_string())? = Some((bridge.port, bridge.token.clone()));
     let out = std::env::temp_dir().join(format!("raea-blender-{}.js", std::process::id()));
-    let ran = raea_runtime_bundle::bundle_entry(entry, &out, &[]).and_then(|_| raea_runtime_export::run_bundle(&out, secs));
+    let ran = raea_runtime_bundle::bundle_entry(entry, &out, &[]).and_then(|_| raea_runtime_export::run_bundle_to_terminal(&out, secs));
     let _ = std::fs::remove_file(&out);
     let _ = post(&json!({ "sid": "raea", "ops": [{ "o": "quit" }] }));
     *BRIDGE.lock().map_err(|e| e.to_string())? = None;

@@ -393,7 +393,7 @@ pub fn sync_volumes(
         let (_, size) = placed(&v);
         let t = num(&v, "time", 0.0);
         vol.sim.run_to(t, size);
-        if std::env::var_os("RAEA_VOLUME_DEBUG").is_some() {
+        if raea_io_trace::stat("RAEA_VOLUME_DEBUG") {
             let sim = &vol.sim;
             let (mut sum, mut top, mut tmax) = (0.0f32, 0usize, 0.0f32);
             for (i, d) in sim.d.iter().enumerate() {

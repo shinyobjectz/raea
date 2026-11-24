@@ -56,6 +56,16 @@ pub struct Brief {
     #[serde(default)]
     #[ts(as = "Option<Vec<Agent>>", optional)]
     pub agents: Vec<Agent>,
+    /// the project's stories, imported explicitly (raea/story, docs/story.md): one, or several by name. Kept as written:
+    /// raea reads nothing in it, the story SDK and the checks that import it do
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[ts(type = "unknown", optional)]
+    pub story: Option<serde_json::Value>,
+    /// a scene, kit or shot made to a frozen plan and held to the review loop (docs/make.feature): `scene()`, `kit()`
+    /// or `shot()` from "raea/brief"; `raea make status` decides when it's done
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub make: Option<crate::make::Make>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS)]
@@ -118,6 +128,9 @@ pub fn doctor(b: &Brief) -> Vec<String> {
     }
     for a in &b.assumed {
         out.push(format!("`{a}` is assumed: confirm it with the person"));
+    }
+    if let Some(m) = &b.make {
+        out.extend(crate::make::doctor(m).into_iter().map(|d| format!("make: {d}")));
     }
     out
 }

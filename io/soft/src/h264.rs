@@ -125,7 +125,8 @@ pub(crate) struct Encoder {
     pub(crate) enc: H264Encoder,
     pub(crate) opts: EncodeOpts,
     pub(crate) out: PathBuf,
-    pub(crate) frames: Vec<(Vec<u8>, bool)>,
+    /// each frame's sample on disk as it's made, not in memory (SG4a)
+    pub(crate) samples: raea_io_codec::samples::Samples,
 }
 
 #[cfg(feature = "h264")]
@@ -140,7 +141,8 @@ impl VideoEncoder for Encoder {
         self.push_i420(&y, &u, &v)
     }
     fn finish(self: Box<Self>, audio: Option<&Audio>) -> R<EncodeStats> {
-        mux_h264(&self.out, &self.opts, &self.frames, audio)
+        let n = self.samples.len();
+        mux_h264(&self.out, &self.opts, n, &mut self.samples.reader()?, audio)
     }
 }
 
@@ -157,16 +159,18 @@ impl Encoder {
             bs.frame_type(),
             openh264::encoder::FrameType::IDR | openh264::encoder::FrameType::I
         );
-        self.frames.push((bs.to_vec(), key));
-        Ok(())
+        let k = self.samples.len();
+        self.samples.put(k, &bs.to_vec(), key)
     }
 }
 
-/// H.264 samples (Annex B, one per frame, display order, with key flags) and the audio columns (as Opus) into an MP4.
+/// `n` H.264 samples (Annex B, one per frame, display order), each read as it's muxed (`read(k, buf)` fills frame k's
+/// and says whether it's a keyframe), and the audio columns (as Opus) into an MP4.
 pub fn mux_h264(
     out: &Path,
     opts: &EncodeOpts,
-    frames: &[(Vec<u8>, bool)],
+    n: usize,
+    read: &mut dyn FnMut(usize, &mut Vec<u8>) -> R<bool>,
     audio: Option<&Audio>,
 ) -> R<EncodeStats> {
     let file = std::fs::File::create(&out).map_err(|e| e.to_string())?;
@@ -192,7 +196,9 @@ pub fn mux_h264(
     let mut m = b.build().map_err(|e| format!("muxide: {e}"))?;
     // interleave by time
     let mut ai = 0;
-    for (k, (data, key)) in frames.iter().enumerate() {
+    let mut data = Vec::new();
+    for k in 0..n {
+        let key = read(k, &mut data)?;
         let pts = k as f64 / opts.fps;
         if let Some(p) = &packets {
             while ai < p.len() && p[ai].0 < pts {
@@ -201,10 +207,10 @@ pub fn mux_h264(
                 ai += 1;
             }
         }
-        m.write_video(pts, data, *key)
+        m.write_video(pts, &data, key)
             .map_err(|e| format!("muxide video: {e}"))?;
     }
-    let end = frames.len() as f64 / opts.fps;
+    let end = n as f64 / opts.fps;
     if let Some(p) = &packets {
         for (pts, d) in p[ai..].iter().filter(|x| x.0 < end) {
             m.write_audio(*pts, d)
@@ -213,7 +219,7 @@ pub fn mux_h264(
     }
     m.finish().map_err(|e| format!("muxide: {e}"))?;
     Ok(EncodeStats {
-        frames: frames.len(),
+        frames: n,
         bytes: std::fs::metadata(&out).map(|m| m.len()).unwrap_or(0),
         video_codec: "h264 (openh264)".into(),
         audio_codec: if audio.is_some() {

@@ -4,12 +4,14 @@
 //! types (`declarations`), so what tsc checks is exactly what this crate reads.
 
 pub mod brief;
+pub mod make;
 pub mod parts;
 pub mod script;
 pub mod taste;
 pub mod videoform;
 
 pub use brief::Brief;
+pub use make::Make;
 pub use parts::Parts;
 pub use script::Script;
 pub use taste::Taste;
@@ -41,6 +43,7 @@ pub fn declarations() -> String {
         videoform::Videoform,
         videoform::Correction,
         videoform::Vocabulary, videoform::Term, videoform::Pattern, videoform::Section, videoform::Feel,
+        make::Make, make::Kind, make::Source, make::DialValue, make::Dial, make::Route, make::Origin, make::Pick, make::Object, make::Shot,
     ));
     out.join("\n\n") + "\n"
 }

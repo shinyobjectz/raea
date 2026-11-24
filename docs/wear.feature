@@ -58,17 +58,23 @@ Feature: raea/wear, weathering that has a cause
         | absorb | a chart under 1.5 texels across (or 6 in area) folded into the big chart within 35 cm of its plane     | a reveal or a frame's face reads the wall it sits on   |
         | hide   | a triangle whose centre and three corners all see the back of something in nine rays of ten: no texels | ground under a house, party walls against each other   |
       And a level chart is turned in its plane to its smallest rectangle; a wall keeps its rows down the fall line
+      And the atlas is also the light bake's (docs/bake.feature BK1, 11-23): raea_sys_atlas::layout(glb, request) returns it alone,
+        with no causes traced, and given a bake's request it is that bake's atlas byte for byte, so a lightmap and the
+        cause maps read one TEXCOORD_1. Measured there against xatlas, these charts were 160 times faster on the
+        atelier's 655 000 triangles, with half the charts and less seam and stretch
       And rays are parry3d's TriMesh BVH (in the tree through rapier3d); samples are a rotated R2 sequence per texel
       And each triangle has a material class from the request's table, by glTF material name or by COLOR_0's alpha
         code: plaster, brick, sandstone, granite, wood, iron, zinc, copper, slate, felt, glass, enamel, brass, ground
       And the crate, as built
         | file                             | lines | job                                                              |
-        | systems/weathering/src/lib.rs    | 217   | the request, its content key, the store, the bake's steps        |
+        | systems/weathering/src/lib.rs    | 208   | the request, its content key, the store, the bake's steps        |
+        | systems/atlas/src/lib.rs         | 121   | raea-sys-atlas (a facility, split out 11-23): Ask (up, north, density, max_side from the request's env), lay() for both bakes, layout() alone |
         | systems/glb/src/lib.rs           | 208   | raea-sys-glb (a facility): the .glb read, unused data dropped, written |
-        | systems/weathering/src/scene.rs  | 311   | glTF to triangles with a class each, and back with TEXCOORD_1    |
-        | systems/weathering/src/charts.rs | 429   | charts, their orientation and packing, texel to surface point    |
-        | systems/weathering/src/merge.rs  | 198   | merge, split and absorb                                          |
-        | systems/weathering/src/rays.rs   | 287   | hidden triangles; sky, sun, cavity, open, edge and ground        |
+        | systems/atlas/src/scene.rs       | 323   | glTF to triangles with a class each, and back with TEXCOORD_1    |
+        | systems/atlas/src/charts.rs      | 436   | charts, their orientation and packing, texel to surface point    |
+        | systems/atlas/src/merge.rs       | 193   | merge, split and absorb                                          |
+        | systems/atlas/src/rays.rs        | 78    | hidden triangles; the samples both bakes' rays share             |
+        | systems/weathering/src/rays.rs   | 193   | sky, sun, cavity, open, edge and ground                          |
         | systems/weathering/src/maps.rs   | 51    | the maps as PNGs, dilated over the gutters                       |
         | systems/weathering/src/tests.rs  | 279   | synthetic fronts checked by number                               |
       And proof (`cargo test -p raea-sys-weathering`, 9 tests): under a 1 m overhang the sky term is under 0.4 of an open

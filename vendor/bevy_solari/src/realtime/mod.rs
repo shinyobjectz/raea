@@ -1,6 +1,10 @@
 mod extract;
+// raea: the denoiser guides (primary surface replacement) without DLSS
+mod guides;
 mod node;
 mod prepare;
+// raea: RAEA_SOLARI_TIMES=1, each stage's GPU time
+mod times;
 
 use crate::{
     scene::{prepare_raytracing_scene_resources, RaytracingSceneBindings},
@@ -38,6 +42,8 @@ use prepare::{
     prepare_solari_lighting_resources, setup_raytracing_scene_needs_previous_frame_data,
 };
 use tracing::warn;
+
+pub use guides::{SolariGuideBuffers, SolariGuideTextures};
 
 /// Raytraced direct and indirect lighting.
 ///
@@ -154,6 +160,13 @@ pub struct SolariLighting {
     /// multi-bounce lighting for specular paths.
     pub max_bounces: u32,
 
+    /// raea: the chance a pixel traces its first bounce this frame (Russian roulette on it). The bounce's light is
+    /// divided by it, so the picture keeps its light on average, and ReSTIR's reuse spreads what a pixel skipped from
+    /// its neighbours and last frames. The bounce is most of the frame's tracing in dense foliage: 0.5 halves it.
+    ///
+    /// Defaults to `1.0` (every pixel, every frame).
+    pub first_bounce_probability: f32,
+
     /// How responsive the world cache is to changes in lighting.
     ///
     /// Higher values accumulate more temporal history, giving more stable but
@@ -174,8 +187,10 @@ pub struct SolariLighting {
     /// GI at the cost of longer (more expensive) ray traversal and increased noise.
     /// Lower values are faster and less noisy but may miss distant lighting or leak sky lighting.
     ///
-    /// Rays that miss within this distance are treated as reaching the environment
-    /// map light, and leak sky lighting into the cache.
+    /// raea: a ray that misses within this distance counts the environment map light only if the rest of it
+    /// reaches the sky too (an any-hit query past the cut), so a cut shorter than the scene no longer leaks sky light
+    /// into the cache; one blocked past the cut adds nothing. Defaults to 1000 m (upstream 50 m, which flooded photo
+    /// 5's hall with sky light).
     pub world_cache_max_gi_ray_distance: f32,
 
     /// Soft upper limit on the number of world cache cells to update each frame.
@@ -225,9 +240,10 @@ impl Default for SolariLighting {
             primary_di_samples: 8,
             secondary_di_samples: 4,
             max_bounces: 3,
+            first_bounce_probability: 1.0,
             world_cache_max_temporal_samples: 32.0,
             world_cache_direct_light_sample_count: 32,
-            world_cache_max_gi_ray_distance: 50.0,
+            world_cache_max_gi_ray_distance: 1000.0,
             world_cache_cell_updates_soft_target: 40000,
             world_cache_position_base_cell_size: 0.15,
             world_cache_position_lod_scale: 15.0,

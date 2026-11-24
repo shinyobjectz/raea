@@ -1,0 +1,10 @@
+[package]
+name = "raea-core-zfight"
+version = "0.1.0"
+edition = "2024"
+license = "FSL-1.1-ALv2"
+publish = false
+description = "Faces lying in one plane over each other, which the depth buffer can't order (z-fighting)"
+
+[dependencies]
+bevy = { version = "=0.20.0", default-features = false, features = ["std"] }

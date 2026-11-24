@@ -235,7 +235,7 @@ fn run(rx: Receiver<Cmd>, status: Arc<Mutex<Status>>, slot: Arc<Mutex<Painted>>)
     // the scene shown as wireframe (stage.wire), and a file just opened that hasn't taken it yet
     let (mut wire, mut rewire) = (false, false);
     // RAEA_STAGE_TRACE=1: each frame stepped and its keys, on stderr
-    let trace = std::env::var("RAEA_STAGE_TRACE").as_deref() == Ok("1");
+    let trace = raea_io_trace::stat("RAEA_STAGE_TRACE");
     // the stage's size, which the page's points are in
     let mut stage = (1u32, 1u32);
     // what it shows, and the input of each frame stepped since (a tweak's next version replays it)

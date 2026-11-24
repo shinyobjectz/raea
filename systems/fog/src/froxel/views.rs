@@ -100,13 +100,12 @@ pub fn prepare_views(
     let suns = order.iter().filter(|(_, l)| l.volumetric).count().min(2) as u32;
     for (e, view, fog) in &views {
         let vp = view.viewport.as_vec4();
-        // RAEA_FOG_GRID=tile,slices,samples (tuning)
-        let tune: Vec<u32> = std::env::var("RAEA_FOG_GRID").unwrap_or_default().split(',').filter_map(|v| v.parse().ok()).collect();
-        let tile = tune.first().copied().unwrap_or(fog.tile).max(1);
+        // the props, RAEA_FOG_GRID over them (tuning.rs)
+        let tile = fog.tile.max(1);
         let gx = (vp.z as u32).div_ceil(tile).max(1);
         let gy = (vp.w as u32).div_ceil(tile).max(1);
-        let gz = tune.get(1).copied().unwrap_or(fog.slices).clamp(8, 256);
-        let samples = tune.get(2).copied().unwrap_or(fog.samples);
+        let gz = fog.slices.clamp(8, 256);
+        let samples = fog.samples;
         // the atlas: slices as tiles, as square as fits under 16384 a side
         let cols = gz.min((16384 / gx).max(1));
         let view_from_world = view.world_from_view.affine().inverse();
@@ -142,10 +141,9 @@ pub fn prepare_views(
         };
         let mut params = params;
         if fog.hero {
-            // RAEA_FOG_EPI=line spacing,sample spacing,K,rel,abs,depth (tuning)
-            let tune: Vec<f32> = std::env::var("RAEA_FOG_EPI").unwrap_or_default().split(',').filter_map(|v| v.parse().ok()).collect();
-            let t = |i: usize, d: f32| tune.get(i).copied().unwrap_or(d);
-            let (line_gap, spacing) = (t(0, 8.0).max(0.5), t(1, 6.0).max(0.5));
+            // <VolumetricFog epipolar>, RAEA_FOG_EPI over it (tuning.rs)
+            let e = fog.tune.epi;
+            let (line_gap, spacing) = (e.line_gap, e.spacing);
             // the fog's box in the world, which every hero light's rectangle is inside
             let fog_box = volumes.corners.iter().flatten().fold((Vec3::MAX, Vec3::MIN), |(lo, hi), c| (lo.min(*c), hi.max(*c)));
             let clip_from_world = view.clip_from_view * Mat4::from(view_from_world);
@@ -168,9 +166,9 @@ pub fn prepare_views(
             let n = slot as u32;
             let lines = (0..4).map(|i| params.hero_lines[i]).max().unwrap_or(0).max(1);
             let along = (0..4).map(|i| params.hero_along[i]).max().unwrap_or(0).max(4);
-            params.epi = UVec4::new(lines, along, t(2, EPI_EVERY as f32) as u32, n);
-            params.epi_tol = Vec4::new(t(3, 0.2), t(4, 2.0 / 255.0), t(5, 0.02), spacing);
-            if std::env::var_os("RAEA_FOG_DEBUG").is_some() {
+            params.epi = UVec4::new(lines, along, e.every, n);
+            params.epi_tol = Vec4::new(e.rel, e.abs, e.depth, spacing);
+            if raea_io_trace::stat("RAEA_FOG_DEBUG") {
                 eprintln!("froxel heroes: rects {:?} lines {:?} along {:?} layers {:?}", &params.hero_rect[..slot], params.hero_lines, params.hero_along, (cascades, points));
             }
         }

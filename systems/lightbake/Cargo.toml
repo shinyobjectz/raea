@@ -1,0 +1,20 @@
+[package]
+name = "raea-sys-lightbake"
+version = "0.1.0"
+edition = "2024"
+license = "FSL-1.1-ALv2"
+publish = false
+description = "Light baked by raea: bounce light into lightmaps over raea/wear's atlas, on raea's ray tracer (docs/bake.feature)"
+
+[dependencies]
+# the atlas raea/wear's cause maps share (BK1: layout())
+raea-sys-atlas = { path = "../atlas" }
+# triangle BVH and ray casts (Apache-2.0), as weathering's
+parry3d = "0.31"
+rayon = "1"
+serde_json = "1"
+# the process's one shared GPU device, and wgpu's ray queries on it (BK3)
+raea-gpu-device = { path = "../../gpu/device" }
+wgpu = "=30.0.1"
+bytemuck = "1"
+pollster = "0.4"

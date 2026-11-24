@@ -1,0 +1,27 @@
+[package]
+name = "raea-app-make"
+version = "0.1.0"
+edition = "2024"
+license = "FSL-1.1-ALv2"
+publish = false
+description = "raea make: a scene, kit or shot held to its frozen plan; what's missing and whether it's done, decided in code (docs/make.feature)"
+
+[dependencies]
+# the plan: `make` on brief.ts
+raea-core-brief = { path = "../../core/brief" }
+# the project's record of renders and checks, and the folder it lives in
+raea-core-facts = { path = "../../core/facts" }
+# the judge's rounds, passes and blocking defects, read as it keeps them
+raea-app-judge = { path = "../judge" }
+# the make questions, their calibrations and a sheet's ident, as raea ask keeps them (MK4)
+raea-core-ask = { path = "../../core/ask" }
+# a lens's field of view (MK15's lens chart), as the review sheets work it out
+raea-core-review = { path = "../../core/review" }
+# raea ask's ledger folder
+raea-io-home = { path = "../../io/home" }
+# the contact sheets: tiles composited, labels drawn in the system's fonts
+image = { version = "0.25", default-features = false, features = ["png", "jpeg"] }
+resvg = { version = "=0.48.1", default-features = false, features = ["text", "system-fonts"] }
+dunce = "1"
+serde_json = "1"
+

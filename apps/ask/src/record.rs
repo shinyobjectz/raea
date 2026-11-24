@@ -6,7 +6,6 @@
 //! question, so a verdict reads in its terms and `raea ask try` can reword it.
 
 use std::io::Write as _;
-use std::io::{Read as _, Seek as _, SeekFrom};
 use std::path::{Path, PathBuf};
 
 use raea_core_ask::{Question, Reading};
@@ -50,28 +49,8 @@ fn hex(digest: &[u8]) -> String {
     digest.iter().take(16).map(|b| format!("{b:02x}")).collect()
 }
 
-/// What a file is, cheaply: its size and a hash of its first and last MB. A render is known again by its copy in the
-/// feed, and a later render to the same path isn't taken for it.
-pub fn ident(path: &Path) -> Option<String> {
-    const MB: u64 = 1 << 20;
-    let mut f = std::fs::File::open(path).ok()?;
-    let len = f.metadata().ok()?.len();
-    let mut h = Sha256::new();
-    let mut part = vec![0u8; len.min(MB) as usize];
-    f.read_exact(&mut part).ok()?;
-    h.update(&part);
-    if len > 2 * MB {
-        f.seek(SeekFrom::Start(len - MB)).ok()?;
-        f.read_exact(&mut part).ok()?;
-        h.update(&part);
-    }
-    Some(format!("{len}-{}", hex(&h.finalize())))
-}
-
-/// The size an ident names, to pass over files that can't be it without reading them.
-pub fn ident_len(ident: &str) -> Option<u64> {
-    ident.split_once('-')?.0.parse().ok()
-}
+/// What a file is, cheaply, and the size an ident names (raea-core-ask, so `raea make status` reads the same).
+pub use raea_core_ask::ident::{ident, ident_len};
 
 /// One of the record's files written whole, through a temporary file, so a reader never sees half of it.
 pub fn write_whole(file: &str, text: &str) -> Result<(), String> {

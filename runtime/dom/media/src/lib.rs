@@ -89,7 +89,7 @@ pub fn sync(doc: &mut BaseDocument, nodes: &Nodes, medias: &mut Medias, out: &mu
             Some(m) if m.src == src && m.load == load => m,
             _ => {
                 let stream = (!src.is_empty()).then(|| raea_runtime_js::media_html::stream::open(&raea_sys_page::net::page_path(&src), video)).flatten();
-                medias.insert(id, Media { src, load, poster: None, seek: None, stream, video, loaded: false, seeking: None, seeked: false, duration: f64::NAN, frame: None, halves: Vec::new(), halvings: 0, ahead: VecDeque::new(), synced: (None, 1.0 / 60.0), paced: (0, 0.0, 0.0, 0.0), play: None, playing: false, muted: None, volume: None, told: None, shown_gap: (None, 0.0), stats: (std::env::var("RAEA_MEDIA_STATS").as_deref() == Ok("1")).then(|| (std::time::Instant::now(), 0, 0, 0.0, 0.0)) });
+                medias.insert(id, Media { src, load, poster: None, seek: None, stream, video, loaded: false, seeking: None, seeked: false, duration: f64::NAN, frame: None, halves: Vec::new(), halvings: 0, ahead: VecDeque::new(), synced: (None, 1.0 / 60.0), paced: (0, 0.0, 0.0, 0.0), play: None, playing: false, muted: None, volume: None, told: None, shown_gap: (None, 0.0), stats: (raea_io_trace::stat("RAEA_MEDIA_STATS")).then(|| (std::time::Instant::now(), 0, 0, 0.0, 0.0)) });
                 medias.get_mut(&id).unwrap()
             }
         };

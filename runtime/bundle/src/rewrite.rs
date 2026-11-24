@@ -35,7 +35,7 @@ pub fn drop_tsconfigs(dir: &Path, depth: usize) {
     }
 }
 
-pub const MEDIA_EXTS: [&str; 10] = ["mp4", "mov", "m4v", "mp3", "wav", "m4a", "png", "jpg", "webp", "gif"];
+pub const MEDIA_EXTS: [&str; 12] = ["mp4", "mov", "m4v", "mp3", "wav", "m4a", "png", "jpg", "webp", "gif", "glb", "gltf"];
 
 /// The edit's source with its imports pointed at the bundle's copy of the SDK (its package name, a subpath such as /3d,
 /// or a relative path into raea/motion/src), and media imported as modules turned into their paths (spec: "Media
@@ -45,15 +45,15 @@ pub const MEDIA_EXTS: [&str; 10] = ["mp4", "mov", "m4v", "mp3", "wav", "m4a", "p
 pub fn rewrite_into(src: &str, from_dir: &Path, motion_src: &Path, to_motion: &str, portable: Option<&Path>) -> R<String> {
     // `export ... from` too: a package re-exporting the umbrella (tone.tsx's sao and lyria) was left external
     let re = regex::Regex::new(r#"(?s)\b(?:(import)\s+([^;'"]*?)|(export)\s+((?:\*|\{|type\s*\{)[^;'"]*?))\s+from\s+(["'])([^"']+)["']"#).unwrap();
-    let mut out = String::new();
-    let mut last = 0;
     // only real statements: an import written inside a string, a template or a comment (a code chip's text) is text
-    let text = text_spans(src);
-    for c in re.captures_iter(src) {
+    let (mut out, mut last, mut at, text) = (String::new(), 0, 0, text_spans(src));
+    while let Some(c) = re.captures_at(src, at) {
         let whole = c.get(0).unwrap();
-        if text.iter().any(|&(a, b)| a <= whole.start() && whole.start() < b) {
+        if let Some(&(_, end)) = text.iter().find(|&&(a, b)| a <= whole.start() && whole.start() < b) {
+            at = end; // looked for again after that text: its match can run on into a real import (css/edit.tsx, 11-22)
             continue;
         }
+        at = whole.end();
         let kw = c.get(1).or(c.get(3)).unwrap().as_str();
         let what = c.get(2).or(c.get(4)).unwrap().as_str().trim();
         let spec = c.get(6).unwrap().as_str();

@@ -1167,6 +1167,8 @@ pub(crate) fn build_inline_layout_into(
     }
     text_layout.text = builder.build_into(&mut text_layout.layout);
     text_layout.text_nodes = std::mem::take(&mut text_transformer.texts);
+    // raea: the families its styles asked for, checked now that the builder has let go of the fonts (#174)
+    crate::not_applied::check_families(font_ctx);
     return;
 
     fn build_inline_layout_recursive(

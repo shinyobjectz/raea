@@ -29,5 +29,5 @@
 #          tone) and Rng::range (core/grow mesh.rs Rng::range in f64; foliage's stream is its own, so moving it to
 #          core/grow's would change every tree)
 #   near:  runtime/live props.rs Live::controls/held (accessors); io/av1 and io/soft Backend::sound (one-line forwards)
-exact=294
-near=58
+exact=293
+near=57

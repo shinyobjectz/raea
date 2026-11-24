@@ -9,8 +9,8 @@ input = { type = "move", at = "card-*" }
 [[steps]]
 input = { type = "click", at = "menu-*" }
 [[steps]]
-expect = { all = [{ id = "hide-item", visible = true }, { id = "detail-*", visible = true, count = 0 }] }
+expect = { all = [{ id = "menu-feed-item-hide", visible = true }, { id = "detail-*", visible = true, count = 0 }] }
 [[steps]]
 input = { type = "press", key = "Escape" }
 [[steps]]
-expect = { all = [{ id = "hide-item", exists = false }, { id = "card-*", visible = true, quant = "any" }] }
+expect = { all = [{ id = "menu-feed-item-hide", exists = false }, { id = "card-*", visible = true, quant = "any" }] }

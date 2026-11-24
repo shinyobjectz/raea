@@ -1,7 +1,8 @@
 //! `raea light check SCENES.json -o DIR` (docs/realism.feature LT1): the bar raea Light is measured by. Each scene
 //! is rendered on each light path (RAEA_LIGHT, engine/render/raytrace force.rs) and against its reference, the path
 //! tracer held RAEA_LIGHT_SPP draws a frame: how far each path's stills are from it in stops (mean, bias, worst tile),
-//! how much its moving shot flickers against the shot path-traced, and what a frame costs. The numbers go to
+//! how much its moving shot flickers against the shot path-traced (each path drawing the 16 frames before a still
+//! or the shot first, unmeasured, so what keeps a past has its own), and what a frame costs. The numbers go to
 //! DIR/report.json and a table.
 //!
 //! A scene in SCENES.json: { "name", "dir" (its project, where its renders run; ~ is the home folder), "file" (in dir),
@@ -82,10 +83,14 @@ fn render(scene: &Scene, path: &str, spp: u32, at: &[i64], out: &Path) -> R<f64>
     let exe = std::env::current_exe().map_err(|e| e.to_string())?;
     let at: Vec<String> = at.iter().map(i64::to_string).collect();
     let t = Instant::now();
-    let run = std::process::Command::new(exe)
-        .current_dir(&scene.dir)
-        .envs(switches(path))
-        .env("RAEA_LIGHT_SPP", spp.to_string())
+    let mut cmd = std::process::Command::new(exe);
+    cmd.current_dir(&scene.dir).envs(switches(path)).env("RAEA_LIGHT_SPP", spp.to_string());
+    // the truth is never steadied: RAEA_STEADY's jitter moved the path-traced shot's frames by part of a pixel each,
+    // and that read as the paths' flicker (FLOOR3's reference 0.478 stops of its own against 0.101)
+    if path == "pathtracer" {
+        cmd.env_remove("RAEA_STEADY");
+    }
+    let run = cmd
         .args(["render", &scene.file, "--composition", &scene.composition, "--at", &at.join(","), "-o"])
         .arg(format!("{}/", out.display()))
         .output()
@@ -130,8 +135,28 @@ fn live(scene: &Scene, path: &str, size: (i64, i64), out: &Path) -> R<Value> {
     }))
 }
 
-fn frames(dir: &Path, n: usize) -> R<Vec<metric::Luma>> {
-    (0..n).map(|k| metric::load(&dir.join(format!("frame-{k:05}.png")))).collect()
+/// The frames written to `dir` at these places in its render
+fn frames(dir: &Path, at: impl IntoIterator<Item = usize>) -> R<Vec<metric::Luma>> {
+    at.into_iter().map(|k| metric::load(&dir.join(format!("frame-{k:05}.png")))).collect()
+}
+
+/// frames drawn before each measured frame that doesn't follow the one before it, and not measured, so whatever
+/// keeps a past (raea's temporal filter, the GI's caches) has its own, as it does in play: from a cold start a
+/// filter's first frames average one, two, three frames
+const BEFORE: i64 = 16;
+
+/// `at` with BEFORE frames drawn before each of its frames that doesn't follow the one before, and where each of
+/// `at`'s frames lands in that render
+fn with_before(at: &[i64]) -> (Vec<i64>, Vec<usize>) {
+    let (mut all, mut place) = (Vec::new(), Vec::new());
+    for &f in at {
+        if all.last() != Some(&(f - 1)) {
+            all.extend((f - BEFORE).max(0)..f);
+        }
+        place.push(all.len());
+        all.push(f);
+    }
+    (all, place)
 }
 
 fn round(x: f32, k: f32) -> f64 {
@@ -150,7 +175,7 @@ fn reference(scene: &Scene, spp: u32, at: &[i64], dir: &Path, fresh: bool) -> R<
         std::fs::write(dir.join("made.json"), made.to_string()).map_err(|e| e.to_string())?;
         json!({ "spp": spp, "seconds_a_frame": round(s as f32 / at.len().max(1) as f32, 10.0) })
     };
-    Ok((frames(dir, at.len())?, how))
+    Ok((frames(dir, 0..at.len())?, how))
 }
 
 /// One scene: its reference stills and shot (kept as `reference` says), then each path's stills and shot against them,
@@ -181,10 +206,11 @@ fn check(scene: &Scene, paths: &[String], spp: u32, out: &Path, fresh: bool) -> 
     };
     for path in paths {
         let dir = root.join(path);
-        let secs = render(scene, path, 1, &scene.stills, &dir)?;
-        let mut r = json!({ "seconds_a_still": round(secs as f32 / scene.stills.len().max(1) as f32, 100.0) });
+        let (all, place) = with_before(&scene.stills);
+        let secs = render(scene, path, 1, &all, &dir)?;
+        let mut r = json!({ "seconds_a_still": round(secs as f32 / all.len().max(1) as f32, 100.0) });
         if let Some(refs) = &reference {
-            let got = frames(&dir, scene.stills.len())?;
+            let got = frames(&dir, place)?;
             let d: Vec<metric::Distance> = got.iter().zip(refs).map(|(a, b)| metric::distance(a, b)).collect::<R<_>>()?;
             let n = d.len().max(1) as f32;
             r["mean_stops"] = json!(round(d.iter().map(|x| x.mean).sum::<f32>() / n, 1000.0));
@@ -194,15 +220,16 @@ fn check(scene: &Scene, paths: &[String], spp: u32, out: &Path, fresh: bool) -> 
         }
         if let Some(at) = &shot {
             let dir = root.join(format!("{path}-shot"));
-            let secs = render(scene, path, 1, at, &dir)?;
-            let got = frames(&dir, at.len())?;
+            let (all, place) = with_before(at);
+            let secs = render(scene, path, 1, &all, &dir)?;
+            let got = frames(&dir, place)?;
             // in stops, against the shot path-traced; and the frames' own second difference, in 8-bit steps, which
             // counts the shot's motion as well
             if let Some(refs) = &ref_shot {
                 r["flicker_stops"] = json!(metric::error_flicker(&got, refs)?.map(|f| round(f, 1000.0)));
             }
             r["flicker_raw"] = json!(metric::flicker(&got).map(|f| round(f, 100.0)));
-            r["seconds_a_shot_frame"] = json!(round(secs as f32 / at.len() as f32, 100.0));
+            r["seconds_a_shot_frame"] = json!(round(secs as f32 / all.len() as f32, 100.0));
         }
         r["live"] = match &scene.live {
             // at the scene's size only: the live 3D draws at its composition's size whatever the stage's
@@ -224,7 +251,9 @@ fn table(reports: &[Value]) -> String {
         for (p, v) in paths {
             let f = |k: &str| v[k].as_f64().map_or("-".to_string(), |x| format!("{x:.3}"));
             let ms = |k: &str| v["live"][k]["ms_a_frame"].as_f64().map_or("-".to_string(), |x| format!("{x:.1}"));
-            let gi = v["live"]["full"]["gi"]["gpu_ms_p50"].as_f64().map_or("-".to_string(), |x| format!("{x:.2}"));
+            // the cache's passes and the screen's (its probes, their filter, the screen), each a median
+            let g = &v["live"]["full"]["gi"];
+            let gi = g["gpu_ms_p50"].as_f64().map_or("-".to_string(), |x| format!("{:.2}", x + g["screen_ms_p50"].as_f64().unwrap_or(0.0)));
             s += &format!("{name:<18} {p:<9} {:>7} {:>7} {:>7} {:>8} {:>7} {:>8} {:>8} {gi:>8}\n", f("mean_stops"), f("bias_stops"), f("worst_tile_stops"), f("flicker_stops"), f("flicker_raw"), f("seconds_a_still"), ms("full"));
         }
         if r["reference"]["made"] == json!(false) {
@@ -259,4 +288,19 @@ pub fn light(args: &[String]) -> R<String> {
     let report = json!({ "scenes": reports });
     std::fs::write(out.join("report.json"), serde_json::to_string_pretty(&report).unwrap_or_default()).map_err(|e| e.to_string())?;
     Ok(format!("{}{}", table(&reports), format_args!("raea light: wrote {}", out.join("report.json").display())))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_frame_that_doesnt_follow_the_one_before_gets_16_drawn_before_it() {
+        let (all, place) = with_before(&[20, 21, 22, 100]);
+        assert_eq!(all.len(), 16 + 3 + 16 + 1);
+        assert_eq!(place, vec![16, 17, 18, 35]);
+        assert_eq!(place.iter().map(|&k| all[k]).collect::<Vec<_>>(), vec![20, 21, 22, 100]);
+        // none before the composition's first frame
+        assert_eq!(with_before(&[3]).0, vec![0, 1, 2, 3]);
+    }
 }

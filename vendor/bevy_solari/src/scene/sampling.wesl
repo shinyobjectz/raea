@@ -1,7 +1,7 @@
 import bevy_pbr::render::pbr_lighting::D_GGX;
 import bevy_pbr::render::utils::{rand_vec2f, rand_u, rand_range_u};
 import bevy_render::maths::{PI_2, orthonormalize};
-import package::scene::bindings::{trace_ray, trace_ray_previous_frame, RAY_T_MIN, RAY_T_MAX, light_sources, directional_lights, environment_map, environment_map_sampler, environment_map_light, LightSource, LIGHT_SOURCE_KIND_DIRECTIONAL, resolve_triangle_data_full, ResolvedRayHitFull, MIRROR_ROUGHNESS_THRESHOLD};
+import package::scene::bindings::{trace_ray, trace_ray_previous_frame, RAY_T_MIN, RAY_T_MAX, light_sources, directional_lights, environment_map, environment_map_sampler, environment_map_light, LightSource, LIGHT_SOURCE_KIND_DIRECTIONAL, LIGHT_SOURCE_KIND_SKY_PORTAL, sky_portal, resolve_triangle_data_full, ResolvedRayHitFull, MIRROR_ROUGHNESS_THRESHOLD, offset_ray_origin};
 
 enable wgpu_ray_query;
 
@@ -162,7 +162,8 @@ fn generate_random_light_sample(rng: ptr<function, u32>) -> GenerateRandomLightS
     let light_source = light_sources[light_id];
 
     var triangle_id = 0u;
-    if light_source.kind != LIGHT_SOURCE_KIND_DIRECTIONAL {
+    // an emissive mesh (raea: an even kind; directional lights and sky portals are odd)
+    if (light_source.kind & 1u) == 0u {
         let triangle_count = light_source.kind >> 1u;
         triangle_id = rand_range_u(triangle_count, rng);
     }
@@ -177,6 +178,17 @@ fn generate_random_light_sample(rng: ptr<function, u32>) -> GenerateRandomLightS
 }
 
 fn resolve_light_sample(light_sample: LightSample, light_source: LightSource) -> ResolvedLightSample {
+    // raea: a sky portal: a point on the opening, w 2, its radiance white; the environment map's light through it
+    // depends on where it's seen from, so calculate_resolved_light_contribution looks it up
+    if light_source.kind == LIGHT_SOURCE_KIND_SKY_PORTAL {
+        if light_source.id >= environment_map_light.portal_count {
+            return ResolvedLightSample(vec4(0.0, 0.0, 0.0, 2.0), vec3(0.0, 1.0, 0.0), vec3(0.0), 0.0);
+        }
+        let portal = sky_portal(light_source.id);
+        var rng = light_sample.seed;
+        let r = rand_vec2f(&rng);
+        return ResolvedLightSample(vec4(portal.corner + portal.u * r.x + portal.v * r.y, 2.0), portal.normal, vec3(1.0), portal.area);
+    }
     if light_source.kind == LIGHT_SOURCE_KIND_DIRECTIONAL {
         let directional_light = directional_lights[light_source.id];
 
@@ -221,18 +233,67 @@ fn resolve_light_sample(light_sample: LightSample, light_source: LightSource) ->
 }
 
 fn calculate_resolved_light_contribution(resolved_light_sample: ResolvedLightSample, ray_origin: vec3<f32>, origin_world_normal: vec3<f32>) -> LightContribution {
-    let ray = resolved_light_sample.world_position.xyz - (resolved_light_sample.world_position.w * ray_origin);
+    // raea: a sky portal's point (w 2) is placed as an emissive's is, lit by the environment map along the way through
+    // it, from either side
+    let portal = resolved_light_sample.world_position.w == 2.0;
+    let w = min(resolved_light_sample.world_position.w, 1.0);
+    let ray = resolved_light_sample.world_position.xyz - (w * ray_origin);
     let light_distance = length(ray);
     let wi = ray / light_distance;
 
-    let cos_theta_light = saturate(dot(-wi, resolved_light_sample.world_normal));
+    var cos_theta_light = saturate(dot(-wi, resolved_light_sample.world_normal));
+    var emitted = resolved_light_sample.radiance;
+    if portal {
+        cos_theta_light = abs(dot(wi, resolved_light_sample.world_normal));
+        emitted *= sample_environment_map_light(wi);
+    }
     let light_distance_squared = light_distance * light_distance;
     let denominator = cos_theta_light / light_distance_squared;
 
-    let radiance = resolved_light_sample.radiance * denominator;
+    let radiance = emitted * denominator;
     let inverse_solid_angle_pdf = resolved_light_sample.inverse_pdf * denominator;
 
-    return LightContribution(radiance, resolved_light_sample.inverse_pdf, inverse_solid_angle_pdf, wi, resolved_light_sample.world_position.w == 1.0);
+    return LightContribution(radiance, resolved_light_sample.inverse_pdf, inverse_solid_angle_pdf, wi, w == 1.0);
+}
+
+// raea: the pdf light sampling (generate_random_light_sample) has for the direction wi from origin, where wi leaves
+// through a sky portal (solid angle); 0 where it crosses none
+fn sky_portal_light_pdf(origin: vec3<f32>, wi: vec3<f32>) -> f32 {
+    for (var i = 0u; i < environment_map_light.portal_count; i++) {
+        let portal = sky_portal(i);
+        let cos_portal = dot(wi, portal.normal);
+        if abs(cos_portal) < 1e-6 { continue; }
+        let t = dot(portal.corner - origin, portal.normal) / cos_portal;
+        if t <= 0.0 { continue; }
+        // where it crosses, in the portal's (u, v)
+        let h = origin + wi * t - portal.corner;
+        let uu = dot(portal.u, portal.u);
+        let uv = dot(portal.u, portal.v);
+        let vv = dot(portal.v, portal.v);
+        let det = uu * vv - uv * uv;
+        let a = (dot(h, portal.u) * vv - dot(h, portal.v) * uv) / det;
+        let b = (dot(h, portal.v) * uu - dot(h, portal.u) * uv) / det;
+        if a < 0.0 || a > 1.0 || b < 0.0 || b > 1.0 { continue; }
+        return t * t / (f32(arrayLength(&light_sources)) * portal.area * abs(cos_portal));
+    }
+    return 0.0;
+}
+
+// raea: what a ray that escaped to the sky along wi keeps of the environment map's light, where it left through a sky
+// portal that light sampling also finds that light through: the power heuristic against light sampling's pdf, scaled
+// by nee_scale (the candidates the ray's vertex drew, times the chance it drew any). A ray drawn with no pdf (bounce_pdf
+// 0: a camera ray) or along a mirror's delta lobe (infinite) keeps all of it, as does one that crossed no portal.
+fn sky_portal_mis_weight(origin: vec3<f32>, wi: vec3<f32>, bounce_pdf: f32, nee_scale: f32) -> f32 {
+    if bounce_pdf <= 0.0 || isinf(bounce_pdf) || environment_map_light.portal_count == 0u { return 1.0; }
+    let p_light = sky_portal_light_pdf(origin, wi);
+    if p_light <= 0.0 { return 1.0; }
+    return power_heuristic(bounce_pdf, p_light * nee_scale);
+}
+
+// raea: where a visibility ray from a surface at p toward a light sample's point starts (w 0: the point is a direction),
+// off the side the light comes in by: the far side for light let through (diffuse transmission)
+fn ray_origin_toward_sample(p: vec3<f32>, normal: vec3<f32>, point: vec4<f32>) -> vec3<f32> {
+    return offset_ray_origin(p, normal, normal, select(point.xyz - p, point.xyz, point.w == 0.0));
 }
 
 fn trace_visibility(ray_origin: vec3<f32>, point: vec4<f32>) -> f32 {
@@ -244,6 +305,9 @@ fn trace_visibility(ray_origin: vec3<f32>, point: vec4<f32>) -> f32 {
         let dist = length(ray);
         ray_direction = ray / dist;
         ray_t_max = dist - RAY_T_MIN;
+    } else if point.w == 2.0 {
+        // raea: a sky portal's point: through it, out to the sky
+        ray_direction = normalize(point.xyz - ray_origin);
     }
 
     if ray_t_max < RAY_T_MIN { return 0.0; }
@@ -261,6 +325,9 @@ fn trace_visibility_previous_frame(ray_origin: vec3<f32>, point: vec4<f32>) -> f
         let dist = length(ray);
         ray_direction = ray / dist;
         ray_t_max = dist - RAY_T_MIN;
+    } else if point.w == 2.0 {
+        // raea: a sky portal's point: through it, out to the sky
+        ray_direction = normalize(point.xyz - ray_origin);
     }
 
     if ray_t_max < RAY_T_MIN { return 0.0; }

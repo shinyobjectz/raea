@@ -4,6 +4,7 @@ import { useCurrentFrame, useVideoConfig } from "@raea/app/clock";
 import { toHex } from "../colour";
 import { reverse, sampleMove, type MoveLike } from "@raea/math/animate";
 import { Vec3, checkVec, node3d } from "./all";
+import { checkSequenceFrames } from "./clock";
 
 // ---- text in the 3D world (docs/ts-native.feature P19) ----
 
@@ -69,6 +70,9 @@ export interface GlyphStyle {
 export interface RichTextProps {
   /** what it's called across frames, and its glyphs' names over world.* (`${name}:${index}`) */
   name?: string;
+  /** false: scenery, not words to read (a shop sign seen in passing, a page in a book), so raea render doesn't hold it
+   * to type that reads: its size on screen, its angle to the camera, its reveal and its reading time (SG10) */
+  read?: boolean;
   /** the composition pass it draws in ("scene" by default): a frame-wide effect told to skip a pass (<Look skip>,
    * <Outline skip>, <Bloom skip>, <Grade skip>) leaves its pixels as drawn, and <Look passes> gives one its own paint;
    * a piece names at most three passes besides "scene"; keyed per frame */
@@ -176,13 +180,15 @@ const utf8 = (c: string) => { const n = c.codePointAt(0)!; return n < 0x80 ? 1 :
 export function RichText(props: RichTextProps) {
   const owner = "RichText";
   const frame = useCurrentFrame();
-  const { fps } = useVideoConfig();
+  const { fps, durationInFrames } = useVideoConfig();
   const { position = [0, 0, 0], rotation = [0, 0, 0], scale = 1, size = 0.5, align = "center", each = 2, by = "letter", at = 0, exitEach = 0 } = props;
   checkVec(owner, "position", position);
   checkVec(owner, "rotation", rotation);
   if (!(size > 0) || !Number.isFinite(size)) throw new RangeError(`${owner}: size is the em in metres, a positive number, got ${size}`);
   if (!["left", "center", "right"].includes(align)) throw new RangeError(`${owner}: align is left, center or right, got ${JSON.stringify(align)}`);
   if (props.exit !== undefined && props.exitAt === undefined) throw new Error(`${owner}: an exit needs exitAt (the local frame it starts)`);
+  // one clock (docs/stage-guards.feature SG5): `at` and `exitAt` are frames of this Sequence
+  checkSequenceFrames(owner, props.name, [["at", props.at], ["exitAt", props.exitAt]], durationInFrames);
   const runs = textRuns(owner, props);
   // the glyphs: every character that isn't a space, with its byte in the joined text (raea-render lays the text out whole)
   type G = { ch: string; at: number; span: number; color: string; line: number; word: number; inWord: number };

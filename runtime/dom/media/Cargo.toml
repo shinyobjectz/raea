@@ -7,6 +7,7 @@ publish = false
 description = "The page's video and audio elements: each source decoded and played on its own thread (raea-runtime-js's stream), its news as the element's media events, a video's frame as its picture"
 
 [dependencies]
+raea-io-trace = { path = "../../../io/trace" }
 bevy = { version = "=0.20.0", default-features = false, features = ["std", "bevy_log"] }
 blitz-dom = { version = "=0.3.0-beta.4", default-features = false, features = ["svg", "woff", "system-fonts", "floats", "text-transform-icu", "complex-scripts"] }
 raea-io-net = { path = "../../../io/net" }

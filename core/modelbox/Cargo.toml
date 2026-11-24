@@ -1,0 +1,12 @@
+[package]
+name = "raea-core-modelbox"
+version = "0.1.0"
+edition = "2024"
+license = "FSL-1.1-ALv2"
+publish = false
+description = "A glTF model's own geometry: its triangles read once, its box turned and scaled, and which way a seat faces"
+
+[dependencies]
+raea-core-scene = { path = "../../core/scene" }
+bevy = { version = "=0.20.0", default-features = false, features = ["std"] }
+serde_json = "1"

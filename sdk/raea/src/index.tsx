@@ -41,6 +41,8 @@ export {
   type VolumeProp,
 } from "@raea/video/media";
 export { word, useWords, findPhrase, type WordOptions } from "@raea/video/words";
+// names a project moving from another React video tool uses (#176)
+export { random, interpolateColors, OffthreadVideo, type OffthreadVideoProps } from "./random-colors";
 export {
   song, songAt, useSong, SongPlot,
   type Song, type SongMap, type SongMoment, type SongEvent, type SongEventKind, type SongSection, type SongBar, type SongHit,

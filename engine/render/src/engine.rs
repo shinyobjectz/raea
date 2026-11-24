@@ -87,6 +87,7 @@ use raea_sys_shader as shader_ext;
 use raea_sys_post::lens;
 // the camera's motion blur (<MotionBlur>), a function of the frame
 use raea_sys_post::motion_blur;
+use raea_sys_post::cut;
 // Bevy's depth of field, patched to keep the frame's alpha (the paint look's sky)
 use raea_sys_post::dof;
 use raea_sys_post::effect_stack;
@@ -139,12 +140,13 @@ impl Drop for Engine {
     fn drop(&mut self) { self.app.get_sub_app_mut(bevy::render::RenderApp).map(|sub| sub.world_mut().try_schedule_scope(bevy::render::ExtractSchedule, |w, s| s.apply_deferred(w))); }
 }
 
+#[cfg(feature = "native")] pub(crate) use raea_io_trace::stat; #[cfg(not(feature = "native"))] pub(crate) fn stat(_: &str) -> bool { false } // a stat channel (io/trace stats.rs, nobuild NB2a); the web's build has none
 /// RAEA_MEM_MARKS: one line on stderr per start-up phase, "mem_mark <ms since the first mark> <phys_footprint MB>
 /// <phase>", to line up with a memory timeline (the footprint is the process's, as the OS counts it).
 pub fn mem_mark(what: &str) {
     static ON: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
     static T0: std::sync::OnceLock<bevy::platform::time::Instant> = std::sync::OnceLock::new();
-    if !*ON.get_or_init(|| std::env::var_os("RAEA_MEM_MARKS").is_some()) {
+    if !*ON.get_or_init(|| stat("RAEA_MEM_MARKS")) {
         return;
     }
     let t = T0.get_or_init(bevy::platform::time::Instant::now).elapsed().as_secs_f64() * 1e3;
@@ -225,6 +227,9 @@ impl Engine {
         Engine::build(prog, inserted, dir, None, true)
     }
 
+    /// The frame `draw` drew last, if any.
+    pub fn drawn(&self) -> Option<i64> { self.drawn }
+
     /// Frame `f` drawn into the target (one update: the pipeline is synchronous, so it's on the GPU's queue when this
     /// returns, ahead of anything the paint device is given next).
     pub fn draw(&mut self, f: i64) {
@@ -242,7 +247,7 @@ impl Engine {
         // Bevy's generated environment map, took three, so RR0's sunset shot opened 2 frames dark, RR1). A plugin's
         // clock steps on the first and holds on the rest, as `frames` warms up a cut and a shot rendered alone its load
         let cut = std::mem::take(&mut self.warm_next) || self.drawn.is_some_and(|d| self.app.world().get_resource::<raea_sys_frame::tables::Cuts>().is_some_and(|c| c.between(d, f)));
-        self.drawn = Some(f);
+        self.drawn = Some(f); #[cfg(feature = "native")] raea_io_trace::count("engine/draws", 1);
         if cut {
             self.pipe.flush(&mut self.app);
             for _ in 0..8 {
@@ -253,7 +258,7 @@ impl Engine {
         self.pre_step();
         plugins::arm(self.app.world_mut());
         self.pipe.flush(&mut self.app);
-        self.app.update();
+        self.app.update(); #[cfg(feature = "native")] raea_io_trace::count("engine/updates", 1);
         self.capture_aov(f);
         raea_sys_frame::layer::record(self.app.world_mut(), f);
     }
@@ -321,9 +326,9 @@ impl Engine {
     }
 
     /// A live scene's rows dropped, by kind and id: their entities go (and the meshes and surfaces only they held).
-    pub fn remove_rows(&mut self, rows: &[(String, String)]) {
+    pub fn remove_rows(&mut self, rows: &[(String, String)]) -> Result<(), String> {
         rows.iter().for_each(|r| drop(self.kept.remove(r)));
-        remove_rows_from(self.app.world_mut(), rows);
+        remove_rows_from(self.app.world_mut(), rows)
     }
 
     /// The registered Bevy plugins' frame clock: the frames before f stepped through (one update each, their readbacks

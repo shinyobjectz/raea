@@ -7,9 +7,13 @@ publish = false
 description = "Composition passes (which pass drew each pixel, frame-wide effects held back from some) and a frame's passes in place of its picture (depth, normal, albedo)"
 
 [dependencies]
+raea-io-trace = { path = "../../io/trace" }
 raea-sys-frame = { path = "../frame" }
 raea-sys-rt = { path = "../rt" }
 raea-core-program = { path = "../../core/program" }
+# the guide data's readback (aov.rs): a compute pass over the prepasses, its buffer cast to floats
+wgpu = "=30.0.1"
+bytemuck = "1"
 bevy = { version = "=0.20.0", default-features = false, features = ["std", "default_app", "3d_bevy_render", "ui_bevy_render"] }
 serde_json = "1"
 # a schedule build pass's signature (compose.rs orders its passes around Bevy's crate-private post systems); already in the tree

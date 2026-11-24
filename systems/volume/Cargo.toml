@@ -7,6 +7,7 @@ publish = false
 description = "Simulated volumes (<Smoke>, <Cloud>, <Contrail>): a fluid on a grid, raymarched, lit and casting shadows, a function of the frame"
 
 [dependencies]
+raea-io-trace = { path = "../../io/trace" }
 raea-sys-frame = { path = "../frame" }
 raea-core-program = { path = "../../core/program" }
 bevy = { version = "=0.20.0", default-features = false, features = ["std", "default_app", "3d_bevy_render"] }

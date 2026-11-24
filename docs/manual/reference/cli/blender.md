@@ -1,7 +1,7 @@
 ---
 title: "raea blender"
 summary: "Run a Blender Python script headless, with raea's library of mesh scripts: convert, decimate, repair, split, bake, rig, cloth."
-order: 107
+order: 108
 sources: ["apps/tools/src/blender.rs", "apps/engines/src/blender_ts.rs"]
 ---
 

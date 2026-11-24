@@ -249,10 +249,7 @@ fn check_one(tsx: &Path, id: Option<String>, rules: &[Rule], args: &[String], wh
             needs(&mut waits, r);
             continue;
         }
-        let k = files.iter().position(|f| *f == m.file).unwrap_or_else(|| {
-            files.push(m.file.clone());
-            files.len() - 1
-        });
+        let k = file_index(&mut files, &m.file);
         let mut on = m.frames.pick(&worlds);
         if let (true, Some(j)) = (m.render, &join_on_of(&worlds)) {
             on.retain(|f| j.contains(f));
@@ -270,6 +267,15 @@ fn check_one(tsx: &Path, id: Option<String>, rules: &[Rule], args: &[String], wh
     shots.dedup();
     let fps = worlds.first().map_or(30.0, |w| w.fps);
     Ok(Checked { file: tsx.to_path_buf(), id, found: finding::ranked(found), waits, render, shots, fps })
+}
+
+/// Where `f` is in `files`, added at the end when it isn't yet: the one run's checks, each file once.
+fn file_index(files: &mut Vec<PathBuf>, f: &Path) -> usize {
+    if let Some(at) = files.iter().position(|x| x == f) {
+        return at;
+    }
+    files.push(f.to_path_buf());
+    files.len() - 1
 }
 
 /// Whether `r` runs on the composition `tsx` (`id` where its file registers several) of `project`: a rule a note's ask
@@ -325,6 +331,9 @@ pub fn check(args: &[String], host: &Host) -> R<(String, bool)> {
             return Err(format!("--only {only}: no rule here has that id"));
         }
     }
+    if target.is_file() && target.to_string_lossy().ends_with(".story.ts") {
+        return check_story(&target, &rules, unread, args, host);
+    }
     let mut all = Vec::new();
     for (tsx, id) in compositions(&target, args)? {
         let mine: Vec<Rule> = rules.iter().filter(|r| applies(r, &project, &tsx, id.as_deref())).cloned().collect();
@@ -359,6 +368,40 @@ pub fn check(args: &[String], host: &Host) -> R<(String, bool)> {
         every.extend(c.found.iter().cloned());
     }
     out.extend(asks.iter().map(|a| format!("raea check: note {a}")));
+    out.push(format!("raea check: {}", finding::count(&every)));
+    Ok((out.join("\n"), bad))
+}
+
+/// `raea check NAME.story.ts` (docs/story.feature ST5a): a story checked before anything is drawn. Every rule whose .ts
+/// check reads stories (`over: "story"` or `"both"`) runs once with no frames, so only its `after` speaks; the check
+/// imports the story it holds (raea/story's storyCheck), and the file named says which project and that no composition
+/// is wanted.
+fn check_story(file: &Path, rules: &[Rule], unread: Vec<Finding>, args: &[String], host: &Host) -> R<(String, bool)> {
+    let (mut found, mut files, mut plan) = (Vec::new(), Vec::<PathBuf>::new(), Vec::new());
+    for r in rules {
+        let Some(f) = r.file() else { continue };
+        match ts::meta(f, &host.ts) {
+            Ok(m) if m.story => {
+                let k = file_index(&mut files, &m.file);
+                plan.push(ts::Planned { check: k, frames: Vec::new(), values: r.values.clone(), level: r.level, by: r.by.clone() });
+            }
+            Ok(_) => {}
+            Err(e) => found.push(Finding::new(&r.id, Level::Error, e, &r.by)),
+        }
+    }
+    if plan.is_empty() {
+        found.push(Finding::new("story", Level::Note, "no check here reads a story: a .ts check over \"story\" or \"both\" (raea/story's storyCheck is one) named in taste.ts", "raea check"));
+    }
+    found.extend(ts::run(&files, &plan, &[], &host.ts)?);
+    let found = finding::ranked(found);
+    let bad = unread.iter().chain(&found).any(|f| f.level == Level::Error);
+    if args.iter().any(|a| a == "--json") {
+        return Ok((serde_json::to_string_pretty(&json!({"unread": unread, "story": file, "findings": found})).unwrap_or_default(), bad));
+    }
+    let mut out: Vec<String> = unread.iter().map(Finding::line).collect();
+    out.push(format!("raea check {} (a story: no frames)", file.display()));
+    out.extend(found.iter().map(Finding::line));
+    let every: Vec<Finding> = unread.into_iter().chain(found).collect();
     out.push(format!("raea check: {}", finding::count(&every)));
     Ok((out.join("\n"), bad))
 }

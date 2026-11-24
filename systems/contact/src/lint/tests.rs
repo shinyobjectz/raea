@@ -115,3 +115,28 @@ fn a_mug_on_its_side_rests_on_its_lowest_edge() {
     let r = rest(&[top, mug], 1);
     assert!(matches!(r, Rest::On { under: 0, gap, .. } if (gap - 0.001).abs() < 3e-4), "{r:?}");
 }
+
+#[test]
+fn a_stool_tucked_under_a_table_rests_on_the_floor_by_its_feet() {
+    // docs/make.feature MK7: its box reaches over the table's top; its feet are on the floor, and that's what it rests on
+    let floor = part("floor", Vec3::new(0.0, -0.05, 0.0), Vec3::new(10.0, 0.1, 10.0));
+    let top = part("table top", Vec3::new(0.0, 0.75, 0.0), Vec3::new(1.0, 0.04, 1.0));
+    let stool = part("stool", Vec3::new(0.5, 0.45, 0.0), Vec3::new(0.4, 0.9, 0.4));
+    let r = rest(&[floor, top, stool], 2);
+    assert!(matches!(r, Rest::On { under: 0, gap, .. } if gap.abs() < 1e-4), "{r:?}");
+}
+
+#[test]
+fn a_part_moved_sideways_is_settled_where_it_lands() {
+    // docs/make.feature MK9: a stool on the table top pushed off its edge drops to the floor in the same move
+    let floor = part("floor", Vec3::new(0.0, -0.05, 0.0), Vec3::new(10.0, 0.1, 10.0));
+    let top = part("table top", Vec3::new(0.0, 0.75, 0.0), Vec3::new(1.0, 0.04, 1.0));
+    let stool = part("stool", Vec3::new(0.2, 0.92, 0.0), Vec3::new(0.3, 0.3, 0.3));
+    let parts = [floor, top, stool];
+    let ins = insets(&parts);
+    assert!(matches!(rest(&parts, 2), Rest::On { under: 1, .. }));
+    let r = rest_after(&parts, &ins, 2, Vec3::new(1.2, 0.0, 0.0));
+    assert!(matches!(landing(&r), Some((0, _, gap)) if (gap - 0.77).abs() < 1e-3), "{r:?}");
+    // moved along the top it stays on it
+    assert!(matches!(rest_after(&parts, &ins, 2, Vec3::new(-0.3, 0.0, 0.0)), Rest::On { under: 1, .. }));
+}

@@ -23,7 +23,7 @@ impl Engine {
         self.pre_step();
         let t = std::time::Instant::now();
         plugins::arm(self.app.world_mut());
-        self.pipe.update(&mut self.app);
+        self.pipe.update(&mut self.app); raea_io_trace::count("engine/updates", 1);
         let dt = t.elapsed().as_nanos() as u64;
         let mut wait = 0;
         if self.serial {
@@ -107,7 +107,7 @@ impl Engine {
         let want = tag_colour(f, self.app.world().resource::<Gen>().0);
         let mut prev: Option<Vec<u8>> = None;
         for i in 0..240 {
-            if std::env::var_os("RAEA_TRACE").is_some() {
+            if raea_io_trace::stat("RAEA_TRACE") {
                 eprintln!("trace frame {f} update {i}");
             }
             self.step();
@@ -208,7 +208,7 @@ impl Engine {
                 raea_gpu_device::check::panic_fault(list[sent]);
                 sent += 1;
             }
-            if std::env::var_os("RAEA_TRACE").is_some() {
+            if raea_io_trace::stat("RAEA_TRACE") {
                 eprintln!("trace pipelined next {} sent {sent}", list[next]);
             }
             self.step();

@@ -36,6 +36,9 @@ export interface CheckMeta {
   level?: Level;
   /** where it runs ("all" when unset) */
   frames?: Frames;
+  /** what it reads: a composition's frames (the default), a story with no frames (`raea check NAME.story.ts` runs only
+   *  these and "both", with its `after` alone), or both (docs/story.feature ST5a) */
+  over?: "frames" | "story" | "both";
 }
 
 /** A rule's values for its check (a taste line's `values`, an ask's). */

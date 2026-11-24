@@ -13,9 +13,15 @@ pub mod camera;
 pub mod lens;
 pub mod views;
 pub mod motion_blur;
+// raea's motion blur: the shutter's own (docs/raytracing.feature RT29)
+pub mod shutter;
+// a camera that jumps is a cut: history starts again, motion blur waits (docs/raytracing.feature RT31)
+pub mod cut;
 pub mod dof;
 pub mod effect_stack;
 pub mod outline;
+// raea's temporal filter (docs/realism.feature LT12)
+pub mod steady;
 
 /// A live scene's camera made before its first 3D part (MSAA off, as a 2D scene's is) multisamples once a frame brings
 /// one, as a render's camera does from its load, which sees every frame's rows (#38: kept-mount's cube mounts at frame

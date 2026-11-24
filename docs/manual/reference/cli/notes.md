@@ -1,7 +1,7 @@
 ---
 title: "raea notes"
 summary: "A person's notes as files the work is held to: each taken word for word, then restated as asks before anything changes."
-order: 124
+order: 125
 sources: ["apps/notes/src/lib.rs", "apps/notes/src/take.rs", "apps/notes/src/post.rs", "apps/notes/src/check.rs", "apps/notes/src/state.rs", "core/facts/src/note.rs", "sdk/raea/src/note.ts"]
 ---
 

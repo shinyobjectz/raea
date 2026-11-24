@@ -64,6 +64,26 @@
   - `grow.rosette({ leaves, length, tilt, rise })` is a succulent, an agave, a lettuce or a flower's petals, set at
     the golden angle and blended from one heart.
 
+## Lines and curves: `Line3d` and `Tube` (`raea/mesh`)
+
+A line through points, such as a graph's curve, a route on a map, a drawn stroke or a wire, is one part: `<Line3d>`
+(flat, a `width`, round at its joins and ends) or `<Tube>` (round, a `radius`). Give it the points in order and its
+material as its child. `p` is how much of it is drawn, 0 to 1 of its length, so animating `p` draws the line on, and it
+stays one part, solid at every frame.
+
+```tsx
+const pts = Array.from({ length: 64 }, (_, i) => [i / 16 - 2, Math.sin(i / 6) * 0.5, 0] as [number, number, number]);
+const p = interpolate(frame, [0, 40], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+<Line3d name="trend" points={pts} width={0.04} p={p}><StandardMaterial base_color="#e5484d" unlit /></Line3d>
+```
+
+- Give enough points for the curve to read smooth (a point every few degrees of turn); the line is straight between
+  them.
+- A Line3d lies in its points' plane and faces along that plane's normal; for a line seen edge-on, give `normal`, or use
+  a Tube.
+- Never build a curve from a chain of boxes, one a segment (`NAME-0`, `NAME-1`, ...). A part mounts on the frame it
+  first appears, so a growing chain comes in a chunk at a time and its joins show.
+
 ## Text in the 3D world, animated glyph by glyph (`RichText`)
 
 `<RichText>` is flat lettering standing in the scene: every glyph its own lit, shaded entity (it takes the lights,
@@ -141,6 +161,8 @@ cached, then drawn by Bevy. A modelled solid and a primitive travel the same way
 - Text3D with quotes or backslashes in it: they throw.
 - A 2D outline revolved with points at negative x: revolve takes x >= 0 (the axis is x = 0).
 - Building solids inside the component body: every frame rebuilds them. Build once (module level, `??=`).
+- A curve drawn as a chain of parts (a box a segment): it grows in chunks with its joins showing. Use one `Line3d` or
+  `Tube` and animate its `p`.
 
 ## Example: a sign with the word cut through it, and solid letters in front
 

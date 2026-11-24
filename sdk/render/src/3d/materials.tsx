@@ -4,6 +4,7 @@ import { checkOverlays, type GridOverlay, type PaintOverlay, type ProceduralSurf
 import { wornShader } from "../worn";
 import { useAnimation3d } from "@raea/math/animate";
 import { Animate3d, apply3d, node3d } from "./all";
+import { firstKey, useSequenceFrames } from "./clock";
 
 /** How a surface's alpha and faces draw (Bevy's StandardMaterial alpha_mode, alpha cutoff, double_sided and cull_mode),
  * from the first frame. */
@@ -332,6 +333,7 @@ export function checkMaterial(owner: string, props: Record<string, unknown>): vo
  * @deprecated <StandardMaterial>, raea/pbr (Bevy's fields: base_color, perceptual_roughness, metallic)
  */
 export function MeshStandardMaterial(props: MeshStandardMaterialProps) {
+  useSequenceFrames("MeshStandardMaterial", undefined, [["animate's first key", firstKey(props.animate)]]);
   const anim = useAnimation3d(props.animate);
   const p = apply3d({ ...props, animate: undefined } as Record<string, unknown>, anim.values);
   checkMaterial("MeshStandardMaterial", p);
@@ -356,6 +358,7 @@ export interface MeshPhysicalMaterialProps extends MeshStandardMaterialProps {
 /** The standard surface plus a clearcoat layer and reflectance.
  * @deprecated <StandardMaterial>, raea/pbr (clearcoat and specular_transmission are its fields) */
 export function MeshPhysicalMaterial(props: MeshPhysicalMaterialProps) {
+  useSequenceFrames("MeshPhysicalMaterial", undefined, [["animate's first key", firstKey(props.animate)]]);
   const anim = useAnimation3d(props.animate);
   const p = apply3d({ ...props, animate: undefined } as Record<string, unknown>, anim.values);
   checkMaterial("MeshPhysicalMaterial", p);
@@ -449,6 +452,7 @@ export interface MeshToonMaterialProps {
  * @deprecated <ToonMaterial>, raea/pbr */
 export function MeshToonMaterial(props: MeshToonMaterialProps) {
   const owner = "MeshToonMaterial";
+  useSequenceFrames("MeshToonMaterial", undefined, [["animate's first key", firstKey(props.animate)]]);
   const anim = useAnimation3d(props.animate);
   const p = apply3d({ ...props, animate: undefined } as Record<string, unknown>, anim.values);
   checkMaterial(owner, p);

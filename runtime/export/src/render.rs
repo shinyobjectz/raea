@@ -190,6 +190,9 @@ fn with_exposure(said: String, out: &Path, manifest: Option<&Path>) -> String {
     }
 }
 
+/// A still past this frame takes the live route (render_bundle): the rows to reach it would hold that many scenes.
+const LIVE_PAST: i64 = 3600;
+
 /// A bundled composition rendered by the engine, in this process (the Mac or the iPhone): React on JavaScriptCore inside Bevy steps
 /// its Clock; each frame's page goes through Blitz, its <Video> decoded natively, its 3D as rows; the frames become one
 /// raea-render program drawn by raea-render into `out` (.mp4, .png for one frame, a folder of PNGs). `dir` is where relative media resolves. `wanted`: the frames (all when None).
@@ -208,6 +211,13 @@ pub fn render_bundle(js: &Path, dir: &Path, out: &Path, wanted: Option<Vec<i64>>
     }
     if stills && how != "files" {
         let upto = wanted.as_ref().and_then(|w| w.iter().max()).map_or(0, |f| f + 1);
+        // a still far into a 3D piece: its 3D made live at the still, as a game's is. The rows made beforehand hold a
+        // scene for every frame up to it: raea check --quick's three stills of a 13,175-frame film took 10.4 GB that
+        // way and 0.8 GB live, the same pixels as the film's (SG4a)
+        if how != "program" && upto > LIVE_PAST && raea_runtime_view::gpuview::paint_device().is_some() && wanted.as_deref().is_some_and(|w| crate::fed::stills_live(js, dir, w).unwrap_or(false)) {
+            raea_runtime_react::startup_mark("stills past the rows' reach: the 3D made live at each");
+            return render_bundle_with(js, dir, out, wanted, false, None, true);
+        }
         if let Some(scene) = scene_program_checked(js, dir, upto, wanted.as_deref())? {
             return render_bundle_with(js, dir, out, wanted, false, Some(scene), false);
         }
@@ -311,11 +321,14 @@ pub(crate) fn render_bundle_with(js: &Path, dir: &Path, out: &Path, wanted: Opti
         if folder {
             std::fs::create_dir_all(out).map_err(|e| format!("{}: {e}", out.display()))?;
         }
+        // each still's scene, for the end checks once the page is known (made live or from rows alike)
+        let mut kept: Vec<(i64, Frame)> = Vec::new();
         for (i, &f) in wanted.iter().enumerate() {
             let px = raea_gpu_device::check::frame_caught(f, || { // a panic drawing it an error naming it (#33)
             engine_before(&app, &mut cx, f);
             app.world().resource::<ReactOutbox>().send(json!({"t": "event", "name": "raea-frame", "value": f}));
             settle_with(&mut app, Some(f), 20.0, &mut |w, q| layout_answer(w, pg, &mut cx, f, fps, q))?;
+            kept.push((f, Frame { screens: Vec::new(), mix: None, page: None, sounds: Vec::new(), scene: scene_of(app.world_mut()), clear: None, same: false }));
             cx.now = f;
             pg.at_frame(f, fps);
             let mut px = bevy_over_3d(app.world_mut(), pg, &mut cx, fps)?;
@@ -338,7 +351,8 @@ pub(crate) fn render_bundle_with(js: &Path, dir: &Path, out: &Path, wanted: Opti
             if folder { write_aov(out, i, cx.scene3d.as_mut())?; }
         }
         // with --manifest, its file as a 2D render writes it (it wrote none, and an older one stayed looking current, #28)
-        let clipping = FED_CLIPPING.lock().unwrap().take().and_then(|t| t.join().ok()).unwrap_or_default();
+        drop(FED_CLIPPING.lock().unwrap().take());
+        let clipping = scene::told_taking(&mut kept, cx.manifest.as_deref(), w, h, fps);
         write_manifest(&mut cx, (w, h, fps, total), clipping, |_| json!([]))?;
         return Ok(if folder {
             format!("APPLIED  {} frames rendered to {} (bevy_ui, the page over its 3D)", wanted.len(), out.display())
@@ -351,7 +365,7 @@ pub(crate) fn render_bundle_with(js: &Path, dir: &Path, out: &Path, wanted: Opti
     let t0 = std::time::Instant::now();
     // RAEA_TIMES: where a render's frames go (React's commit, the page recorded and submitted, the page before
     // collected and stored), totals in ms
-    let times = std::env::var_os("RAEA_TIMES").is_some();
+    let times = raea_io_trace::stat("RAEA_TIMES");
     let (mut t_react, mut t_snap, mut t_page) = (0f64, 0f64, 0f64);
     for &f in &wanted {
         let t0 = std::time::Instant::now();
@@ -393,7 +407,7 @@ pub(crate) fn render_bundle_with(js: &Path, dir: &Path, out: &Path, wanted: Opti
     let react_ms = t0.elapsed().as_secs_f64() * 1e3 / wanted.len().max(1) as f64;
     drop(app);
     // 3D parts passing through each other on screen: on stderr, and in the manifest for the legacy app's checks
-    let clipping = scene::told(&frames, w, h, fps);
+    let clipping = scene::told(&frames, cx.manifest.as_deref(), w, h, fps);
     write_manifest(&mut cx, (w, h, fps, total), clipping, |cx| heard(&frames, &tones, cx, fps))?;
 
     let ext = out_ext(out);

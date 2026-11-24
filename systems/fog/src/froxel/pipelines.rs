@@ -138,10 +138,11 @@ pub enum Key {
     Light(MeshPipelineViewLayoutKey),
     /// multisampled, the target's format, its samples
     Apply(bool, TextureFormat, u32),
-    Hero(MeshPipelineViewLayoutKey, TextureFormat, u32),
+    /// (each hero pass also by whether it reads the transmittance tricubic: <VolumetricFog tricubic>)
+    Hero(MeshPipelineViewLayoutKey, TextureFormat, u32, bool),
     /// the epipolar passes into their samples: place, coarse, mark, fine
-    Epi(MeshPipelineViewLayoutKey, u8),
-    Epipolar(MeshPipelineViewLayoutKey, TextureFormat, u32),
+    Epi(MeshPipelineViewLayoutKey, u8, bool),
+    Epipolar(MeshPipelineViewLayoutKey, TextureFormat, u32, bool),
     Reference(MeshPipelineViewLayoutKey, TextureFormat, u32),
 }
 
@@ -218,17 +219,19 @@ pub struct HeroPass {
     pub epi: bool,
     /// the samples' mask: written (mark), or tested (fine: drawn at depth one half where it's 0)
     pub mask: Option<bool>,
+    /// the grid's transmittance read tricubic (<VolumetricFog tricubic>)
+    pub tricubic: bool,
 }
 
 /// a hero pass: `entry` into `format`, which has `samples`
 pub fn hero_descriptor(p: &Pipelines, view_key: MeshPipelineViewLayoutKey, entry: &'static str, format: TextureFormat, samples: u32, how: HeroPass) -> RenderPipelineDescriptor {
-    let HeroPass { blend, fog, epi, mask } = how;
+    let HeroPass { blend, fog, epi, mask, tricubic } = how;
     let ms = view_key.contains(MeshPipelineViewLayoutKey::MULTISAMPLED);
     let mut defs: Vec<ShaderDefVal> = vec!["SHADOW_FILTER_METHOD_HARDWARE_2X2".into()];
-    if std::env::var_os("RAEA_FOG_TRICUBIC_T").is_some() {
+    if tricubic {
         defs.push("TRICUBIC_TRANSMITTANCE".into());
     }
-    if std::env::var_os("RAEA_FOG_SHOW_FALLBACK").is_some() {
+    if raea_io_trace::stat("RAEA_FOG_SHOW_FALLBACK") {
         defs.push("SHOW_FALLBACK".into());
     }
     if ms {
@@ -303,10 +306,11 @@ pub fn prepare_pipelines(
     pipelines: Option<Res<Pipelines>>,
     view_keys: Res<ViewKeyCache>,
     mut ids: Local<PipelineIds>,
-    views: Query<(Entity, &ExtractedView, &Msaa), With<FroxelFog>>,
+    views: Query<(Entity, &ExtractedView, &Msaa, &FroxelFog)>,
 ) {
     let Some(p) = pipelines else { return };
-    for (e, view, msaa) in &views {
+    for (e, view, msaa, fog) in &views {
+        let tri = fog.tune.tricubic;
         let Some(mesh_key) = view_keys.get(&view.retained_view_entity) else { continue };
         let view_key: MeshPipelineViewLayoutKey = (*mesh_key).into();
         let ms = !matches!(msaa, Msaa::Off);
@@ -314,17 +318,17 @@ pub fn prepare_pipelines(
         // drawn into the multisampled frame, which the transparent pass after them resolves over the main texture
         let samples = msaa.samples();
         let apply = *ids.render.entry(Key::Apply(ms, view.target_format, samples)).or_insert_with(|| cache.queue_render_pipeline(apply_descriptor(&p, ms, view.target_format, samples)));
-        let hero = *ids.render.entry(Key::Hero(view_key, view.target_format, samples)).or_insert_with(|| cache.queue_render_pipeline(hero_descriptor(&p, view_key, "hero", view.target_format, samples, HeroPass { blend: true, ..default() })));
+        let hero = *ids.render.entry(Key::Hero(view_key, view.target_format, samples, tri)).or_insert_with(|| cache.queue_render_pipeline(hero_descriptor(&p, view_key, "hero", view.target_format, samples, HeroPass { blend: true, tricubic: tri, ..default() })));
         let mut epi = [hero; 4];
         let passes = [
-            ("coarse", TextureFormat::Rgba16Float, HeroPass::default()),
-            ("mark", TextureFormat::Rgba16Float, HeroPass { epi: true, mask: Some(true), ..default() }),
-            ("fine", TextureFormat::Rgba16Float, HeroPass { mask: Some(false), ..default() }),
+            ("coarse", TextureFormat::Rgba16Float, HeroPass { tricubic: tri, ..default() }),
+            ("mark", TextureFormat::Rgba16Float, HeroPass { epi: true, mask: Some(true), tricubic: tri, ..default() }),
+            ("fine", TextureFormat::Rgba16Float, HeroPass { mask: Some(false), tricubic: tri, ..default() }),
         ];
         for (i, (entry, format, how)) in passes.into_iter().enumerate() {
-            epi[i] = *ids.render.entry(Key::Epi(view_key, i as u8)).or_insert_with(|| cache.queue_render_pipeline(hero_descriptor(&p, view_key, entry, format, 1, how)));
+            epi[i] = *ids.render.entry(Key::Epi(view_key, i as u8, tri)).or_insert_with(|| cache.queue_render_pipeline(hero_descriptor(&p, view_key, entry, format, 1, how)));
         }
-        epi[3] = *ids.render.entry(Key::Epipolar(view_key, view.target_format, samples)).or_insert_with(|| cache.queue_render_pipeline(hero_descriptor(&p, view_key, "epipolar", view.target_format, samples, HeroPass { blend: true, fog: true, epi: true, ..default() })));
+        epi[3] = *ids.render.entry(Key::Epipolar(view_key, view.target_format, samples, tri)).or_insert_with(|| cache.queue_render_pipeline(hero_descriptor(&p, view_key, "epipolar", view.target_format, samples, HeroPass { blend: true, fog: true, epi: true, tricubic: tri, ..default() })));
         let integrate = *ids.compute.get_or_insert_with(|| {
             cache.queue_compute_pipeline(ComputePipelineDescriptor {
                 label: Some("froxel_integrate".into()),

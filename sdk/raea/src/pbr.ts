@@ -9,3 +9,5 @@ export { StandardMaterial, ExtendedMaterial, ToonMaterial, type ToonMaterialProp
 export { FogFalloff } from "@raea/render/bevy3d";
 // Lightmap (bevy_pbr::lightmap): a bake on a <Model>'s glTF meshes, by the mesh's name
 export { Lightmap, type LightmapProps } from "@raea/render/bevy3d";
+// ShaderConstants: a `const` in one of the engine's own shaders (raea's, Bevy's, Solari's) set when the scene loads
+export { ShaderConstants, type ShaderConstantsProps, type ShaderConstantValue } from "@raea/render/bevy3d";

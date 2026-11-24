@@ -82,7 +82,7 @@ pub(crate) fn scene_rows_into(world: &mut World, s: &mut SceneRows) -> R<()> {
         (raea_render::inserted_of(&p), Vec::new())
     };
     if !gone.is_empty() {
-        raea_render::engine::remove_rows_from(world, &gone);
+        raea_render::engine::remove_rows_from(world, &gone)?;
     }
     if !rows.is_empty() {
         // a glTF model spawned here loads over the frames after, as any Bevy App's does

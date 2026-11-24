@@ -1,5 +1,5 @@
 use super::*;
-use super::froxel::{FogRank, FogThinning};
+use super::froxel::{FogRank, FogShape};
 
 /// Whether a light casts shadows when it's lit (its row's `shadows`, or `volumetric`), kept apart from its
 /// `shadow_maps_enabled`, which sync_lights clears while the light is dark.
@@ -198,7 +198,11 @@ pub fn fog_volume(world: &mut World, e: Entity, id: &str, vals: &BTreeMap<String
             Err(err) => eprintln!("raea: FogVolume density_texture {p}: {err}"),
         }
     }
-    world.entity_mut(e).insert((fv, fog_transform(vals), FogRank(id.to_string()), FogThinning(num(vals, "falloff", 0.0).max(0.0))));
+    world.entity_mut(e).insert((fv, fog_transform(vals), FogRank(id.to_string()), FogShape {
+        falloff: num(vals, "falloff", 0.0).max(0.0),
+        soft: num(vals, "soft", 0.0).clamp(0.0, 1.0),
+        taper: num(vals, "taper", 0.0).clamp(0.0, 1.0),
+    }));
 }
 
 /// The render world's fog volumes, by rank (filled each extraction).

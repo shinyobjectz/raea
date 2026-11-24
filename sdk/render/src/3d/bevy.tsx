@@ -1,5 +1,6 @@
 // Bevy's own components and resources by type path, and gizmos.
 import { Entity, Vec3, checkTextures, checkVec, colours, node3d, shaderDefs, type ShaderDefs } from "./all";
+import { useSequenceFrames } from "./clock";
 
 export interface BevyComponentProps {
   /** the component's reflected type path, as Bevy's TypeRegistry names it ("avian3d::dynamics::rigid_body::RigidBody") */
@@ -18,6 +19,7 @@ export interface BevyComponentProps {
 export function BevyComponent(props: BevyComponentProps) {
   if (typeof props.type !== "string" || !props.type.includes("::")) throw new TypeError(`BevyComponent: type is a full type path (crate::module::Type), got ${JSON.stringify(props.type)}`);
   if (props.from !== undefined && !(Number.isInteger(props.from) && props.from >= 0)) throw new RangeError(`BevyComponent: from is a frame (0 or more), got ${props.from}`);
+  useSequenceFrames("BevyComponent", undefined, [["from", props.from]]);
   return node3d("BevyComponent", { type: props.type, value: props.value ?? null, ...(props.from ? { from: props.from } : {}) });
 }
 

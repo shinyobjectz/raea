@@ -1,0 +1,5 @@
+# vendor/bevy_pbr's shaders keep LF on every checkout. raea replaces some of them with its own forks only after checking
+# Bevy's is still the one the fork was taken from, by its bytes' hash (raea_sys_frame::bevy_api::swap_embedded_shader),
+# and a Windows checkout turns LF into CRLF: 0.1.9-rc1's Windows build panicked on volumetric_fog.wesl at its first render
+vendor/bevy_pbr/**/*.wesl text eol=lf
+vendor/bevy_pbr/**/*.wgsl text eol=lf

@@ -2,6 +2,7 @@
 //! question and how its answer reads, the sets that come standard, and the model's limits. Its TypeScript declarations
 //! are generated from these types (`declarations`): sdk/raea/src/ask.gen.ts, checked by a test.
 
+pub mod ident;
 pub mod library;
 pub mod limits;
 pub mod question;

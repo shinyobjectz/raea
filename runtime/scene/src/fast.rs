@@ -57,7 +57,8 @@ impl LiveScene {
                 if it.kind == "mesh" && it.shape.is_none() {
                     continue;
                 }
-                if !self.rows.contains_key(id) {
+                // a part whose kept inputs changed (its shape, a map, a picture's size): the full path, which spawns it again (SG1)
+                if !self.rows.get_mut(id).is_some_and(|r| matches!(it.kind, "directional" | "point" | "spot" | "rect") || r.kept.as_mut().is_some_and(|k| k.same(it))) {
                     return None;
                 }
                 // a panel showing another picture (`current` kept the last): the full path, which sends the new src

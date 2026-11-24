@@ -7,6 +7,7 @@ publish = false
 description = "The live stage in a raea page: a game item's composition played live in the page's <img data-raea-stage> on raea-runtime-react's live engine, its frames copied on the GPU, driven by stage.* host calls"
 
 [dependencies]
+raea-io-trace = { path = "../../../io/trace" }
 bevy = { version = "=0.20.0", default-features = false, features = ["std", "default_app", "default_font", "multi_threaded", "3d_bevy_render", "ui_bevy_render", "png", "tonemapping_luts", "ktx2", "zstd_rust", "bevy_picking", "ui_picking", "bevy_ui_widgets", "bevy_input_focus", "jpeg", "bevy_remote", "tga", "qoi", "tiff", "pnm", "ff", "dds", "exr", "hdr", "webp", "gif", "bmp", "ico"] }
 raea-io-home = { path = "../../../io/home" }
 raea-runtime-js = { path = "../../../runtime/js" }

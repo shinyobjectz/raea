@@ -55,6 +55,11 @@ struct SolariLightingSettings {
     world_cache_position_lod_scale: f32,
     frame_rng: u32,
     reset: u32,
+    // raea: SolariLighting::first_bounce_probability (prepare.rs), and padding
+    first_bounce_probability: f32,
+    pad0: u32,
+    pad1: u32,
+    pad2: u32,
 }
 
 /// Don't adjust the size of this struct without also adjusting `prepare::RESOLVED_LIGHT_SAMPLE_STRUCT_SIZE`.

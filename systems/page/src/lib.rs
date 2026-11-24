@@ -22,6 +22,20 @@ pub use skipped::wait_drawn;
 /// a page's loads (raea-sys-page-net: FileNet, FrameNet, the page's fetch, the image decoder)
 pub use raea_sys_page_net as net;
 pub use blitz_dom::not_applied; // what the page asked for and didn't get, said once when a render ends (#34)
+
+/// What `raea render` says once its frames are out: the fonts the page asked for and didn't have (#174) as warnings,
+/// printed and counted with its findings (raea-app-direction's `rendered` keeps them in the manifest), and the note of
+/// what else it didn't apply (#34), returned for the render to print.
+pub fn render_said() -> Option<String> {
+    let fix = "load it with @font-face (a staticFile font), install it, or name a family that's there";
+    let fs: Vec<raea_core_facts::Finding> = not_applied::fonts_missing().into_iter().map(|says| raea_core_facts::Finding::new("font-missing", raea_core_facts::Level::Warn, says, "raea render").fix(fix)).collect();
+    for f in &fs {
+        eprintln!("raea: {}", f.line());
+    }
+    raea_core_facts::finding::said(&fs);
+    not_applied::said()
+}
+
 /// Blitz's extension points as Bevy resources (S6d)
 pub mod providers;
 pub mod widgets;
@@ -140,7 +154,7 @@ impl Times {
     pub fn report(&self) -> Option<String> {
         use std::sync::atomic::Ordering::Relaxed;
         let n = self.frames.load(Relaxed);
-        (std::env::var_os("RAEA_PAGE_TIMES").is_some() && n > 0).then(|| {
+        (raea_io_trace::stat("RAEA_PAGE_TIMES") && n > 0).then(|| {
             let (r, e) = (self.resolve_us.load(Relaxed), self.encode_us.load(Relaxed));
             format!("{{\"page_frames\": {n}, \"resolve_ms\": {:.3}, \"encode_ms\": {:.3}}}", r as f64 / n as f64 / 1e3, e as f64 / n as f64 / 1e3)
         })

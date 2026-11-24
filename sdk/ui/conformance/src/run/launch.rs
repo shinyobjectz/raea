@@ -5,7 +5,7 @@ use super::*;
 pub(crate) fn launch(o: &Opts, c: &Case, inst: &str, logs: &Path) -> Result<World, String> {
     if let Some(port) = o.attach {
         let ws = o.workspace.clone().unwrap_or_else(|| base().join("attached-workspace"));
-        return Ok(World { proc: None, dir: None, workspace: ws, log: None, mcp: Mcp::new(port) });
+        return Ok(World { proc: None, host: None, dir: None, workspace: ws, log: None, mcp: Mcp::new(port) });
     }
     let fx = fixture(&o.fixture)?;
     let dir = base().join("runs").join(std::process::id().to_string()).join(inst.replace(['/', '@'], "-"));
@@ -39,7 +39,7 @@ pub(crate) fn launch(o: &Opts, c: &Case, inst: &str, logs: &Path) -> Result<Worl
     let mut cmd = Command::new(&o.bin);
     if page {
         // the app's Blitz build at the case's route; its own-origin fetches from blitz/out, then public/
-        let out = o.app.join("blitz/out");
+        let out = Some(o.app.join(CONFORMANCE_OUT)).filter(|d| d.join("app.js").is_file()).unwrap_or(o.app.join("blitz/out"));
         let js = std::fs::read_to_string(out.join("app.js")).map_err(|e| format!("{}: {e}", out.join("app.js").display()))?;
         let bundle = dir.join("app.js");
         std::fs::write(&bundle, format!("{}\n{js}", location(c.route.as_deref().unwrap_or(ROUTE)))).map_err(|e| e.to_string())?;
@@ -88,16 +88,44 @@ pub(crate) fn launch(o: &Opts, c: &Case, inst: &str, logs: &Path) -> Result<Worl
     }
     env.extend(c.env.iter().cloned());
     env.extend(o.env.iter().cloned());
+    std::fs::create_dir_all(logs).map_err(|e| e.to_string())?;
+    let log = logs.join(format!("{}.log", inst.replace(['/', '@'], "-")));
+    // the page's /host/* is the feed's host's, started first as raea.app does (without it, "raea is starting" for ever)
+    let host = if page { Some(feed_host(o, &env, &log.with_extension("host.log"))?) } else { None };
+    if let Some((_, hp)) = &host {
+        env.push(("RAEA_PAGE_HOST".into(), format!("http://127.0.0.1:{hp}")));
+    }
     for (k, v) in &env {
         cmd.env(k, v);
     }
-    std::fs::create_dir_all(logs).map_err(|e| e.to_string())?;
-    let log = logs.join(format!("{}.log", inst.replace(['/', '@'], "-")));
     let f = std::fs::File::create(&log).map_err(|e| e.to_string())?;
     cmd.stdout(Stdio::from(f.try_clone().map_err(|e| e.to_string())?)).stderr(Stdio::from(f)).stdin(Stdio::null());
     let child = cmd.spawn().map_err(|e| format!("launching {}: {e}", o.bin.display()))?;
     PGID.store(child.id() as i32, Ordering::SeqCst);
-    Ok(World { proc: Some(Proc { child }), dir: Some(dir), workspace: ws, log: Some(log), mcp: Mcp::new(port) })
+    Ok(World { proc: Some(Proc { child, group: &PGID }), host: host.map(|h| h.0), dir: Some(dir), workspace: ws, log: Some(log), mcp: Mcp::new(port) })
+}
+
+/// Where build_app puts the app's Blitz build with its demo world (else an older app's blitz/out is run).
+pub(crate) const CONFORMANCE_OUT: &str = "blitz/out-conformance";
+
+/// The feed's host (the app's host/node.ts) on a free port in the world's environment, once it takes connections.
+fn feed_host(o: &Opts, env: &[(String, String)], log: &Path) -> Result<(Proc, u16), String> {
+    let (hp, f) = (free_port()?, std::fs::File::create(log).map_err(|e| e.to_string())?);
+    let mut cmd = Command::new("node");
+    cmd.args(["host/node.ts", "--port", &hp.to_string()]).current_dir(&o.app).env_clear().envs(env.iter().cloned()).process_group(0);
+    cmd.stdout(Stdio::from(f.try_clone().map_err(|e| e.to_string())?)).stderr(Stdio::from(f)).stdin(Stdio::null());
+    let child = cmd.spawn().map_err(|e| format!("the feed's host (node host/node.ts in {}): {e}", o.app.display()))?;
+    HOST_PGID.store(child.id() as i32, Ordering::SeqCst);
+    let mut p = Proc { child, group: &HOST_PGID };
+    let t = Instant::now();
+    while std::net::TcpStream::connect_timeout(&([127, 0, 0, 1], hp).into(), Duration::from_millis(200)).is_err() {
+        match p.child.try_wait() {
+            Ok(Some(st)) => return Err(format!("the feed's host exited ({st}) before it listened: {}", log.display())),
+            _ if t.elapsed() > Duration::from_secs(30) => return Err(format!("the feed's host never listened on :{hp} in 30 s: {}", log.display())),
+            _ => std::thread::sleep(Duration::from_millis(100)),
+        }
+    }
+    Ok((p, hp))
 }
 
 /// Until the substrate's MCP answers (or it dies, or `secs` pass); then its tools.

@@ -1,5 +1,5 @@
 use std::fmt;
-use std::io::{self, Write};
+use std::io::{self, Read, Seek, SeekFrom, Write};
 
 use crate::api::{AacProfile, AudioCodec, Metadata, VideoCodec};
 use crate::assert_invariant;
@@ -42,6 +42,53 @@ pub struct Mp4Writer<Writer> {
     audio_last_delta: Option<u32>,
     finalized: bool,
     bytes_written: u64,
+    /// where the samples' bytes wait for the end (raea patch, Spill)
+    spill: Option<Spill>,
+}
+
+/// Samples' bytes kept in a temp file as they come rather than in memory, and read back one at a time as the file is
+/// finished (raea patch, raea's docs/stage-guards.feature SG4a: the writer held every sample to the end, a 7-minute
+/// film's 1.1 GB at once, after its encoder had kept them on disk). The file is gone when the process is (unlinked
+/// once open on unix, delete-on-close on Windows). None when no temp file can be made: the samples stay in memory.
+struct Spill {
+    file: std::fs::File,
+    end: u64,
+}
+
+impl Spill {
+    fn new() -> Option<Spill> {
+        static N: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+        let p = std::env::temp_dir().join(format!("muxide-{}-{}", std::process::id(), N.fetch_add(1, std::sync::atomic::Ordering::Relaxed)));
+        let mut o = std::fs::OpenOptions::new();
+        o.read(true).write(true).create_new(true);
+        #[cfg(windows)]
+        std::os::windows::fs::OpenOptionsExt::custom_flags(&mut o, 0x0400_0000); // FILE_FLAG_DELETE_ON_CLOSE
+        let file = o.open(&p).ok()?;
+        #[cfg(unix)]
+        let _ = std::fs::remove_file(&p);
+        Some(Spill { file, end: 0 })
+    }
+}
+
+/// A sample's bytes kept: in the spill file when there is one (the bytes left empty, their offset given), else in memory.
+fn keep(spill: &mut Option<Spill>, data: Vec<u8>) -> (Vec<u8>, Option<u64>) {
+    if let Some(s) = spill.as_mut() {
+        let at = s.end;
+        if s.file.seek(SeekFrom::Start(at)).and_then(|_| s.file.write_all(&data)).is_ok() {
+            s.end += data.len() as u64;
+            return (Vec::new(), Some(at));
+        }
+    }
+    (data, None)
+}
+
+/// A sample's bytes: from memory, or read back from the spill file into `buf`.
+fn bytes<'a>(spill: &mut Option<Spill>, s: &'a SampleInfo, buf: &'a mut Vec<u8>) -> io::Result<&'a [u8]> {
+    let (Some(at), Some(sp)) = (s.at, spill.as_mut()) else { return Ok(&s.data) };
+    buf.resize(s.len, 0);
+    sp.file.seek(SeekFrom::Start(at))?;
+    sp.file.read_exact(buf)?;
+    Ok(buf)
 }
 
 /// Simplified video track information used when writing the header.
@@ -62,7 +109,10 @@ pub struct Mp4AudioTrack {
 struct SampleInfo {
     pts: u64,
     dts: u64, // Decode time (for B-frames: dts != pts)
+    /// empty when the bytes are in the spill file, at `at` (raea patch)
     data: Vec<u8>,
+    len: usize,
+    at: Option<u64>,
     is_keyframe: bool,
     duration: Option<u32>,
 }
@@ -97,7 +147,7 @@ impl SampleTables {
         }
         let sizes = samples
             .iter()
-            .map(|sample| sample.data.len() as u32)
+            .map(|sample| sample.len as u32)
             .collect();
         let keyframes = samples
             .iter()
@@ -428,6 +478,7 @@ impl<Writer: Write> Mp4Writer<Writer> {
             audio_last_delta: None,
             finalized: false,
             bytes_written: 0,
+            spill: Spill::new(),
         }
     }
 
@@ -540,10 +591,14 @@ impl<Writer: Write> Mp4Writer<Writer> {
             return Err(Mp4WriterError::DurationOverflow);
         }
 
+        let len = converted.len();
+        let (data, at) = keep(&mut self.spill, converted);
         self.video_samples.push(SampleInfo {
             pts,
             dts,
-            data: converted,
+            data,
+            len,
+            at,
             is_keyframe,
             duration: None,
         });
@@ -616,10 +671,14 @@ impl<Writer: Write> Mp4Writer<Writer> {
             return Err(Mp4WriterError::DurationOverflow);
         }
 
+        let len = sample_data.len();
+        let (data, at) = keep(&mut self.spill, sample_data);
         self.audio_samples.push(SampleInfo {
             pts,
             dts: pts, // Audio: dts == pts (no B-frames)
-            data: sample_data,
+            data,
+            len,
+            at,
             is_keyframe: false,
             duration: None,
         });
@@ -671,6 +730,7 @@ impl<Writer: Write> Mp4Writer<Writer> {
         video_config: &VideoConfig,
     ) -> io::Result<()> {
         let ftyp_box = build_ftyp_box();
+        let mut buf = Vec::new();
         let ftyp_len = ftyp_box.len() as u32;
         Self::write_counted(&mut self.writer, &mut self.bytes_written, &ftyp_box)?;
 
@@ -681,7 +741,7 @@ impl<Writer: Write> Mp4Writer<Writer> {
                 let mut payload_size: u64 = 0;
                 for sample in &self.video_samples {
                     payload_size = payload_size
-                        .checked_add(sample.data.len() as u64)
+                        .checked_add(sample.len as u64)
                         .ok_or_else(|| {
                             io::Error::new(io::ErrorKind::InvalidData, "MP4 payload size overflow")
                         })?;
@@ -701,7 +761,7 @@ impl<Writer: Write> Mp4Writer<Writer> {
                 )?;
                 Self::write_counted(&mut self.writer, &mut self.bytes_written, b"mdat")?;
                 for sample in &self.video_samples {
-                    Self::write_counted(&mut self.writer, &mut self.bytes_written, &sample.data)?;
+                    Self::write_counted(&mut self.writer, &mut self.bytes_written, bytes(&mut self.spill, sample, &mut buf)?)?;
                 }
                 Some(ftyp_len + 8)
             } else {
@@ -727,14 +787,14 @@ impl<Writer: Write> Mp4Writer<Writer> {
         let mut total_payload_size: u64 = 0;
         for sample in &self.video_samples {
             total_payload_size = total_payload_size
-                .checked_add(sample.data.len() as u64)
+                .checked_add(sample.len as u64)
                 .ok_or_else(|| {
                     io::Error::new(io::ErrorKind::InvalidData, "MP4 payload size overflow")
                 })?;
         }
         for sample in &self.audio_samples {
             total_payload_size = total_payload_size
-                .checked_add(sample.data.len() as u64)
+                .checked_add(sample.len as u64)
                 .ok_or_else(|| {
                     io::Error::new(io::ErrorKind::InvalidData, "MP4 payload size overflow")
                 })?;
@@ -765,15 +825,15 @@ impl<Writer: Write> Mp4Writer<Writer> {
                 TrackKind::Video => {
                     video_chunk_offsets.push(cursor);
                     let sample = &self.video_samples[idx];
-                    let sample_len = sample.data.len() as u32;
-                    Self::write_counted(&mut self.writer, &mut self.bytes_written, &sample.data)?;
+                    let sample_len = sample.len as u32;
+                    Self::write_counted(&mut self.writer, &mut self.bytes_written, bytes(&mut self.spill, sample, &mut buf)?)?;
                     cursor += sample_len;
                 }
                 TrackKind::Audio => {
                     audio_chunk_offsets.push(cursor);
                     let sample = &self.audio_samples[idx];
-                    let sample_len = sample.data.len() as u32;
-                    Self::write_counted(&mut self.writer, &mut self.bytes_written, &sample.data)?;
+                    let sample_len = sample.len as u32;
+                    Self::write_counted(&mut self.writer, &mut self.bytes_written, bytes(&mut self.spill, sample, &mut buf)?)?;
                     cursor += sample_len;
                 }
             }
@@ -813,20 +873,21 @@ impl<Writer: Write> Mp4Writer<Writer> {
         video_config: &VideoConfig,
     ) -> io::Result<()> {
         let ftyp_box = build_ftyp_box();
+        let mut buf = Vec::new();
         let ftyp_len = ftyp_box.len() as u64;
 
         // Calculate total mdat payload size
         let mut mdat_payload_size: u64 = 0;
         for sample in &self.video_samples {
             mdat_payload_size = mdat_payload_size
-                .checked_add(sample.data.len() as u64)
+                .checked_add(sample.len as u64)
                 .ok_or_else(|| {
                     io::Error::new(io::ErrorKind::InvalidData, "MP4 payload size overflow")
                 })?;
         }
         for sample in &self.audio_samples {
             mdat_payload_size = mdat_payload_size
-                .checked_add(sample.data.len() as u64)
+                .checked_add(sample.len as u64)
                 .ok_or_else(|| {
                     io::Error::new(io::ErrorKind::InvalidData, "MP4 payload size overflow")
                 })?;
@@ -940,7 +1001,7 @@ impl<Writer: Write> Mp4Writer<Writer> {
                             ));
                         }
                         video_offsets.push(cursor as u32);
-                        cursor += self.video_samples[*idx].data.len() as u64;
+                        cursor += self.video_samples[*idx].len as u64;
                     }
                     TrackKind::Audio => {
                         if cursor > u32::MAX as u64 {
@@ -950,7 +1011,7 @@ impl<Writer: Write> Mp4Writer<Writer> {
                             ));
                         }
                         audio_offsets.push(cursor as u32);
-                        cursor += self.audio_samples[*idx].data.len() as u64;
+                        cursor += self.audio_samples[*idx].len as u64;
                     }
                 }
             }
@@ -1027,21 +1088,21 @@ impl<Writer: Write> Mp4Writer<Writer> {
                         Self::write_counted(
                             &mut self.writer,
                             &mut self.bytes_written,
-                            &self.video_samples[idx].data,
+                            bytes(&mut self.spill, &self.video_samples[idx], &mut buf)?,
                         )?;
                     }
                     TrackKind::Audio => {
                         Self::write_counted(
                             &mut self.writer,
                             &mut self.bytes_written,
-                            &self.audio_samples[idx].data,
+                            bytes(&mut self.spill, &self.audio_samples[idx], &mut buf)?,
                         )?;
                     }
                 }
             }
         } else {
             for sample in &self.video_samples {
-                Self::write_counted(&mut self.writer, &mut self.bytes_written, &sample.data)?;
+                Self::write_counted(&mut self.writer, &mut self.bytes_written, bytes(&mut self.spill, sample, &mut buf)?)?;
             }
         }
 

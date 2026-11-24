@@ -33,6 +33,8 @@ pub struct GpuLightSource {
 pub enum LightSourceId {
     EmissiveMesh(Entity),
     Directional(Entity),
+    // raea: the environment's sky portals, by their index in the environment uniform
+    SkyPortal(u32),
 }
 
 #[derive(Default)]
@@ -106,6 +108,14 @@ impl GpuLightSource {
             id: directional_light_id,
         }
     }
+
+    /// raea: a sky portal (bindings.wesl LIGHT_SOURCE_KIND_SKY_PORTAL), its index in the environment uniform
+    fn new_sky_portal(portal_id: u32) -> GpuLightSource {
+        Self {
+            kind: 3,
+            id: portal_id,
+        }
+    }
 }
 
 #[derive(Clone, Copy, Default, PartialEq, Pod, Zeroable)]
@@ -159,6 +169,8 @@ pub struct LightState {
     previous_index: HashMap<LightSourceId, u32>,
     nonidentity_translations: Vec<u32>,
     directional_slots: SlotAllocator<Entity>,
+    /// raea: how many sky portals are in the light list
+    sky_portals: u32,
     /// Set by the lighting node once it has recorded work reading the translation table.
     translations_consumed: AtomicBool,
 }
@@ -182,6 +194,7 @@ impl LightState {
             previous_index: HashMap::default(),
             nonidentity_translations: Vec::new(),
             directional_slots: SlotAllocator::new(),
+            sky_portals: 0,
             translations_consumed: AtomicBool::new(false),
         }
     }
@@ -229,6 +242,20 @@ impl LightState {
             self.directional_slots.remove(&entity);
             self.remove_light(LightSourceId::Directional(entity));
         }
+
+        // raea: the environment's sky portals, one light each, as the environment uniform packs them (bind_group.rs)
+        let portals = if environment.cubemap.is_some() && environment.intensity > 0.0 {
+            super::bind_group::pack_sky_portals(&environment.portals).0
+        } else {
+            0
+        };
+        for portal in 0..portals {
+            self.add_light(LightSourceId::SkyPortal(portal), GpuLightSource::new_sky_portal(portal));
+        }
+        for portal in portals..self.sky_portals {
+            self.remove_light(LightSourceId::SkyPortal(portal));
+        }
+        self.sky_portals = portals;
 
         self.write_light_id_translations();
 

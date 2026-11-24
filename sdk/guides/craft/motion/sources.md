@@ -6,7 +6,7 @@
 
   | the job | the source |
   |---|---|
-  | an instrument playing a part: piano, strings, brass, woodwinds, mallets, guitars, a drum kit | a sampled library: `raea sounds` first, then the packs below |
+  | an instrument playing a part: piano, strings, brass, woodwinds, mallets, guitars, a drum kit | an instrument cast for the part from the libraries below (`motion/music`, "Cast the instruments"); `raea sounds` for a sketch |
   | a timbre no library has ("a bowed saw, close") | TokenSynth, curated (`motion/music`) |
   | an effect, foley, an ambience | a recorded pack or the person's own recordings first; SAO for what none has, in layers (`motion/sound`) |
   | a voice over the picture | `<Speech>` (Pocket TTS, local); a voice model is a `raea gen speech` step, Fish's with the person's own FISH_API_KEY (`motion/gen`) |
@@ -132,7 +132,13 @@ as docs/sound.feature SN4.
 | VSCO 2 Community Edition | CC0 | github.com/sgossner/VSCO-2-CE (its `SFZ` branch has the maps) | an orchestra: solo and section strings with articulations, woodwinds, brass, percussion, keys; WAV with SFZ maps |
 | VCSL, the whole library | CC0 | github.com/sgossner/VCSL (its `sfz` branch has the maps) | every dynamic and round robin of what `raea sounds` gives one take of |
 | Salamander Grand Piano V3 | CC-BY 3.0 | github.com/sfzinstruments/SalamanderGrandPiano | the same piano at 16 velocities, 48 kHz, SFZ |
-| sfzinstruments' lists | per pack, on the list | sfzinstruments.github.io (pianos, strings, drums) | take the CC0, public domain and CC-BY ones: Karoryfer's free packs (Big Rusty, Swirly and Unruly drums, Frankensnare, Meatbass, Bigcat Cello; mostly CC0, older ones CC-BY 3.0: read each readme), SM Drums (public domain), Splendid Grand Piano (public domain), DrumGizmo's DRS and Muldjord kits and Naked Drums (CC-BY 4.0) |
+| sfzinstruments' lists | per pack, on the list | sfzinstruments.github.io (pianos, strings, drums) | take the CC0, public domain and CC-BY ones: SM Drums (public domain), Splendid Grand Piano (public domain), DrumGizmo's DRS and Muldjord kits and Naked Drums (CC-BY 4.0) |
+| Karoryfer's free libraries | CC0, all of them (older downloads may carry an older licence file: fetch again); not Marie Ork | shop.karoryfer.com/pages/free-samples, github.com/sfzinstruments | instruments with character, in SFZ: Osiris Piano (a quiet piano, with Versilian), Bigcat Cello, Sneakybass (very quiet pizzicato double bass), Black and Blue Basses, Big Little Bass, Ergo EUB, Cowsynth (a synth made from medieval bagpipes); Big Rusty, Unruly and Swirly (brushed) drums, Frankensnare, Meatbass |
+| Pianobook | its EULA: any commercial or non-commercial composition, no credit, as long as the samples are combined with other sounds; never passed on in any form (as samples, an instrument or a conversion), and it can't promise every upload is clean: skip one whose page looks like someone else's recordings | pianobook.co.uk (a free account) | thousands of community instruments, mostly Decent Sampler presets with the WAVs inside: pianos of every kind (uprights, felt, prepared, tape-worn), organs and harmoniums, strings, voices, toys, found objects, textures. The widest source of instruments with a character |
+| Decent Samples, its free libraries | its EULA: any music or video, commercial too, combined with at least one other sound; never passed on on their own; never a copy-protected (.dsproduct) one taken apart | decentsamples.com (Freebies) | Decent Sampler presets from many makers, often the free half of a paid library |
+| Versilian Studios' other free libraries | CC0 for the community ones (VSCO 2 CE, VCSL, Miscellania I and II); the rest under its EULA, rendered audio free for any use | versilian-studios.com | beyond VSCO and VCSL: Miscellania's odd and world instruments, and freeware in Decent Sampler and SFZ |
+| hilbricht.net's list of free sampled instruments | each entry gives its licence | hilbricht.net/foss-sampled-instruments | a curated list of open sampled instruments with licence and format, the quickest way through the open ones |
+| musical-artifacts | per file, shown on each: take CC0, public domain and CC-BY | musical-artifacts.com | soundfonts, SFZ and single-instrument libraries, many niche and world instruments found nowhere else; mixed quality, so listen first |
 | University of Iowa Musical Instrument Samples | "may be downloaded and used for any projects, without restrictions" | theremin.music.uiowa.edu/mis.html | single notes of orchestral instruments at several dynamics, recorded dry: give them a room's reverb |
 | FreePats | per bank: CC0, CC-BY or GPL; take the CC0 and CC-BY banks only | freepats.zenvoid.org | General MIDI families, world instruments, percussion; SFZ and SF2 |
 | MuseScore General | MIT (keep its notices) | ftp.osuosl.org/pub/musescore/soundfont/MuseScore_General/ | a General MIDI bank with drum kits, SF2 (216 MB) or SF3 (40 MB), for playing a MIDI file as it is |
@@ -153,6 +159,11 @@ own drum kits (CC BY-NC-SA), the BBC's sound effects (personal and research use)
 stock music (not in games or broadcasts, and no remixing), Salamander Drumkit and other CC-BY-SA kits, and Lakh MIDI
 (copyrighted songs). Freesound's API is free only for non-commercial use, so raea doesn't search Freesound for the
 person: they download its sounds themselves.
+
+Pianobook's, Decent Samples' and Sonniss's terms forbid passing the samples on. A project shared with anyone (its Git
+repo, raea cloud, a handed-over folder) passes on what's in its `media/`. So their files go in `media/sounds/` with a
+`.gitignore` beside them and a `SOURCE.txt` saying where to fetch each one, and the piece's notes say so. CC0, CC-BY
+and MIT files can travel with the project.
 
 ## Loading a pack in a composition
 

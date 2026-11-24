@@ -29,7 +29,7 @@ const Glow = () => (
 import { AntiAliasing, Bloom, Compute, DepthOfField } from "raea/post_process"
 ```
 
-`raea/post_process` exports 12 components, 14 types. Bevy's counterpart: `bevy_post_process, bevy_anti_alias`. Source: [sdk/raea/src/post_process.ts](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/src/post_process.ts).
+`raea/post_process` exports 12 components, 1 function, 1 value, 15 types. Bevy's counterpart: `bevy_post_process, bevy_anti_alias`. Source: [sdk/raea/src/post_process.ts](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/src/post_process.ts).
 
 ## Components
 
@@ -134,13 +134,28 @@ Bevy: `bevy_render::view::Tonemapping`, `bevy_camera::camera::Exposure`.
 
 Takes [`ToneMappingProps`](3d.md#tonemappingprops)'s props.
 
+## Functions
+
+### `gradeLook`
+
+A grade look's props, with your changes over it: `<Grade {...gradeLook("cinematic", { vignette: 0.1 })} />`.
+
+```ts
+function gradeLook(look: GradeLook, over?: GradeProps): GradeProps
+```
+
+## Values
+
+### `GRADES`
+
 ## Types
 
 ### `AntiAliasingProps`
 
 | Field | Type | What it is |
 | --- | --- | --- |
-| `mode` (required) | `"msaa" \| "smaa" \| "fxaa" \| "none"` | "msaa" (4x multisampling, the default), "smaa" (morphological, high preset: the default with AmbientOcclusion, which can't multisample), "fxaa" (cheapest, softest) or "none". Each draws a frame from that frame alone, so a render equals its play (temporal anti-aliasing isn't offered: it needs the frames before) |
+| `mode` (required) | `"msaa" \| "smaa" \| "fxaa" \| "none" \| "steady"` | "msaa" (4x multisampling, the default), "smaa" (morphological, high preset: the default with AmbientOcclusion, which can't multisample), "fxaa" (cheapest, softest), "none", or "steady": raea's temporal filter, each frame drawn from a slightly different place inside its pixels and blended with the frames before it, so what one frame can only draw as a pattern of pixels (levels cross-fading by distance, far detail a pixel wide, noisy light) settles to its true share; single-sampled, with depth and motion prepasses (on Berlin's fly, faster than msaa). The others draw a frame from that frame alone, so a render equals its play; "steady" needs the frames before, so a render that starts partway through differs from its play for its first few frames |
+| `steady` | `{ still?: number; moving?: number; px?: number }` | "steady"'s rates: the frames a still pixel's history averages (32), a moving one's (8), and the motion in pixels at which a pixel counts as moving (4). Fewer frames follow change sooner and settle less |
 
 ### `BloomProps`
 
@@ -213,6 +228,12 @@ A shader over the whole frame. Its source defines
 | `at` | `"before-tonemap" \| "after-tonemap"` | "after-tonemap" (display colours; the default) or "before-tonemap" (the HDR frame, after bloom) |
 | `prepass` | `boolean \| { depth?: boolean; normal?: boolean }` | the camera's depth and normal prepasses, for depth(uv) and normal(uv) (turns its multisampling off) |
 
+### `GradeLook`
+
+```ts
+type GradeLook = "clean" | "cinematic" | "gritty" | "vintage"
+```
+
 ### `GradeProps`
 
 | Field | Type | What it is |
@@ -264,6 +285,7 @@ A shader over the whole frame. Its source defines
 | --- | --- | --- |
 | `shutterAngle` | `number` | the fraction of a frame the shutter is open (0.5 by default, a 180-degree shutter); above 1 smears further |
 | `samples` | `number` | samples each way per pixel (4 by default) |
+| `kind` | `"shutter" \| "bevy"` | "shutter" (the default: raea's, two taps a pixel for each sample each way) or "bevy" (Bevy's MotionBlur, to compare against) |
 | `animate` | `Animate3d` | declared animation of its numbers |
 
 ### `OutlineProps`

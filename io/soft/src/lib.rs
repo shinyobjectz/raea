@@ -297,5 +297,5 @@ pub fn h264_encoder(out: &Path, o: &EncodeOpts, intra_qp: Option<u8>) -> R<Box<d
     };
     let enc = H264Encoder::with_api_config(OpenH264API::from_source(), config).map_err(|e| format!("openh264: {e}"))?;
     let _ = std::io::stdout().flush();
-    Ok(Box::new(Encoder { enc, opts: o.clone(), out: out.to_path_buf(), frames: Vec::new() }))
+    Ok(Box::new(Encoder { enc, opts: o.clone(), out: out.to_path_buf(), samples: raea_io_codec::samples::Samples::new()? }))
 }

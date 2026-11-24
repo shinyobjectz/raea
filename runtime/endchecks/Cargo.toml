@@ -1,0 +1,14 @@
+[package]
+name = "raea-runtime-endchecks"
+version = "0.1.0"
+edition = "2024"
+license = "FSL-1.1-ALv2"
+publish = false
+description = "A render's end checks as its frames come: raea-sys-contact's clipping, raea-sys-stage's staging and the manifest's word on the parts, each frame's parts read and let go"
+
+[dependencies]
+raea-core-scene = { path = "../../core/scene" }
+raea-core-facts = { path = "../../core/facts" }
+raea-sys-contact = { path = "../../systems/contact" }
+raea-sys-stage = { path = "../../systems/stage" }
+serde_json = "1"

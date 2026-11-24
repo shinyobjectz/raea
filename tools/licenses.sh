@@ -23,15 +23,18 @@ feats=$(sed -n '/^\[features\]/,/^\[/p' engine/bevy-plugins/Cargo.toml | grep -o
 cargo metadata --format-version 1 --locked --offline --features "$feats" > "$tmp/all.json"
 cargo metadata --format-version 1 --locked --offline > "$tmp/base.json"
 
-# the package ids reachable from ROOT's crate in a resolve
+# the package ids reachable from ROOT's crate in a resolve, not through SKIP's
 reach='(.resolve.nodes | map({key: .id, value: [.deps[]?.pkg]}) | from_entries) as $n
   | (.packages | map(select(.name == $root)) | .[0].id) as $r
+  | (.packages | map(select(.name == $skip)) | .[0].id) as $s
   | {seen: [$r], todo: [$r]}
-  | until(.todo == []; ([.todo[] as $id | $n[$id][]] | unique) as $next | ($next - .seen) as $new | {seen: (.seen + $new), todo: $new})
+  | until(.todo == []; ([.todo[] as $id | $n[$id][] | select(. != $s)] | unique) as $next | ($next - .seen) as $new | {seen: (.seen + $new), todo: $new})
   | .seen[]'
 # and the native target's host (engine/rune: Rune and its crates), which ships beside raea (docs/targets.feature T1f)
-{ jq -r --arg root raea-bevy-plugins "$reach" "$tmp/all.json"; jq -r --arg root raea-rune-host "$reach" "$tmp/base.json"; } | sort -u > "$tmp/catalog"
-jq -r --arg root raea-cli "$reach" "$tmp/base.json" | sort > "$tmp/raea"
+{ jq -r --arg root raea-bevy-plugins --arg skip - "$reach" "$tmp/all.json"; jq -r --arg root raea-rune-host --arg skip - "$reach" "$tmp/base.json"; } | sort -u > "$tmp/catalog"
+# raea's own build as Windows and Linux make it: the macOS raea carries the catalog too (docs/nobuild.feature NB4a),
+# and its crates keep their licence files here for it
+jq -r --arg root raea-cli --arg skip raea-bevy-plugins "$reach" "$tmp/base.json" | sort > "$tmp/raea"
 # third-party only (registry or git): raea's crates and vendor/ are path crates
 comm -23 "$tmp/catalog" "$tmp/raea" | grep -E '^(registry|git)\+' > "$tmp/ids" || true
 jq -c --slurpfile ids <(jq -R . "$tmp/ids") '.packages[] | select(.id as $i | $ids | index($i)) | {name, version, license, license_file, authors: ((.authors // []) | if length == 0 then "its authors" else join(", ") end), dir: (.manifest_path | sub("/Cargo.toml$"; ""))}' "$tmp/all.json" | sort > "$tmp/crates"

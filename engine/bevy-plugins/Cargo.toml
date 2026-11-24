@@ -126,6 +126,7 @@ tweening = ["dep:bevy_tweening", "raea-bevy-calls/tweening"]
 vector_shapes = ["dep:bevy_vector_shapes"]
 vox = ["dep:bevy_vox_scene"]
 yoleck = ["dep:bevy-yoleck", "egui"]
+catalog = ["aseprite", "asset_loader", "avian", "avian2d", "big_space", "common_assets", "console", "debugdump", "easings", "egui", "enhanced_input", "enoki", "flair", "hanabi", "http", "hui", "inspector", "kira", "ldtk", "leafwing", "light_2d", "lightyear", "lookup_curve", "navigator", "noise", "noisy", "northstar", "obj", "pancam", "panorbit", "proc_gen", "progress", "quinnet", "rand", "rapier2d", "rapier3d", "remote", "save", "simple_tilemap", "skein", "smud", "sprite3d", "spritesheet", "swatch", "text3d", "tiled", "tilemap", "tnua", "trauma_shake", "trenchbroom", "tween", "tweening", "vector_shapes", "vox", "yoleck"]
 # <<< declared features
 
 # Optional dependencies a feature turns on for what they change elsewhere, not for code here: lightyear_core's

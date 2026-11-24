@@ -141,7 +141,7 @@ impl Seeker {
             }
             let session = CFRetained::from_raw(std::ptr::NonNull::new(sp).unwrap());
             let file = File::open(path).map_err(|e| format!("{}: {e}", path.display()))?;
-            if std::env::var_os("RAEA_VT_TRACE").is_some() {
+            if raea_io_trace::stat("RAEA_VT_TRACE") {
                 eprintln!("vtseek: {} samples indexed in {t_index:.1} ms, session in {:.1} ms", samples.len(), t0.elapsed().as_secs_f64() * 1e3 - t_index);
             }
             Ok(Some(Seeker { session, fmt, file, samples, order, h264, pos: None, shared, width: dims.width as u32, height: dims.height as u32, decoded: 0 }))
@@ -252,7 +252,7 @@ impl Seeker {
             self.file.read_exact_at(&mut buf, s.offset).map_err(|e| format!("reading a sample: {e}"))?;
             kinds.push(self.kind(&buf));
         }
-        if std::env::var_os("RAEA_VT_TRACE").is_some() {
+        if raea_io_trace::stat("RAEA_VT_TRACE") {
             let k: String = kinds.iter().map(|k| match k { Kind::Disposable => 'd', Kind::RefB => 'b', Kind::Ref => 'R' }).collect();
             eprintln!("vtseek: samples {start}..={target} kinds {k}");
         }
@@ -272,13 +272,13 @@ impl Seeker {
             let (td, kb) = (std::time::Instant::now(), buf.len() / 1024);
             self.decode(i, &buf, out)?;
             self.decoded += 1;
-            if std::env::var_os("RAEA_VT_TRACE").is_some() {
+            if raea_io_trace::stat("RAEA_VT_TRACE") {
                 eprintln!("vtseek:   sample {i} ({k:?}, {kb} KB) submitted in {:.1} ms", td.elapsed().as_secs_f64() * 1e3);
             }
         }
         let tw = std::time::Instant::now();
         unsafe { self.session.wait_for_asynchronous_frames() };
-        if std::env::var_os("RAEA_VT_TRACE").is_some() {
+        if raea_io_trace::stat("RAEA_VT_TRACE") {
             eprintln!("vtseek:   waited {:.1} ms for the decoder", tw.elapsed().as_secs_f64() * 1e3);
         }
         if let Some(e) = self.shared.err.lock().unwrap().take() {

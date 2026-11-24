@@ -14,7 +14,7 @@ const ROOT = path.resolve(import.meta.dir, "../..")
 const ts = createRequire(path.join(ROOT, "sdk/shell/package.json"))("typescript") as typeof import("typescript")
 const SRC = path.join(ROOT, "sdk/raea/src")
 const REPO = "https://github.com/shinyobjectz/raea/blob/main"
-const SKIP = /(\.gen\.ts|^test\.tsx|^native-calls\.ts|^prelude\.ts|^pure\.ts|^frame-globals\.ts|^canvas2d\.ts|^page-layout\.ts|^dom-[a-z-]+\.ts)$/
+const SKIP = /(\.gen\.ts|^test\.tsx|^native-calls\.ts|^prelude\.ts|^pure\.ts|^frame-globals\.ts|^canvas2d\.ts|^random-colors\.ts|^page-layout\.ts|^dom-[a-z-]+\.ts)$/
 const [mode = "check", dirArg] = process.argv.slice(2)
 if (mode !== "gen" && mode !== "check") throw new Error("usage: sdk.ts gen|check [DIR]")
 const out = path.resolve(dirArg ?? path.join(ROOT, "docs/manual/reference/sdk"))

@@ -60,11 +60,12 @@ impl Engine {
         // no render thread: a frame is drawn by the update that asks for it (wasm32 has no pipelined rendering to turn off)
         #[cfg(not(target_arch = "wasm32"))]
         let group = group.disable::<bevy::render::pipelined_rendering::PipelinedRenderingPlugin>();
-        // the registered Bevy plugins' changes, and no WinitPlugin: an Engine makes no event loop (raea_runtime_plugins::group, #182)
-        app.add_plugins(plugins::group(group));
+        // the registered plugins' changes (of the catalog's, those the project chose: nobuild NB4a), no WinitPlugin (no event loop, #182)
+        { let chosen = plugins::choose(prog, dir); app.add_plugins(plugins::group_chosen(group, &chosen)).insert_resource(chosen); }
         #[cfg(feature = "raytracing")]
         if raea_render_raytrace::wanted(prog) {
             raea_render_raytrace::add(&mut app);
+            app.add_systems(PostUpdate, solari_cut.after(raea_sys_post::cut::DetectCuts));
         }
         app
         .init_resource::<Clock>()
@@ -115,11 +116,11 @@ impl Engine {
             );
         }
         // each render pass's time (CPU side on Metal, where wgpu has no timestamps inside passes), into the run's trace
-        // once a second as `bevy_passes`: a slow frame shows which of Bevy's passes it was. RAEA_BEVY_PASSES=1 only: its
+        // once a second as `bevy_passes`: a slow frame shows which of Bevy's passes it was. The stat channel bevy_passes only: its
         // statistics buffer is read back every frame, and play and a render's page path read nothing back (docs/blitz-
         // bevy.feature B1d)
         #[cfg(feature = "native")]
-        if std::env::var("RAEA_BEVY_PASSES").as_deref() == Ok("1") {
+        if raea_io_trace::stat("RAEA_BEVY_PASSES") {
             app.add_plugins(bevy::render::diagnostic::RenderDiagnosticsPlugin).add_systems(Last, forward_render_diagnostics);
         }
         // raea's modules as Bevy plugins, in the order they were installed one by one (raea_plugins.rs), then the
@@ -158,7 +159,7 @@ impl Engine {
                 }
         }
         // RAEA_MEM_MARKS: the render world's sets, marked through the first updates (where start-up memory goes)
-        if std::env::var_os("RAEA_MEM_MARKS").is_some() {
+        if super::stat("RAEA_MEM_MARKS") {
             use bevy::render::{Render, RenderSystems as RS};
             fn at(name: &'static str) -> impl FnMut() {
                 let mut n = 0u32;
@@ -197,6 +198,8 @@ impl Engine {
     fn finish_build(mut app: App, prog: &Program, inserted: &[Tup], dir: &Path, timeline: Option<std::sync::Arc<raea_core_program::timeline::Timeline>>, live: bool) -> Result<Engine, String> {
         let ss = supersampling(live);
         let (w, h) = (prog.width * ss, prog.height * ss);
+        // every plugin has embedded its shaders by now: a project's engine-shaders/ and RAEA_ENGINE_SHADERS replace them
+        raea_sys_engine_shaders::shadow(&mut app, dir, prog);
         app.finish();
         mem_mark("engine: plugins finished");
         // RT4: MetalFX's denoiser goes in after Solari's lighting, which Solari's plugin adds as it finishes
@@ -279,3 +282,13 @@ impl Engine {
     }
 }
 
+/// A camera that jumped (raea-sys-post cut.rs, RT31): Solari's history starts again, and with it MetalFX's denoiser's,
+/// its scaler's and emit_taa's, which follow Solari's reset.
+#[cfg(feature = "raytracing")]
+fn solari_cut(mut cams: Query<(&raea_sys_post::cut::CameraCut, &mut bevy::solari::prelude::SolariLighting)>) {
+    for (cut, mut s) in &mut cams {
+        if cut.0 {
+            s.reset = true;
+        }
+    }
+}

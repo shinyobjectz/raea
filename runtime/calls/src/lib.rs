@@ -122,6 +122,11 @@ pub static DONE: std::sync::atomic::AtomicI32 = std::sync::atomic::AtomicI32::ne
 /// Whether print also writes to stdout (the CLI; not an app).
 pub static ECHO: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(true);
 
+/// Whether a script's console goes to the terminal, while ECHO is on: a headless program's (`raea run`, `raea test`,
+/// `raea blender run`), whose App has no log to take it, so every console line was dropped (#168). raea-runtime-react's
+/// `__raea_log` reads it.
+pub static CONSOLE: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+
 /// What a headless run printed (an app shows it; the CLI also writes it to stdout as it comes).
 pub static PRINTED: std::sync::Mutex<String> = std::sync::Mutex::new(String::new());
 
@@ -162,10 +167,15 @@ pub fn call(name: &str, v: &Value) -> R<Value> {
                     p.push_str(text);
                     p.push('\n');
                 }
+                // `err`: a line for stderr (a script's throw, #168), where its console goes to the terminal
                 if ECHO.load(std::sync::atomic::Ordering::Relaxed) {
-                    let mut o = std::io::stdout().lock();
-                    let _ = writeln!(o, "{text}");
-                    let _ = o.flush();
+                    if v.get("err").and_then(Value::as_bool) == Some(true) && CONSOLE.load(std::sync::atomic::Ordering::Relaxed) {
+                        let _ = writeln!(std::io::stderr().lock(), "{text}");
+                    } else {
+                        let mut o = std::io::stdout().lock();
+                        let _ = writeln!(o, "{text}");
+                        let _ = o.flush();
+                    }
                 }
                 Ok(Value::Null)
             }
@@ -207,7 +217,7 @@ pub fn register() {
         const SECTION: &str = "{ polygons: [number, number][][]; area: number; contours: number; bounds: { min: [number, number]; max: [number, number] } }";
         let calls: &[(&str, &str, &str, &str)] = &[
             ("done", "{ code: number }", "null", "a headless run ends with this exit code"),
-            ("print", "{ text: string }", "null", "one line of a headless run's output"),
+            ("print", "{ text: string; err?: boolean }", "null", "one line of a headless run's output (err: for stderr, on a terminal)"),
             ("blender.post", "{ sid: string; ops: unknown[] }", "{ r: Record<string, unknown>; n: number; err?: { i: number; type: string; msg: string; trace: string } }", "a batch of raea/blender's operations run by the Blender `raea blender run SCRIPT.ts` started (sdk/blender)"),
             ("solid.make", "{ fn: \"box\" | \"rounded_box\" | \"sphere\" | \"cylinder\" | \"cone\" | \"torus\" | \"text3d\"; args: (number | string)[] }", SOLID, "a Manifold solid from a primitive"),
             ("solid.expr", "{ expr: string }", SOLID, "a Manifold solid from an expression (raea-render's mesh shape language)"),
@@ -289,6 +299,12 @@ pub fn register() {
                 },
             );
         }
+        // the run's stat channels, and its timings and counters so far, from TypeScript (docs/nobuild.feature NB2a)
+        raea_native::register("stats.on", "{ channels: string[] }", "{ chosen: string[] }", "stat channels on for the rest of the run: a RAEA_ variable's name without RAEA_, in lower case (bevy_passes, bake_trace), or all; at a composition's top level, before the Engine opens (docs/nobuild.feature NB2a)", |v| {
+            raea_io_trace::choose_stats(&v["channels"].as_array().into_iter().flatten().filter_map(|n| n.as_str().map(str::to_string)).collect::<Vec<_>>());
+            Ok(json!({"chosen": raea_io_trace::chosen_stats()}))
+        });
+        raea_native::register("stats.read", "{}", "{ chosen: string[]; passes: Record<string, { n: number; mean_ms: number; max_ms: number }>; counters: Record<string, number> }", "the run so far: its stat channels, each timed pass's runs and mean and worst ms, each counter (docs/nobuild.feature NB2a)", |_| Ok(raea_io_trace::stats()));
         // an asset loaded now, before the frame that names it uses it, as the Engine loads a handle's (S2b useAsset)
         raea_native::register("asset.load", "{ path: string }", "{ path: string; bytes: number; width?: number; height?: number }", "an asset by its path (absolute, or from the edit's folder), loaded now: the file found and read, a picture's size; an error when it isn't there (S2b useAsset)", |v| {
             let p = s(v, "path")?;

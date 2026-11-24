@@ -28,4 +28,6 @@ raea-app-check-text = { path = "text" }
 raea-app-check-flash = { path = "flash" }
 # what the person sent from the raea app, handed to the agent (split out to keep this crate small)
 raea-app-check-inbox = { path = "inbox" }
+# the Stop gate for a `make` job (docs/make.feature MK2; split out to keep this crate small)
+raea-app-check-make = { path = "make" }
 serde_json = "1"

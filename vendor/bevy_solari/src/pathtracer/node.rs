@@ -1,11 +1,12 @@
-use super::{prepare::PathtracerAccumulationTexture, Pathtracer};
+use super::{prepare::PathtracerAccumulationTexture, Pathtracer, PathtracerMedia};
 use crate::scene::RaytracingSceneBindings;
 use bevy_asset::{load_embedded_asset, AssetServer};
 use bevy_ecs::{prelude::*, resource::Resource, system::Commands};
 use bevy_render::{
     camera::ExtractedCamera,
     render_resource::{
-        binding_types::{texture_storage_2d, uniform_buffer},
+        binding_types::{storage_buffer_read_only_sized, texture_storage_2d, uniform_buffer},
+        BindingResource, Buffer, BufferInitDescriptor, BufferUsages,
         BindGroupEntries, BindGroupLayoutDescriptor, BindGroupLayoutEntries,
         CachedComputePipelineId, ComputePassDescriptor, ComputePipelineDescriptor,
         ImageSubresourceRange, PipelineCache, ShaderStages, StorageTextureAccess, TextureFormat,
@@ -20,6 +21,8 @@ use bevy_utils::default;
 pub struct PathtracerPipelines {
     bind_group_layout: BindGroupLayoutDescriptor,
     pipeline: CachedComputePipelineId,
+    // raea: the media when the scene has none: one volume of no extinction (froxel_volume.wesl's Volume, 128 bytes)
+    no_media: Buffer,
 }
 
 /// Initializes the pathtracer pipelines at render startup.
@@ -28,6 +31,7 @@ pub fn init_pathtracer_pipelines(
     pipeline_cache: Res<PipelineCache>,
     scene_bindings: Res<RaytracingSceneBindings>,
     asset_server: Res<AssetServer>,
+    render_device: Res<RenderDevice>,
 ) {
     let bind_group_layout = BindGroupLayoutDescriptor::new(
         "pathtracer_bind_group_layout",
@@ -37,6 +41,7 @@ pub fn init_pathtracer_pipelines(
                 texture_storage_2d(TextureFormat::Rgba32Float, StorageTextureAccess::ReadWrite),
                 texture_storage_2d(TextureFormat::Rgba16Float, StorageTextureAccess::WriteOnly),
                 uniform_buffer::<ViewUniform>(true),
+                storage_buffer_read_only_sized(false, None),
             ),
         ),
     );
@@ -51,9 +56,15 @@ pub fn init_pathtracer_pipelines(
         ..default()
     });
 
+    let no_media = render_device.create_buffer_with_data(&BufferInitDescriptor {
+        label: Some("pathtracer_no_media"),
+        contents: &[0u8; 128],
+        usage: BufferUsages::STORAGE,
+    });
     commands.insert_resource(PathtracerPipelines {
         bind_group_layout,
         pipeline,
+        no_media,
     });
 }
 
@@ -70,6 +81,7 @@ pub fn pathtracer(
     scene_bindings: Res<RaytracingSceneBindings>,
     view_uniforms: Res<ViewUniforms>,
     render_device: Res<RenderDevice>,
+    media: Res<PathtracerMedia>,
     mut ctx: RenderContext,
 ) {
     let (pathtracer_settings, accumulation_texture, camera, view_target, view_uniform_offset) =
@@ -95,6 +107,7 @@ pub fn pathtracer(
             &accumulation_texture.0.default_view,
             view_target.get_unsampled_color_attachment().view,
             view_uniforms_binding,
+            BindingResource::Buffer(media.0.as_ref().unwrap_or(&pathtracer_pipelines.no_media).as_entire_buffer_binding()),
         )),
     );
 

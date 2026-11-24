@@ -1,7 +1,7 @@
 ---
 title: "raea bug"
 summary: "Report a bug in raea itself to raea's server: a line saying what's wrong and what happened, with raea's version and the OS added, no account needed."
-order: 129
+order: 130
 sources: ["engine/cli/src/bug.ts", "engine/cli/src/cli.rs"]
 ---
 

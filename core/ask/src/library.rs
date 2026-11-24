@@ -1,12 +1,14 @@
 //! The questions that come standard (docs/ask.feature AK1), each set named: `rubric` (the craft rubric's own questions,
 //! read from sdk/guides/craft/rubric.md, so there's one copy), `av` (picture with sound), `defects` (the fingerprint's
-//! axes with no labels yet), `platform` (the check packs' questions with their calibration) and `decide` (picks and
-//! comparisons). The JSON sets ship inside raea; the rubric is read from the guide the caller hands in.
+//! axes with no labels yet), `platform` (the check packs' questions with their calibration), `decide` (picks and
+//! comparisons) and `make` (the review loop's gate questions, asked of a job's sheets: docs/make.feature MK4; each id
+//! says its sheet, make.clay.*, make.colour.*, make.refs.*, make.framing.*). The JSON sets ship inside raea; the
+//! rubric is read from the guide the caller hands in.
 
 use crate::question::{Kind, Question};
 
 /// Every set, in the order `raea ask list` shows them.
-pub const SETS: [&str; 5] = ["rubric", "av", "defects", "platform", "decide"];
+pub const SETS: [&str; 6] = ["rubric", "av", "defects", "platform", "decide", "make"];
 
 fn embedded(name: &str) -> Option<&'static str> {
     Some(match name {
@@ -14,6 +16,7 @@ fn embedded(name: &str) -> Option<&'static str> {
         "defects" => include_str!("../library/defects.json"),
         "platform" => include_str!("../library/platform.json"),
         "decide" => include_str!("../library/decide.json"),
+        "make" => include_str!("../library/make.json"),
         _ => return None,
     })
 }

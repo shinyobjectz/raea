@@ -13,7 +13,6 @@
 //! Samples are a rotated R2 sequence per texel, so the result is the same on every run.
 
 use std::collections::HashMap;
-use std::f32::consts::TAU;
 
 use raea_sys_exposure::cone;
 
@@ -27,39 +26,10 @@ use raea_sys_exposure::{Driven, Exposer, Frame};
 use super::{Env, Walk};
 use crate::charts::Atlas;
 use crate::scene::Scene;
+pub(crate) use raea_sys_atlas::rays::{OFF, SKY_REACH, hash, hemi, sample};
 
-const OFF: f32 = 0.01;
 const CAVITY_REACH: f32 = 0.5;
-const SKY_REACH: f32 = 400.0;
 pub(crate) const GROUND_RANGE: f32 = 4.0;
-
-pub(crate) fn hash(mut x: u32) -> u32 {
-    x ^= x >> 16;
-    x = x.wrapping_mul(0x7feb352d);
-    x ^= x >> 15;
-    x = x.wrapping_mul(0x846ca68b);
-    x ^ (x >> 16)
-}
-
-/// The j-th of a texel's samples in the unit square.
-pub(crate) fn sample(texel: u32, j: u32) -> (f32, f32) {
-    let h = hash(texel.wrapping_mul(2654435761).wrapping_add(0x9e3779b9));
-    let (r0, r1) = ((h & 0xffff) as f32 / 65536.0, (h >> 16) as f32 / 65536.0);
-    ((0.5 + 0.754_877_7 * j as f32 + r0).fract(), (0.5 + 0.569_840_3 * j as f32 + r1).fract())
-}
-
-/// Two unit vectors across n.
-pub(crate) fn across(n: Vec3) -> (Vec3, Vec3) {
-    let a = if n.x.abs() < 0.9 { Vec3::X } else { Vec3::Y };
-    let t = n.cross(a).normalize();
-    (t, n.cross(t))
-}
-
-fn hemi(n: Vec3, (u1, u2): (f32, f32)) -> Vec3 {
-    let r = u1.sqrt();
-    let (t, b) = across(n);
-    (n * (1.0 - u1).max(0.0).sqrt() + t * (r * (TAU * u2).cos()) + b * (r * (TAU * u2).sin())).normalize()
-}
 
 struct Edges {
     segs: Vec<(Vec3, Vec3, f32)>,
@@ -148,39 +118,6 @@ impl Edges {
         }
         best
     }
-}
-
-pub(crate) fn mesh_of(sc: &Scene) -> TriMesh {
-    TriMesh::new(sc.pos.clone(), sc.tri.clone()).expect("a TriMesh from the scene's triangles")
-}
-
-/// Triangles inside a closed shell: at its centre and near each corner, nine in ten of the rays out of its front hit
-/// the back of something (ground under a house, a party wall against its neighbour's, a slab's underside within its
-/// walls). Nothing sees them. One point open keeps the triangle: a big one only partly covered (a street's triangle
-/// running under its pavement) is still seen where it isn't.
-pub(crate) fn hidden(sc: &Scene, mesh: &TriMesh) -> Vec<bool> {
-    const K: u32 = 16;
-    const AT: [[f32; 3]; 4] = [[1.0 / 3.0; 3], [0.8, 0.1, 0.1], [0.1, 0.8, 0.1], [0.1, 0.1, 0.8]];
-    (0..sc.tri.len())
-        .into_par_iter()
-        .map(|t| {
-            let n = sc.nrm[t];
-            if n == Vec3::ZERO {
-                return false;
-            }
-            let [a, b, c] = sc.tri[t].map(|v| sc.pos[v as usize]);
-            AT.iter().enumerate().all(|(k, w)| {
-                let o = a * w[0] + b * w[1] + c * w[2] + n * OFF;
-                let back = (0..K)
-                    .filter(|&j| {
-                        let d = hemi(n, sample((t as u32 ^ 0x5bd1_e995).wrapping_add(k as u32 * 7919), j));
-                        mesh.cast_local_ray_and_get_normal(&Ray::new(o, d), SKY_REACH, false).is_some_and(|h| sc.nrm[h.subshape as usize].dot(d) > 0.0)
-                    })
-                    .count();
-                back as u32 * 10 >= K * 9
-            })
-        })
-        .collect()
 }
 
 pub(crate) fn causes(sc: &Scene, at: &Atlas, env: &Env, mesh: &TriMesh, c0: &mut [[u8; 4]], c2: &mut [[u8; 4]], c3: &mut [[u8; 4]]) {

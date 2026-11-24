@@ -1,7 +1,7 @@
 #!/bin/bash
 # PT8, the Linux check after landing (docs/ports.feature): `cargo check` of raea-cli, and of raea-render without its
-# default features, for x86_64 Linux on the probe box (Fly Sprite raea-kimi), so an Apple-only call outside a cfg is
-# caught the day it lands.
+# default features, for x86_64 Linux on the probe box (Fly Sprite raea-linux in raea's own org, set up by
+# tools/linux-box.sh), so an Apple-only call outside a cfg is caught the day it lands.
 #
 #   tools/linux-check.sh [SHA]                            # default: origin/main
 #   tools/linux-check.sh --release VERSION [SHA] [--dry]  # RL3: the Linux tarball, built and tried there
@@ -25,8 +25,8 @@
 # - Output: one line a step ("linux <step>: ..."), the first errors, then "linux <sha>: ok" (exit 0), "FAILED" (exit 1)
 #   or, when the connection to the probe box dropped first, "lost the probe box" (exit 2, run it again).
 #   Run it under antsy with a stall of 20 minutes (a cold target builds every build script before printing).
-# - Memory: the probe box has 8 GB and is shared with kpop's relay (Shane's cloud agent), and running it out of memory
-#   restarts the whole box (10-29: the release build at 7 jobs with thin LTO did). Every cargo here runs under a floor:
+# - Memory: the probe box has 15 GB and runs nothing else, and running it out of memory restarts the whole box (10-29,
+#   on the 8 GB box before it: the release build at 7 jobs with thin LTO did). Every cargo here runs under a floor:
 #   its process group is killed once the memory left falls below RAEA_LINUX_FLOOR_MB (default 1536), so the worst case
 #   is a failed build ("stopped at N MB"), never a restarted box. Memory left is MemTotal less the root cgroup's anon
 #   and kernel memory (memory.stat): the box's /proc/meminfo is synthetic (MemFree 0, MemAvailable equal to Cached and
@@ -35,7 +35,9 @@
 #   LLVM reserves far past what it uses, not the sum. The release build runs 4 jobs, a dry run 7.
 set -uo pipefail
 cd "$(dirname "$0")/.."
-S=(-o "${RAEA_SPRITE_ORG:-kamal-hafid}" -s "${RAEA_SPRITE:-raea-kimi}")
+# the org raea owns, never another business's (org.sh); RAEA_LINUX_BOX picks the Sprite
+. sdk/cloud/deploy/sprites/org.sh
+S=(-o "$ORG" -s "${RAEA_LINUX_BOX:-raea-linux}")
 say() { echo "linux $*"; }
 git fetch -q origin 2> /dev/null
 mode=check version= dry=
@@ -109,7 +111,7 @@ if [ "$2" = release ]; then
   mountpoint -q "$N$HOME/raea" || sudo mount --bind -o ro "$HOME/raea" "$N$HOME/raea"
   mountpoint -q "$N/target" || sudo mount --bind "$T" "$N/target"
   slim=; [ -n "${4:-}" ] && slim="CARGO_PROFILE_DIST_LTO=off CARGO_PROFILE_DIST_DEBUG=0 CARGO_PROFILE_DIST_INCREMENTAL=false"
-  # the probe box has 8 GB: 7 jobs with thin LTO ran it out of memory and restarted it (10-29, canary.2's first try)
+  # the first probe box had 8 GB: 7 jobs with thin LTO ran it out of memory and restarted it (10-29, canary.2's first try)
   jobs=7; [ -z "$slim" ] && jobs=4
   # RAEA_LINUX_DIST_ENV: profile overrides for a release build the box's memory can't hold as the dist profile has it
   # (canary.2: CARGO_PROFILE_DIST_DEBUG=0, since debug info is most of the final link's memory; the symbol table stays,

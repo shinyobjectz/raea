@@ -140,7 +140,7 @@ Feature: The Linux engine, as fast as it can be in the cloud
       Given the plan
         | crate            | file                          | lines | job                                                                          |
         | raea-sys-contact | systems/contact/src/broad.rs  | 160   | a broad phase before the voxels: parts whose boxes don't touch on a frame are never voxelized or tested; a part's voxels kept by its shape and scale, so an unchanged part is voxelized once a render |
-        | raea-sys-contact | systems/contact/src/lib.rs    | 500   | the frames checked in parallel (frames are pure), on the cores the render leaves idle |
+        | raea-sys-contact | systems/contact/src/clip.rs   | 178   | the frames checked on the cores the render leaves idle: Clipping takes each frame as it's drawn since SG4a (docs/stage-guards.feature), so off the render's thread |
       Then edit.tsx's clipping check takes at most its frames' own time (from 96.1 s), and RR0's film's at most 300 ms
       And a render's wall with the check on is within 3% of RAEA_CLIP_CHECK=0
       And the findings are identical on the RR0 film, edit.tsx and the contact fixtures (systems/contact's tests)

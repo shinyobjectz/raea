@@ -209,8 +209,11 @@ pub fn h264_aac(video: &Path, aac: &Path, out: &Path, fps: f64) -> R<()> {
     Ok(())
 }
 
-/// As annexb_aac, for `codec`'s Annex B frames (H.265: keyframes carry VPS, SPS and PPS).
-pub fn annexb_mux(codec: muxide::api::VideoCodec, frames: &[(Vec<u8>, bool)], w: u32, h: u32, fps: f64, aac: Option<&Path>, out: &Path) -> R<()> {
+/// As annexb_aac, for `codec`'s Annex B frames (H.265: keyframes carry VPS, SPS and PPS): `n` frames read one at a
+/// time (`read(k, buf)` fills frame k's bytes and says whether it's a keyframe), so an encoder that keeps its samples
+/// on disk (samples::Samples) never holds the whole video (SG4a: a 7-minute film's 1 GB).
+#[allow(clippy::too_many_arguments)]
+pub fn annexb_mux_from(codec: muxide::api::VideoCodec, n: usize, read: &mut dyn FnMut(usize, &mut Vec<u8>) -> R<bool>, w: u32, h: u32, fps: f64, aac: Option<&Path>, out: &Path) -> R<()> {
     let ab = match aac {
         Some(p) => std::fs::read(p).map_err(|e| e.to_string())?,
         None => Vec::new(),
@@ -232,15 +235,17 @@ pub fn annexb_mux(codec: muxide::api::VideoCodec, frames: &[(Vec<u8>, bool)], w:
         .unwrap_or_default();
     audio.sort_by(|a, b| a.0.total_cmp(&b.0));
     let mut ai = 0;
-    for (k, (data, key)) in frames.iter().enumerate() {
+    let mut data = Vec::new();
+    for k in 0..n {
+        let key = read(k, &mut data)?;
         let pts = k as f64 / fps;
         while ai < audio.len() && audio[ai].0 < pts {
             m.write_audio(audio[ai].0, &adts(audio[ai].1, rate, 1)).map_err(|e| format!("muxide audio: {e}"))?;
             ai += 1;
         }
-        m.write_video(pts, data, *key).map_err(|e| format!("muxide video: {e}"))?;
+        m.write_video(pts, &data, key).map_err(|e| format!("muxide video: {e}"))?;
     }
-    let end = frames.len() as f64 / fps;
+    let end = n as f64 / fps;
     for (pts, d) in audio[ai..].iter().filter(|x| x.0 < end) {
         m.write_audio(*pts, &adts(d, rate, 1)).map_err(|e| format!("muxide audio: {e}"))?;
     }

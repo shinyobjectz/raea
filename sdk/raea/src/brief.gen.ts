@@ -40,7 +40,17 @@ assumed?: Array<string>,
 /**
  * prose sections beyond the fields above (Goal, Background), in order
  */
-sections?: Array<Section>, deliver?: Array<Deliverable>, references?: Array<Reference>, agents?: Array<Agent>, };
+sections?: Array<Section>, deliver?: Array<Deliverable>, references?: Array<Reference>, agents?: Array<Agent>, 
+/**
+ * the project's stories, imported explicitly (raea/story, docs/story.md): one, or several by name. Kept as written:
+ * raea reads nothing in it, the story SDK and the checks that import it do
+ */
+story?: unknown, 
+/**
+ * a scene, kit or shot made to a frozen plan and held to the review loop (docs/make.feature): `scene()`, `kit()`
+ * or `shot()` from "raea/brief"; `raea make status` decides when it's done
+ */
+make?: Make, };
 
 export type Section = { heading: string, text: string, };
 
@@ -76,7 +86,11 @@ heading?: string, beats: Array<Beat>,
 /**
  * what the scene must land
  */
-payoff?: string, };
+payoff?: string, 
+/**
+ * the story beat it plays, by its id (raea/story's compileScript writes it; docs/story.feature ST0c)
+ */
+beat?: string, };
 
 export type Beat = { 
 /**
@@ -280,3 +294,119 @@ export type Pattern = { name: string, pattern: string, how?: string, };
 export type Section = { name: string, at?: string, shows: Array<string>, how?: string, };
 
 export type Feel = { word: string, measures: Array<string>, };
+
+export type Make = { kind: MakeKind, 
+/**
+ * the pictures the job answers to (paths beside the brief): what is in it and where for a scene, the style for a kit
+ */
+references?: Array<string>, 
+/**
+ * one paragraph every reference prompt carries: era, palette, materials, wear, and one fictional maker
+ */
+style?: string, 
+/**
+ * by name, from the kind's set (DIALS); one left out is read from the references
+ */
+dials?: { [key in string]: MakeDial }, objects?: Array<MakeObject>, shots?: Array<MakeShot>, 
+/**
+ * the compositions the job's checks hold (relative to the brief): each needs a clean render or check newer than it
+ */
+compositions?: Array<string>, 
+/**
+ * what must exist when it's done, relative to the brief; replaces the kind's own list (`deliverables`)
+ */
+deliverables?: Array<string>, 
+/**
+ * the most critic rounds the job gets; at the cap it is delivered with what's still missing (8 by default)
+ */
+rounds?: number, };
+
+export type MakeKind = "scene" | "kit" | "shot";
+
+export type MakeSource = "customer" | "reference";
+
+export type MakeDialValue = number | string;
+
+export type MakeDial = MakeDialValue | { value: MakeDialValue, source?: MakeSource, 
+/**
+ * what the value meant for this job, in one line
+ */
+means?: string, };
+
+export type MakeRoute = "solid" | "rule" | "gen" | "library" | "picture";
+
+export type MakeOrigin = "reference" | "invented";
+
+export type MakePick = { 
+/**
+ * "tripo-h31", "meshy", ...
+ */
+generator: string, 
+/**
+ * one line: why this one ("sharper dial numerals; Tripo fused the handset to the cradle")
+ */
+why: string, };
+
+export type MakeObject = { 
+/**
+ * snake_case, unique in the job
+ */
+id: string, label: string, 
+/**
+ * real height in metres
+ */
+h?: number, 
+/**
+ * [width, depth, height] in metres, for boxy things (generators invent depth)
+ */
+dims?: [number, number, number], 
+/**
+ * largest extent in metres, for things that lie flat (tools, papers)
+ */
+max?: number, route?: MakeRoute, 
+/**
+ * one object, its condition and its materials; never a real brand
+ */
+prompt?: string, source?: MakeOrigin, 
+/**
+ * where it is in reference 0: [x0, y0, x1, y1] in 0..1
+ */
+crop?: [number, number, number, number], 
+/**
+ * where it stands in a scene: metres, the floor's front-left corner at the origin, rot 0 = facing the entrance
+ */
+at?: [number, number, number], rot?: number, hero?: boolean, pick?: MakePick, 
+/**
+ * what was fixed by script ("glass made transmissive, label kept opaque")
+ */
+fixes?: Array<string>, };
+
+export type MakeShot = { 
+/**
+ * [a-z0-9_]: the file it lands as (out/shots/<name>.png or .mp4)
+ */
+name: string, 
+/**
+ * in a crew's words: "slow push along the counter, rack focus to the register"
+ */
+description?: string, 
+/**
+ * static, dolly, truck, pedestal, crane, pan, tilt, orbit, dollyZoom, path
+ */
+move?: string, seconds?: number, lens?: number, 
+/**
+ * none, subtle, walk
+ */
+handheld?: string, 
+/**
+ * a still rather than a move
+ */
+still?: boolean, 
+/**
+ * the composition that renders it (relative to the brief): `raea make framing` and `lenschart` draw it
+ */
+composition?: string, 
+/**
+ * its frame rate, for the frames `seconds` spans (30 when left out)
+ */
+fps?: number, };

@@ -39,7 +39,10 @@ Read the files a task needs with `raea guide motion/NAME`, one or two at a time,
 2. **Frame-pure.** The renderer can ask for any frame in any order, so derive everything from the frame number.
    `useState`, `useEffect` and timers don't animate a render. `Math.random()` is seeded for each frame: a render
    repeats, but every frame draws new numbers, so it suits grain or a flicker, and something that should hold still
-   (a scatter, a layout) is seeded from an index. `Date` (`Date.now()`, `new Date()`) is the frame's time.
+   (a scatter, a layout) is seeded from an index: `random("star" + i)` from raea is the same number on every frame,
+   run and machine. `interpolateColors(frame, [0, 30], ["#f00", "#00f"])` eases between colours as `interpolate`
+   does between numbers, and `<OffthreadVideo>` is `<Video>` under the name code moved from another React video tool
+   uses. `Date` (`Date.now()`, `new Date()`) is the frame's time.
    A frame that needs one more step before it's taken (text measured in an effect, a fetch) holds it with
    `delayRender("what it waits for")` and releases it with `continueRender(handle)` (`raea/hold`); a hold never
    released fails the render after 30 s, naming its label.

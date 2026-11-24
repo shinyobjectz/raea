@@ -21,6 +21,7 @@ portable = ["raea-runtime-js/portable"]
 window = ["bevy/bevy_winit", "dep:raea-runtime-plugins", "raea-page-window/window"]
 
 [dependencies]
+raea-io-trace = { path = "../../../io/trace" }
 # the window as an image the UI camera draws, picking's pointer input, the remote protocol, and every image format the
 # page decodes (raea-page's IMAGE_DECODER decodes through bevy_image): the legacy app's list, which the benches ran on
 bevy = { version = "=0.20.0", default-features = false, features = ["std", "default_app", "default_font", "multi_threaded", "3d_bevy_render", "ui_bevy_render", "png", "tonemapping_luts", "ktx2", "zstd_rust", "bevy_picking", "ui_picking", "bevy_ui_widgets", "bevy_input_focus", "jpeg", "bevy_remote", "tga", "qoi", "tiff", "pnm", "ff", "dds", "exr", "hdr", "webp", "gif", "bmp", "ico"] }

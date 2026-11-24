@@ -295,7 +295,7 @@ impl Decoder {
             return Ok(None);
         }
         let bgra = !self.nv12;
-        let trace = std::env::var_os("RAEA_VT_TRACE").is_some();
+        let trace = raea_io_trace::stat("RAEA_VT_TRACE");
         let t0 = std::time::Instant::now();
         if self.seeker.as_ref().is_none_or(|s| s.1 != bgra) {
             let made = unsafe {

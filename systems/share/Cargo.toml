@@ -1,0 +1,10 @@
+[package]
+name = "raea-sys-share"
+version = "0.1.0"
+edition = "2024"
+license = "FSL-1.1-ALv2"
+publish = false
+description = "Equal parts share their assets (runtime/scene3d re-exports it): one Mesh per shape and one StandardMaterial per value, let go once no part holds them"
+
+[dependencies]
+bevy = { version = "=0.20.0", default-features = false, features = ["std", "default_app", "3d_bevy_render"] }

@@ -26,7 +26,8 @@ pub const USAGE: &str = "usage: conformance [--bin PATH] [--substrate NAME] [--e
                     [--attach PORT [--workspace DIR]] [--settle-ms MS] [--app DIR] [--no-build] [--list]
   --bin        the substrate's binary (default: the repo's target/release/raea-page-host). raea-page-host runs the
                app's Blitz build (BIN BUNDLE --css --root, at the case's route); any other binary runs as BIN WORKSPACE
-  --app        the app raea-page-host runs (default: the repo's apps/app); --no-build: its blitz/out as it is
+  --app        the app raea-page-host runs (default: the repo's apps/app), built with its demo world into
+               blitz/out-conformance; --no-build: that build as it is (else blitz/out)
   --substrate  a name for the results (default: current)
   --env        more environment for it (e.g. RAEA_FEED_AGENT=echo), after the suite's own
   --tier       quick: each case at its first window size; full: at every size, and the full-only cases (default quick)
@@ -71,9 +72,12 @@ fn location(route: &str) -> String {
     format!("globalThis.location ??= {at};")
 }
 
-/// The app's Blitz build (blitz/out/app.js and app.css): `vite build -c blitz/vite.config.ts`, as `ui-parity app` makes it.
+/// The app's Blitz build with the demo world the cases are written against (RAEA_FIXTURES=1: since 11-14 a plain build
+/// has none, as a shipped app has none), in blitz/out-conformance.
 fn build_app(app: &Path) -> Result<(), String> {
-    let o = Command::new("npx").args(["vite", "build", "-c", "blitz/vite.config.ts", "--logLevel", "error"]).current_dir(app).output().map_err(|e| format!("vite: {e}"))?;
+    let mut vite = Command::new("npx");
+    vite.args(["vite", "build", "-c", "blitz/vite.config.ts", "--logLevel", "error", "--outDir"]).arg(app.join(CONFORMANCE_OUT));
+    let o = vite.env("RAEA_FIXTURES", "1").current_dir(app).output().map_err(|e| format!("vite: {e}"))?;
     if !o.status.success() {
         return Err(format!("{}: vite build -c blitz/vite.config.ts: {}", app.display(), String::from_utf8_lossy(&o.stderr).lines().rev().take(8).collect::<Vec<_>>().join(" | ")));
     }

@@ -193,7 +193,7 @@ pub fn template(st: &Structure, title: &str, names: &[&str]) -> Script {
         if let Some((r, w)) = &s.said {
             payoff += &format!("{}as said in {}: \"{}\"", if payoff.is_empty() { "" } else { "; " }, names.get(*r).copied().unwrap_or("?"), words(w, 30));
         }
-        Scene { heading: Some(heading), beats, payoff: Some(payoff).filter(|p| !p.is_empty()) }
+        Scene { heading: Some(heading), beats, payoff: Some(payoff).filter(|p| !p.is_empty()), beat: None }
     }).collect();
     let [lo, mid, hi] = st.seconds;
     let logline = format!("{title}'s template, from {n} references: {mid:.1} s ({lo:.1} to {hi:.1}), {:.0} shots ({:.0} to {:.0}). Fill each beat with the footage's own shots of that kind.", st.shots[1], st.shots[0], st.shots[2]);

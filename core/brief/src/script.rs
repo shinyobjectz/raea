@@ -23,6 +23,8 @@ pub struct Scene {
     pub beats: Vec<Beat>,
     /// what the scene must land
     pub payoff: Option<String>,
+    /// the story beat it plays, by its id (raea/story's compileScript writes it; docs/story.feature ST0c)
+    pub beat: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS)]

@@ -7,7 +7,7 @@ use bevy_asset::AssetId;
 use bevy_color::{Alpha, ColorToComponents, LinearRgba};
 use bevy_image::Image;
 use bevy_material::AlphaMode;
-use bevy_math::{Vec3, Vec4};
+use bevy_math::{Vec2, Vec3, Vec4};
 use bevy_pbr::StandardMaterial;
 use bevy_platform::collections::{HashMap, HashSet};
 use bevy_render::{
@@ -48,8 +48,15 @@ pub struct GpuMaterial {
     // raea: StandardMaterial's uv_transform (columns x and y, then the translation), applied to the mesh's UVs before
     // its textures are read, as the raster passes do
     uv_transform_xy: Vec4,
-    uv_transform_t: Vec4,
+    uv_transform_t: Vec2,
+    // raea: StandardMaterial's diffuse_transmission, for a ray's light through a leaf or a curtain (brdf.wesl)
+    diffuse_transmission: f32,
+    // raea: MATERIAL_* below
+    flags: u32,
 }
+
+// raea: GpuMaterial's flags (bindings.wesl MATERIAL_*): StandardMaterial's double_sided, so a ray shades a back face
+pub const MATERIAL_DOUBLE_SIDED: u32 = 1;
 
 // raea: how a traced ray treats a material's alpha (bindings.wesl's alpha_accepts)
 pub const ALPHA_OPAQUE: u32 = 0;
@@ -241,7 +248,9 @@ impl AssetState {
                 alpha_mode,
                 alpha_cutoff,
                 uv_transform_xy: Vec4::new(uv.matrix2.x_axis.x, uv.matrix2.x_axis.y, uv.matrix2.y_axis.x, uv.matrix2.y_axis.y),
-                uv_transform_t: Vec4::new(uv.translation.x, uv.translation.y, 0.0, 0.0),
+                uv_transform_t: uv.translation,
+                diffuse_transmission: material.diffuse_transmission.clamp(0.0, 1.0),
+                flags: if material.double_sided { MATERIAL_DOUBLE_SIDED } else { 0 },
             },
         );
         // raea: a material that turns see-through (or back) moves its instances between the TLAS masks

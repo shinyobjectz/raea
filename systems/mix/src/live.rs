@@ -255,7 +255,7 @@ impl Live {
             }
         }
         let origin = self.origin.unwrap();
-        if std::env::var_os("RAEA_MIXER_TRACE").is_some() {
+        if raea_io_trace::stat("RAEA_MIXER_TRACE") {
             eprintln!("raea mixer: frame {f} lag {:.2} ms clock {clock} due {due} origin {origin} drift {:.3} ms", lag * 1e3, self.drift_ms.last().copied().unwrap_or(0.0));
         }
         // the sounds by index into the kept list, not cloned (ZeroHeap)

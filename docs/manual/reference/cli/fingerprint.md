@@ -1,7 +1,7 @@
 ---
 title: "raea fingerprint"
 summary: "A person's sense of good work, learned on this Mac: axes with small heads over on-device encoders that score a render moment by moment and say what they can't judge yet."
-order: 44
+order: 45
 sources: ["apps/fingerprint/src/lib.rs", "systems/fingerprint/src/taxonomy.rs", "systems/fingerprint-things/src/things.rs", "apps/double/src/lib.rs"]
 ---
 

@@ -109,7 +109,7 @@ impl VideoEncoder for Segmented {
         };
         let t = std::time::Instant::now();
         let frames = crate::join::join(&self.paths, sound.as_ref(), self.opts.fps, &self.out)?;
-        if std::env::var_os("RAEA_SEGMENTS_TRACE").is_some() {
+        if raea_io_trace::stat("RAEA_SEGMENTS_TRACE") {
             eprintln!("raea segments: {frames} frames in {} segments joined in {:.1} ms (cuts {:?})", self.paths.len(), t.elapsed().as_secs_f64() * 1e3, self.cuts.all());
         }
         let audio_codec = sound.map_or(String::new(), |s| if s.aac { "aac".into() } else { "opus".into() });

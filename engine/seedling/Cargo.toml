@@ -7,6 +7,7 @@ license = "MIT OR Apache-2.0"
 description = "bevy_seedling on raea's one mixer core: seedling's graph (sample players, pools, effects, raea's Tone effects and limiter registered as nodes) stepped a frame at a time beside the game, its sound a voice of the core, so a render and a play of a game sound the same, sample for sample (sdk/react/docs/audio-stack.md)"
 
 [dependencies]
+raea-io-trace = { path = "../../io/trace" }
 bevy = { version = "=0.20.0", default-features = false, features = ["std", "bevy_asset"] }
 # Bevy's audio on Firewheel 0.12 (MIT OR Apache-2.0). Default features off: no cpal 0.18 backend (it can't link beside
 # the cpal 0.15 react and the legacy app use) and no symphonia (raea decodes): raea's platform runs its processor

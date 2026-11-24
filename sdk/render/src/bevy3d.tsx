@@ -14,6 +14,8 @@ export type { EulerRot, TransformValue, TransformBuilt, Mesh3dProps, Projection,
 export { eulerOf };
 // ray-traced lighting: Bevy's Solari (docs/raytracing.feature RT3)
 export { SolariLighting, Pathtracer, type SolariLightingProps, type PathtracerProps } from "./bevy3d/raytracing";
+// constants in the engine's own shaders, set when the scene loads (docs/nobuild.feature NB1a)
+export { ShaderConstants, type ShaderConstantsProps, type ShaderConstantValue } from "./bevy3d/shaders";
 export { ConicalFrustum, type ConicalFrustumProps } from "./3d/shapes";
 // a Bevy texture (a camera's target) drawn in an element (B3 H7)
 export { TextureView } from "./layers";

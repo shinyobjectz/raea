@@ -168,7 +168,7 @@ pub fn bake(js: &Path) -> R<Baked> {
     for t in later {
         add(t.join().map_err(|_| "a bake worker panicked".to_string())??);
     }
-    if std::env::var_os("RAEA_BAKE_TRACE").is_some() {
+    if raea_io_trace::stat("RAEA_BAKE_TRACE") {
         eprintln!("raea bake: settings in {t_conf:.0} ms, {frames} frames in {:.0} ms on {} runtimes, {} flush waits timed out",
             t0.elapsed().as_secs_f64() * 1e3 - t_conf, ranges.len(), raea_runtime_react::FLUSH_TIMEOUTS.load(std::sync::atomic::Ordering::Relaxed) - timeouts0);
     }
@@ -230,7 +230,7 @@ pub fn step_frames_with(app: &mut App, a: i64, b: i64, answer: &mut raea_runtime
     });
     app.world_mut().remove_resource::<raea_runtime_react::Stepping>();
     stepped?;
-    if std::env::var_os("RAEA_BAKE_TRACE").is_some() {
+    if raea_io_trace::stat("RAEA_BAKE_TRACE") {
         let ms = |a: &std::sync::atomic::AtomicU64, z: u64| (ld(a) - z) as f64 / 1e6;
         eprintln!(
             "raea bake: frames {a}..{b} in {:.1} ms: waited on React {:.1} ms, applying {:.1} ms, JS {:.1} ms (those three across every runtime), recording {:.1} ms",
@@ -348,7 +348,7 @@ fn from_json(mut v: Value) -> R<Baked> {
 pub fn bake_incremental(old: &Baked, js: &Path) -> R<(Baked, i64)> {
     let code = code_of(js)?;
     let full = |why: &str| -> R<(Baked, i64)> {
-        if std::env::var_os("RAEA_BAKE_TRACE").is_some() {
+        if raea_io_trace::stat("RAEA_BAKE_TRACE") {
             eprintln!("raea bake: every frame again ({why})");
         }
         let b = bake(js)?;
@@ -371,7 +371,7 @@ pub fn bake_incremental(old: &Baked, js: &Path) -> R<(Baked, i64)> {
             continue;
         }
         if !hit.contains(whole) && !old.code.funcs.get(whole).is_some_and(|c| c.iter().any(|p| hit.contains(p))) {
-            if std::env::var_os("RAEA_BAKE_TRACE").is_some() {
+            if raea_io_trace::stat("RAEA_BAKE_TRACE") {
                 eprintln!("raea bake: function {whole:x} (inside {:x?}) changed; components changed {:x?}", old.code.funcs.get(whole), hit);
             }
             return full("a changed function isn't a component any frame rendered");
@@ -472,7 +472,7 @@ pub fn bake_incremental(old: &Baked, js: &Path) -> R<(Baked, i64)> {
             b.frame_ops[k as usize].push(Value::Array(key.1.clone()).to_string());
         }
     }
-    if std::env::var_os("RAEA_BAKE_TRACE").is_some() {
+    if raea_io_trace::stat("RAEA_BAKE_TRACE") {
         eprintln!("raea bake: {} runs, {stepped} frames on {} runtimes", runs.len(), pieces.len());
     }
     Ok((b, stepped))

@@ -47,6 +47,8 @@ mod world;
 pub use world::*;
 mod fields;
 pub use fields::*;
+mod choose;
+pub use choose::*;
 mod reflect;
 pub use reflect::*;
 pub mod character;
@@ -84,12 +86,21 @@ pub fn names() -> Vec<&'static str> {
 /// itself; WinitPlugin would make an event loop in every App, and winit allows one a process, so a process's second App
 /// panicked "Failed to build event loop: RecreationAttempt" (#182: Linux, a build cargo had unified bevy_winit into).
 /// It's compiled in on the desktop (Cargo.toml), so it's always here to leave out, however the build brought it.
-pub fn group(mut b: PluginGroupBuilder) -> PluginGroupBuilder {
+pub fn group(b: PluginGroupBuilder) -> PluginGroupBuilder {
+    group_of(b, None)
+}
+
+/// `group` for an Engine whose project chose its plugins (choose.rs): only the chosen ones' changes.
+pub fn group_chosen(b: PluginGroupBuilder, chosen: &Chosen) -> PluginGroupBuilder {
+    group_of(b, Some(chosen))
+}
+
+fn group_of(mut b: PluginGroupBuilder, chosen: Option<&Chosen>) -> PluginGroupBuilder {
     #[cfg(any(target_os = "linux", target_os = "macos", target_os = "windows"))]
     if b.contains::<bevy::winit::WinitPlugin>() {
         b = b.disable::<bevy::winit::WinitPlugin>();
     }
-    for r in PLUGINS.lock().unwrap().iter().filter(|r| !r.on_demand) {
+    for r in PLUGINS.lock().unwrap().iter().filter(|r| !r.on_demand && chosen.is_none_or(|c| c.adds(r.name))) {
         if let Some(g) = r.group {
             b = g(b);
         }
@@ -128,8 +139,8 @@ struct Keyed {
     last: i64,
 }
 
-/// Adds the registered plugins (all but the on-demand ones) and the frame clock, when there are any. An App without
-/// plugins is left as it was.
+/// Adds the registered plugins (all but the on-demand ones, and of the catalog's only those in the App's Chosen when it
+/// has one) and the frame clock, when there are any. An App without plugins is left as it was.
 pub fn install(app: &mut App, fps: f64) {
     // the keyboard's and mouse buttons' state as resources TypeScript can read and write (Bevy's InputPlugin adds
     // them without registering them for reflection; the gamepad's ButtonInput it registers itself)
@@ -151,7 +162,8 @@ pub fn install(app: &mut App, fps: f64) {
     // materials written in TypeScript (<ShaderMaterial>, shader_material.rs): the render Engine only
     shader_material::install(app);
     keyed(app);
-    let list: Vec<fn(&mut App)> = PLUGINS.lock().unwrap().iter().filter(|r| !r.on_demand).map(|r| r.install).collect();
+    let chosen = app.world().get_resource::<Chosen>().cloned();
+    let list: Vec<fn(&mut App)> = PLUGINS.lock().unwrap().iter().filter(|r| !r.on_demand && chosen.as_ref().is_none_or(|c| c.adds(r.name))).map(|r| r.install).collect();
     install_list(app, fps, list);
 }
 
@@ -274,7 +286,7 @@ pub fn arm(world: &mut World) {
     }
     let step = f == c.stepped + 1;
     c.advancing = step;
-    if std::env::var_os("RAEA_PLUGIN_TRACE").is_some() {
+    if raea_io_trace::stat("RAEA_PLUGIN_TRACE") {
         eprintln!("plugin clock: frame {f}, stepped {}, {}", c.stepped, if step { "step" } else { "hold" });
     }
     let dt = if step {

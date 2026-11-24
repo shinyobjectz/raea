@@ -39,6 +39,7 @@ import bevy_pbr::render::mesh_view_types::POINT_LIGHT_FLAGS_SPOT_LIGHT_Y_NEGATIV
 import bevy_pbr::render::view_transformations::frag_coord_to_ndc;
 import bevy_pbr::render::view_transformations::position_ndc_to_view;
 import bevy_render::maths::orthonormalize;
+import raea_sys_fog::froxel_volume::{Volume, volume_weight, henyey_greenstein, volume_depth};
 
 struct Params {
     view_from_clip: mat4x4<f32>,
@@ -57,13 +58,6 @@ struct Params {
     hero_along: vec4<u32>,
 }
 
-struct Volume {
-    local_from_world: mat4x4<f32>,
-    scatter: vec4<f32>,
-    ambient: vec4<f32>,
-    shape: vec4<f32>,
-}
-
 @group(1) @binding(0) var<uniform> params: Params;
 @group(1) @binding(1) var<storage, read> volumes: array<Volume>;
 @group(1) @binding(2) var grid: texture_3d<f32>;
@@ -80,7 +74,6 @@ struct Volume {
 @group(1) @binding(8) var blocks256: texture_2d_array<f32>;
 @group(1) @binding(9) var nearest: sampler;
 
-const FRAC_4_PI: f32 = 0.07957747154594767;
 const NONE: u32 = 0xffffffffu;
 // fog volumes whose sides cut the ray (more are still lit, their sides just aren't cut at)
 const CUT_VOLUMES: u32 = 16u;
@@ -207,29 +200,36 @@ fn transmittance(ray: Ray, depth: f32) -> f32 {
 
 // ---- the integrand ----
 
-fn henyey_greenstein(g: f32, c: f32) -> f32 {
-    let denom = 1.0 + g * g - 2.0 * g * c;
-    return FRAC_4_PI * (1.0 - g * g) / (denom * sqrt(denom));
-}
-
 // the light scattered toward the eye per metre at a point (per unit of the light's colour, before the light's own
-// falloff), summed over the volumes holding it
+// falloff), summed over the volumes holding it, and dimmed by the fog on the light's way there (volume_depth)
 fn medium(hero: Hero, p: vec3<f32>) -> vec3<f32> {
     var k = vec3(0.0);
+    var depth = 0.0;
+    var dir = hero.axis;
+    var reach = 3.4e38;
+    if (hero.kind == 0u) {
+        reach = length(hero.position - p);
+        dir = (hero.position - p) / max(reach, 1e-6);
+    }
     for (var v = 0u; v < params.counts.x; v += 1u) {
         let vol = &volumes[v];
         let local = ((*vol).local_from_world * vec4(p, 1.0)).xyz;
-        if (any(abs(local) > vec3(0.5))) {
+        let w = volume_weight((*vol).shape, local);
+        if (w <= 0.0) {
             continue;
         }
-        let w = exp(-(*vol).shape.x * (local.y + 0.5) * (*vol).shape.y);
         var phase = 1.0;
         if (hero.kind == 1u) {
             phase = henyey_greenstein((*vol).ambient.a, hero.cos_view);
         }
         k += (*vol).scatter.rgb * w * phase;
     }
-    return k;
+    if (any(k > vec3(0.0))) {
+        for (var v = 0u; v < params.counts.x; v += 1u) {
+            depth += volume_depth(volumes[v], p, dir, reach);
+        }
+    }
+    return k * exp(-depth);
 }
 
 // a spot's cone at a point (Bevy's: the cosine off its axis, scaled and offset, squared)

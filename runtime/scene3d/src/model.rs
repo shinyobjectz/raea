@@ -345,7 +345,7 @@ pub fn await_models(app: &mut App) -> Result<(), String> {
     // the cameras off while models load, so the draws are binned once, whole (#48): raea-sys-post's views.rs
     let mut off: Option<Vec<Entity>> = None;
     // RAEA_MODELS_TRACE=1: each wait that ran an update says how many and for which models (a render's frame time)
-    let trace = std::env::var("RAEA_MODELS_TRACE").as_deref() == Ok("1");
+    let trace = raea_io_trace::stat("RAEA_MODELS_TRACE");
     let mut pumped = 0usize;
     loop {
         let world = app.world_mut();

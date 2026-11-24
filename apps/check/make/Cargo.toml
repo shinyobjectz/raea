@@ -1,0 +1,16 @@
+[package]
+name = "raea-app-check-make"
+version = "0.1.0"
+edition = "2024"
+license = "FSL-1.1-ALv2"
+publish = false
+description = "`raea hook`'s Stop gate for a `make` job (docs/make.feature MK2): an agent can't end its turn until `raea make status` says the job is done"
+
+[dependencies]
+serde_json = "1"
+# brief.ts found as raea finds a project (plain paths on Windows)
+dunce = "1"
+# the project's folder (record.rs `up`)
+raea-core-facts = { path = "../../../core/facts" }
+# the guard's counts, under the home folder
+raea-io-home = { path = "../../../io/home" }

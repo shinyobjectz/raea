@@ -10,6 +10,7 @@ description = "Sound through ONNX models: a song's beats and energy map, stems, 
 denoise = ["dep:deep_filter", "dep:ndarray"]
 
 [dependencies]
+raea-io-trace = { path = "../../io/trace" }
 # frames come from the media plane (VideoToolbox on Apple, ffmpeg or the software decoders elsewhere)
 raea-io-media = { path = "../../io/media", default-features = false, features = ["apple"] }
 raea-sys-vision = { path = "../vision" }

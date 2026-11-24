@@ -271,7 +271,7 @@ impl Live {
             if let Some(ls) = self.live3d.as_mut() {
                 let t = std::time::Instant::now();
                 raea_runtime_export::live_scene(self.app.world_mut(), ls, &mut self.scene, (self.w, self.h), self.fps, &self.dir)?;
-                if std::env::var_os("RAEA_LIVE_TRACE").is_some() && t.elapsed().as_secs_f64() > 0.002 {
+                if raea_io_trace::stat("RAEA_LIVE_TRACE") && t.elapsed().as_secs_f64() > 0.002 {
                     eprintln!("raea live: frame {f}: its 3D rows {:.1} ms", t.elapsed().as_secs_f64() * 1e3);
                 }
             }
@@ -281,7 +281,7 @@ impl Live {
         if sound {
             self.sound(f);
         }
-        if std::env::var_os("RAEA_LIVE_TRACE").is_some() && t0.elapsed().as_secs_f64() > 0.02 {
+        if raea_io_trace::stat("RAEA_LIVE_TRACE") && t0.elapsed().as_secs_f64() > 0.02 {
             eprintln!("raea live: frame {f}: settle {:.1} ms, sound {:.1} ms", (t1 - t0).as_secs_f64() * 1e3, t1.elapsed().as_secs_f64() * 1e3);
         }
         Ok(())
@@ -370,7 +370,7 @@ fn sound_key(js: &Path, dir: &Path) -> u64 {
     }
     let bundle = twox_hash::XxHash3_64::oneshot(&h);
     walk(dir, &mut h, 0);
-    if std::env::var_os("RAEA_SOUND_TRACE").is_some() {
+    if raea_io_trace::stat("RAEA_SOUND_TRACE") {
         eprintln!("raea live: sound key: bundle {bundle:016x} ({} bytes), with the project {:016x}", std::fs::metadata(js).map(|m| m.len()).unwrap_or(0), twox_hash::XxHash3_64::oneshot(&h));
     }
     twox_hash::XxHash3_64::oneshot(&h)

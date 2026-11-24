@@ -7,6 +7,9 @@ pub struct Shot<'a> {
     pub clear: Option<&'a str>,
 }
 
+/// The kinds whose rows are known by their part's identity, not their place in the frame (SG2)
+const BY_IDENTITY: [&str; 12] = ["light", "mesh", "model", "panel", "decal", "text", "plate", "fogvolume", "fire", "grass", "splat", "meshseq"];
+
 /// A live game's 3D (live.rs): its rows made frame by frame from that frame's own scene, as play computed it, instead
 /// of from a scripted run stepped ahead (scene_program). Parts are matched across frames by the identity `tracks`
 /// gives them (a name, else kind and shape counted in tree order), so a part keeps its row as a render's does. The
@@ -20,8 +23,10 @@ pub struct LiveScene {
     /// per row id: its kind, its first values, what was last sent, whether its colour has changed (a render keys
     /// col_r/g/b on every frame once it does), and the frames it has been missing
     pub(crate) rows: std::collections::HashMap<String, LiveRow>,
-    /// rows made per group (lights, meshes, models, panels, decals): the next one's number
-    pub(crate) made: [usize; 5],
+    /// rows made per kind of BY_IDENTITY: the next one's number
+    pub(crate) made: [usize; 12],
+    /// row id -> a part's kept inputs this frame (not a light's), for its row (the fast path's SG1 guard)
+    pub(crate) kept_now: std::collections::HashMap<String, KeptInputs>,
     pub(crate) cam: BTreeMap<String, V>,
     /// frame 0 was stepped when play opened (live.rs), and nothing since
     pub warm: bool,
@@ -42,42 +47,7 @@ pub(crate) struct LiveRow {
     pub(crate) missing: u32,
     /// seen this frame (frame_fast's mark)
     pub(crate) seen: bool,
-}
-
-/// A row missing this many frames is dropped from the engine (its entity, mesh and surface freed) and forgotten: a game
-/// that spawns entities with fresh names (`rock-${id}`) would otherwise keep every one it ever made, hidden. Coming back
-/// later, it's a new row with the same values, so nothing drawn changes.
-pub(crate) const LIVE_FORGET: u32 = 240;
-
-/// The kinds a live frame keys column by column (live_dynamic); every other kind is diffed whole.
-pub const LIVE_GROUPS: [&str; 5] = ["light", "mesh", "model", "panel", "decal"];
-
-/// A <Model animations>'s keyed columns (its clips' times and weights) and a <Model morphs>'s (its targets' weights).
-pub(crate) const MIX_COLS: [(&str, &str); 4] = [("mix0_t", "mix0_w"), ("mix1_t", "mix1_w"), ("mix2_t", "mix2_w"), ("mix3_t", "mix3_w")];
-pub(crate) const GRAPH_COLS: [[&str; 2]; 16] = [["g0_w", "g0_t"], ["g1_w", "g1_t"], ["g2_w", "g2_t"], ["g3_w", "g3_t"], ["g4_w", "g4_t"], ["g5_w", "g5_t"], ["g6_w", "g6_t"], ["g7_w", "g7_t"], ["g8_w", "g8_t"], ["g9_w", "g9_t"], ["g10_w", "g10_t"], ["g11_w", "g11_t"], ["g12_w", "g12_t"], ["g13_w", "g13_t"], ["g14_w", "g14_t"], ["g15_w", "g15_t"]];
-/// Up to 64 morph weights a model (Bevy takes 256; a MakeHuman face has 34 expression units).
-pub(crate) const MORPH_COLS: [&str; 64] = ["morph0", "morph1", "morph2", "morph3", "morph4", "morph5", "morph6", "morph7", "morph8", "morph9", "morph10", "morph11", "morph12", "morph13", "morph14", "morph15", "morph16", "morph17", "morph18", "morph19", "morph20", "morph21", "morph22", "morph23", "morph24", "morph25", "morph26", "morph27", "morph28", "morph29", "morph30", "morph31", "morph32", "morph33", "morph34", "morph35", "morph36", "morph37", "morph38", "morph39", "morph40", "morph41", "morph42", "morph43", "morph44", "morph45", "morph46", "morph47", "morph48", "morph49", "morph50", "morph51", "morph52", "morph53", "morph54", "morph55", "morph56", "morph57", "morph58", "morph59", "morph60", "morph61", "morph62", "morph63"];
-
-/// The columns a frame may change, per kind (what `rows_into` and `camera` key); everything else is the first frame's.
-pub fn live_dynamic(kind: &str) -> &'static [&'static str] {
-    match kind {
-        "light" => &["lux", "lumens", "x", "y", "z", "dir_x", "dir_y", "dir_z", "rot_qx", "rot_qy", "rot_qz", "rot_qw", "inner", "outer", "frame_sets", "frame_set_i"],
-        "mesh" => &["x", "y", "z", "q_x", "q_y", "q_z", "q_w", "scale_x", "scale_y", "scale_z", "visible", "col_r", "col_g", "col_b", "rough", "metal", "emissive_k", "opacity", "sh_r", "sh_g", "sh_b", "rim_k", "spec_k", "outline_w", "pass", "inst"],
-        "model" => &["x", "y", "z", "q_x", "q_y", "q_z", "q_w", "scale_x", "scale_y", "scale_z", "visible", "anim_t", "mix0_t", "mix0_w", "mix1_t", "mix1_w", "mix2_t", "mix2_w", "mix3_t", "mix3_w", "morph0", "morph1", "morph2", "morph3", "morph4", "morph5", "morph6", "morph7", "morph8", "morph9", "morph10", "morph11", "morph12", "morph13", "morph14", "morph15", "morph16", "morph17", "morph18", "morph19", "morph20", "morph21", "morph22", "morph23", "morph24", "morph25", "morph26", "morph27", "morph28", "morph29", "morph30", "morph31", "morph32", "morph33", "morph34", "morph35", "morph36", "morph37", "morph38", "morph39", "morph40", "morph41", "morph42", "morph43", "morph44", "morph45", "morph46", "morph47", "morph48", "morph49", "morph50", "morph51", "morph52", "morph53", "morph54", "morph55", "morph56", "morph57", "morph58", "morph59", "morph60", "morph61", "morph62", "morph63", "g0_w", "g0_t", "g1_w", "g1_t", "g2_w", "g2_t", "g3_w", "g3_t", "g4_w", "g4_t", "g5_w", "g5_t", "g6_w", "g6_t", "g7_w", "g7_t", "g8_w", "g8_t", "g9_w", "g9_t", "g10_w", "g10_t", "g11_w", "g11_t", "g12_w", "g12_t", "g13_w", "g13_t", "g14_w", "g14_t", "g15_w", "g15_t", "look", "glitch_explode", "glitch_scramble", "glitch_jitter", "glitch_snap", "glitch_smear_x", "glitch_smear_y", "glitch_smear_z", "glitch_seed", "cloth_frame", "screen_power", "pass", "inst"],
-        "panel" => &["x", "y", "z", "q_x", "q_y", "q_z", "q_w", "scale_x", "scale_y", "scale_z", "visible", "screen_power", "screen_bright", "pass", "sheet_frame", "sheet_cols", "sheet_rows", "src"],
-        "decal" => &["x", "y", "z", "q_x", "q_y", "q_z", "q_w", "scale_x", "scale_y", "scale_z", "visible", "col_r", "col_g", "col_b", "opacity", "rough", "metal"],
-        _ => &[],
-    }
-}
-
-/// A camera column a render keys when it changes (raea-runtime-look camera.rs), which a live frame sends when it does:
-/// its place and look, lens, roll (up_*), view window, ambient, sky and environment, aberration, depth of field, motion
-/// blur, the paint look and its parts' rotations (*_qx..qw). The rest is the first frame's, as a render's is.
-pub fn cam_keyed(k: &str) -> bool {
-    // paint_cut: the paint look's worlds, each cut's centre, radius and style moving frame by frame (raea-runtime-look paint_cut_rows)
-    ["lens_", "mb_", "up_", "view_", "paint_cut"].iter().any(|p| k.starts_with(p))
-        || ["_qx", "_qy", "_qz", "_qw"].iter().any(|q| k.ends_with(q))
-        || matches!(k, "x" | "y" | "z" | "look_x" | "look_y" | "look_z" | "fov" | "focus" | "ortho" | "ambient" | "skybox_k" | "env_srcs" | "env_i" | "env_k" | "env_rot" | "sky_k" | "aberration" | "dof_aperture" | "paint_bands" | "paint_grain" | "paint_rag" | "paint_seed")
+    pub(crate) kept: Option<KeptInputs>,
 }
 
 impl LiveScene {
@@ -144,6 +114,7 @@ impl LiveScene {
     pub(crate) fn current(&mut self, f: Shot) -> (BTreeMap<String, V>, Vec<(String, String, BTreeMap<String, V>)>) {
         let all = vec![items_of(f.scene)];
         self.light_sig = scene_sig(&all[0]);
+        self.kept_now.clear();
         // the camera's own spawns (its fog, sky...) in the frame's program with the rest
         let mut p = Program::default();
         let cam = self.camera_row(&all, f.clear, &mut p);
@@ -161,28 +132,24 @@ impl LiveScene {
             let kind = track[0].as_ref().map(|i| i.kind).unwrap_or("directional");
             local.insert(if kind == "directional" { format!("sun{li}") } else { format!("{kind}{li}") }, key);
         }
-        for (prefix, group) in [("mesh", &tr.meshes), ("model", &tr.models), ("plane", &tr.panels), ("decal", &tr.decals)] {
+        // a text block too (SG2: by its frame's place, a block mounted as another went took that one's row and words), and
+        // footage, splats, sequences, fog, fires and grass (a plate mounted as another went kept the other's clip)
+        for (prefix, group) in [("mesh", &tr.meshes), ("model", &tr.models), ("plane", &tr.panels), ("decal", &tr.decals), ("text", &tr.texts), ("plate", &tr.plates), ("fog", &tr.fogs), ("fire", &tr.fires), ("grass", &tr.grasses), ("splat", &tr.splats), ("meshseq", &tr.meshseqs)] {
             for (k, (key, _)) in group.iter().enumerate() {
                 local.insert(format!("{prefix}{k}"), key);
             }
         }
         let mut out = Vec::new();
-        // the other kinds (bare entities, Bevy components and resources, fires, fog volumes, splats, plates...): by
-        // the ids a render gives them, a component's target as the live rows name it (G15)
+        // the other kinds (bare entities, Bevy components and resources, sprites, 2D shapes...): by the ids a render
+        // gives them, a component's target as the live rows name it (G15)
         let mut others: Vec<(String, BTreeMap<String, V>)> = Vec::new();
         let mut live_id: std::collections::HashMap<String, String> = std::collections::HashMap::new();
         for (kind, rows) in p.spawns {
-            let group = match kind.as_str() {
-                "light" => 0,
-                "mesh" => 1,
-                "model" => 2,
-                "panel" => 3,
-                "decal" => 4,
-                "camera" => continue,
-                _ => {
+            let Some(group) = BY_IDENTITY.iter().position(|g| *g == kind) else {
+                if kind != "camera" {
                     others.extend(rows.into_iter().map(|r| (kind.clone(), r)));
-                    continue;
                 }
+                continue;
             };
             for mut row in rows {
                 let Some(V::S(lid)) = row.get("id").cloned() else { continue };
@@ -198,6 +165,9 @@ impl LiveScene {
                     }
                 };
                 live_id.insert(lid.clone(), id.clone());
+                if let Some(it) = [("mesh", &tr.meshes), ("model", &tr.models), ("plane", &tr.panels), ("decal", &tr.decals)].into_iter().find_map(|(p, g)| g.get(lid.strip_prefix(p)?.parse::<usize>().ok()?)?.1[0].as_ref()) {
+                    self.kept_now.insert(id.clone(), KeptInputs::of(it));
+                }
                 row.insert("id".into(), V::S(id.clone()));
                 // a light's colour, shadows and shafts as a table, so a frame's replaces the last whole (as_table)
                 if kind == "light" {
@@ -222,7 +192,7 @@ impl LiveScene {
         for (kind, mut row) in others {
             let Some(V::S(mut id)) = row.get("id").cloned() else { continue };
             if let Some(V::S(t)) = row.get("target").cloned() {
-                let Some(to) = (if t.starts_with("ent") || t.starts_with("text") || t == "cam" || kept.contains(&t) { Some(t.clone()) } else { live_id.get(&t).cloned() }) else { continue };
+                let Some(to) = (if t.starts_with("ent") || t == "cam" || kept.contains(&t) { Some(t.clone()) } else { live_id.get(&t).cloned() }) else { continue };
                 id = id.replacen(&t, &to, 1);
                 row.insert("id".into(), V::S(id.clone()));
                 row.insert("target".into(), V::S(to));
@@ -243,7 +213,8 @@ impl LiveScene {
         p.spawns.push(("camera".into(), std::iter::once(cam).chain(more).collect()));
         for (kind, id, row) in rows {
             let first = row.clone();
-            self.rows.insert(id, LiveRow { kind: kind.clone(), first, sent: row.clone(), recoloured: false, missing: 0, seen: false });
+            let kept = self.kept_now.remove(&id);
+            self.rows.insert(id, LiveRow { kind: kind.clone(), first, sent: row.clone(), recoloured: false, missing: 0, seen: false, kept });
             p.spawns.push((kind, vec![row]));
         }
         p
@@ -282,15 +253,23 @@ impl LiveScene {
         // the camera: whatever of it a render keys, and the ambient light (0 once there's none)
         out.extend(Self::camera_diff(&mut self.cam, &cam));
         let mut seen: std::collections::HashSet<String> = std::collections::HashSet::new();
+        let mut dropped = Vec::new();
         for (kind, id, row) in rows {
             seen.insert(id.clone());
+            // a kept column changed (its shape, its words, a map): dropped with the rows under it and spawned again with
+            // this frame's values, which the engine would otherwise never read (SG1)
+            if self.rows.get(&id).is_some_and(|r| respawns(&kind, &r.first, &row)) {
+                self.drop_with_under(&id, &mut dropped);
+            }
+            let kept = self.kept_now.remove(&id);
             let Some(r) = self.rows.get_mut(&id) else {
                 // first seen: its whole row, spawned with these values
-                self.rows.insert(id.clone(), LiveRow { kind: kind.clone(), first: row.clone(), sent: row.clone(), recoloured: false, missing: 0, seen: false });
+                self.rows.insert(id.clone(), LiveRow { kind: kind.clone(), first: row.clone(), sent: row.clone(), recoloured: false, missing: 0, seen: false, kept });
                 out.push(raea_core_program::eval::Tup { kind, id, vals: row.into_iter().filter(|(k, _)| k != "id").collect() });
                 continue;
             };
             r.missing = 0;
+            r.kept = kept;
             let mut want: BTreeMap<String, V> = BTreeMap::new();
             if !LIVE_GROUPS.contains(&kind.as_str()) {
                 // a kind the groups don't key column by column: every column it has, sent when it changes
@@ -303,7 +282,8 @@ impl LiveScene {
                     want.insert(k.to_string(), v.clone());
                 }
             }
-            if kind == "mesh" {
+            // a glyph's too: its `color` is read only at spawn
+            if matches!(kind.as_str(), "mesh" | "glyph") {
                 // a colour other than its first: keyed from now on, as a render keys it once a part's colour changes
                 if row.get("color") != r.first.get("color") {
                     r.recoloured = true;
@@ -316,6 +296,8 @@ impl LiveScene {
                         }
                     }
                 }
+            }
+            if kind == "mesh" {
                 // the emissive colour the frame it differs from what was sent (none is black), with its strength (0 once black:
                 // #106, a video kept the first frame's); else the strength only where the sent colour glows (a render's column)
                 let black = || V::S("#000000".into());
@@ -376,12 +358,25 @@ impl LiveScene {
                 out.push(raea_core_program::eval::Tup { kind: r.kind.clone(), id: id.clone(), vals });
             }
         }
+        // the rows under another first (a glyph, a component): a block's entity takes its glyphs' with it (SG4)
+        gone.sort_by_key(|(_, id)| !self.rows.get(id).is_some_and(|r| r.first.contains_key("target")));
         for (_, id) in &gone {
             self.rows.remove(id);
             self.ids.retain(|_, v| v != id);
             self.panel_srcs.retain(|k, _| self.ids.contains_key(k));
         }
-        (out, gone)
+        dropped.extend(gone);
+        (out, dropped)
+    }
+
+    /// A row dropped with the rows under it (its glyphs, its components), those under it first (SG4)
+    fn drop_with_under(&mut self, id: &str, gone: &mut Vec<(String, String)>) {
+        let under: Vec<String> = self.rows.iter().filter(|(_, r)| matches!(r.first.get("target"), Some(V::S(t)) if t == id)).map(|(u, _)| u.clone()).collect();
+        for u in under.iter().map(String::as_str).chain([id]) {
+            if let Some(r) = self.rows.remove(u) {
+                gone.push((r.kind, u.to_string()));
+            }
+        }
     }
 }
 

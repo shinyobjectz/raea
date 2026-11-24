@@ -97,3 +97,29 @@ fn an_older_brief_with_stages_still_reads_and_never_writes_them() {
     assert!(!serde_json::to_string(&b).unwrap().contains("stages"));
     assert!(!declarations().contains("stages"), "the schema an agent writes has no stages (docs/plan.feature PL8a)");
 }
+
+#[test]
+fn a_make_plan_reads_and_its_doctor_names_what_it_lacks() {
+    let b: Brief = read("brief.ts", r#"{"title": "Flight desk kit", "make": {"kind": "kit",
+        "dials": {"count": 2, "wear": {"value": 0.4, "source": "customer", "means": "scuffed bakelite"}, "time_of_day": "night"},
+        "objects": [{"id": "phone", "label": "Rotary phone", "h": 0.12, "prompt": "a rotary desk phone", "source": "invented"},
+                    {"id": "ashtray", "label": "Glass ashtray"}]}}"#).unwrap();
+    let m = b.make.as_ref().unwrap();
+    assert_eq!(m.kind, make::Kind::Kit);
+    let d = make::doctor(m);
+    assert!(d.iter().any(|x| x.contains("`time_of_day`")), "a scene's dial on a kit: {d:?}");
+    assert!(d.iter().any(|x| x.contains("no `style`")), "{d:?}");
+    assert!(d.iter().any(|x| x.contains("`ashtray` has no size")), "{d:?}");
+    assert!(d.iter().any(|x| x.contains("`ashtray` is generated but has no prompt")), "{d:?}");
+    assert!(!d.iter().any(|x| x.contains("`phone`")), "{d:?}");
+    assert!(brief::doctor(&b).iter().any(|x| x.starts_with("make: ")));
+    let want = make::deliverables(m);
+    assert!(want.contains(&"out/kit/phone/phone_lod1.glb".to_string()) && want.contains(&"out/kit/kit.json".to_string()), "{want:?}");
+}
+
+#[test]
+fn a_shot_plan_wants_a_still_or_a_move_per_shot() {
+    let m: make::Make = read("make", r#"{"kind": "shot", "shots": [{"name": "counter_push", "move": "push_in"}, {"name": "Bad Name"}]}"#).unwrap();
+    assert_eq!(make::deliverables(&m)[0], "out/shots/counter_push.png|out/shots/counter_push.mp4");
+    assert!(make::doctor(&m).iter().any(|x| x.contains("`Bad Name`")));
+}

@@ -3,8 +3,9 @@
 // Mac, Windows or Linux (#169: on Windows `raea show` never found the running app, since it asked `kill`, and said it
 // had opened the files "in the Mac's own viewer", which it hadn't).
 import { spawnSync } from "node:child_process";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { homedir } from "node:os";
+import { type Despite, held } from "./held";
 import { HARNESSES } from "./show";
 
 /** What these verbs ask of the computer they run on (a test gives its own: conformance/app.test.ts). */
@@ -13,6 +14,8 @@ export interface Here {
   run: (cmd: string, args: string[]) => { status: number | null; stdout: string };
   exists: (path: string) => boolean;
   read: (path: string) => string;
+  /** a folder's names: the project's record, which a show reads first (held.ts) */
+  list?: (dir: string) => string[];
   env: Record<string, string | undefined>;
   home: string;
 }
@@ -25,6 +28,7 @@ export const HERE: Here = {
   },
   exists: existsSync,
   read: (p) => readFileSync(p, "utf8"),
+  list: (d) => readdirSync(d),
   env: process.env,
   home: homedir(),
 };
@@ -115,6 +119,9 @@ function postHost(at: string, route: string, a: Record<string, unknown>): any {
  *  just started (on a Mac or Linux: Windows' app has no raea:// link, so there the post lands as its notice); otherwise
  *  the page finds it and says so. Without the app, the files open in the system's own viewer. */
 export function show(a: Record<string, unknown>, h: Here = HERE): unknown {
+  // a render that still holds an error isn't shown, here or in a viewer (held.ts, docs/stage-guards.feature SG15)
+  const refused = held((a.files as string[]) ?? [], String(a.cwd ?? ""), (a.despite as Despite[]) ?? [], h);
+  if (refused) throw new Error(refused);
   let at = appHost(h);
   let launched = false;
   if (!at) {

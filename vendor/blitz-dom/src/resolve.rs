@@ -35,6 +35,20 @@ use crate::{
 };
 
 impl BaseDocument {
+    /// raea: the CSS animations of node `node` (and of its ::before and ::after) begun `by` seconds later than the
+    /// resolve that started them. A page that meets several elements at once, each of which began at its own time (a
+    /// frame rendered alone: the composition's start, a <Sequence>'s), resolves them all at the earliest and moves each
+    /// later one's animations to its own start.
+    pub fn delay_animations(&mut self, node: NodeId, by: f64) {
+        let mut sets = self.animations.sets.write();
+        for (_, set) in sets.iter_mut().filter(|(key, _)| NodeId::from_u64(key.node.id() as u64) == node) {
+            for animation in set.animations.iter_mut() {
+                animation.started_at += by;
+            }
+            set.dirty = true;
+        }
+    }
+
     /// Restyle the tree and then relayout it
     pub fn resolve(&mut self, current_time_for_animations: f64) {
         if TDocument::as_node(&self.root_node())

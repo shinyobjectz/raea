@@ -20,7 +20,7 @@ use crate::JsEngine;
 /// RAEA_INSPECT is on (set and not "0"): the heap log, and on JavaScriptCore the context listed in Safari's Develop
 /// menu for its Web Inspector.
 pub fn inspect() -> bool {
-    !matches!(std::env::var("RAEA_INSPECT").as_deref(), Err(_) | Ok("" | "0"))
+    !matches!(raea_io_trace::stat_value("RAEA_INSPECT").as_deref(), None | Some("" | "0"))
 }
 
 pub struct Upkeep {

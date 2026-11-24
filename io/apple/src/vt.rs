@@ -28,7 +28,8 @@ pub(crate) struct VtState {
     pub(crate) max_inflight: usize,
     pub(crate) kept: usize,
     pub(crate) discard: bool,
-    pub(crate) frames: Vec<Option<(Vec<u8>, bool)>>,
+    /// each frame's sample on disk as it comes out, not in memory (SG4a: a 7-minute film's 1 GB)
+    pub(crate) samples: Option<raea_io_codec::samples::Samples>,
     /// SPS and PPS, Annex B, from the first sample's format description
     pub(crate) params: Option<Vec<u8>>,
     pub(crate) err: Option<String>,
@@ -127,12 +128,12 @@ pub(crate) unsafe fn vt_output_pooled(refcon: *mut std::ffi::c_void, frame: *mut
     })();
     match got {
         Ok(f) => {
-            if st.frames.len() <= idx {
-                st.frames.resize(idx + 1, None);
-            }
-            st.kept += f.0.len();
             // RAEA_VT_DISCARD (diagnostics): drop the samples, to tell our storage from the encoder's
-            st.frames[idx] = Some(if st.discard { (Vec::new(), f.1) } else { f });
+            let data: &[u8] = if st.discard { &[] } else { &f.0 };
+            st.kept += data.len();
+            if let Some(Err(e)) = st.samples.as_mut().map(|s| s.put(idx, data, f.1)) {
+                st.err = Some(format!("VideoToolbox: {e}"));
+            }
         }
         Err(e) => st.err = Some(e),
     }
@@ -145,7 +146,7 @@ impl VtEncoder {
     pub(crate) fn new(out: &Path, o: &EncodeOpts, hevc10: bool) -> R<VtEncoder> {
         use objc2_core_foundation::{CFBoolean, CFDictionary, CFNumber, CFType};
         use objc2_video_toolbox::*;
-        let shared = Box::new(VtShared { st: std::sync::Mutex::new(VtState { inflight: 0, max_inflight: 0, kept: 0, discard: std::env::var_os("RAEA_VT_DISCARD").is_some(), frames: Vec::new(), params: None, err: None }), cv: std::sync::Condvar::new(), hevc: hevc10 });
+        let shared = Box::new(VtShared { st: std::sync::Mutex::new(VtState { inflight: 0, max_inflight: 0, kept: 0, discard: std::env::var_os("RAEA_VT_DISCARD").is_some(), samples: Some(raea_io_codec::samples::Samples::new()?), params: None, err: None }), cv: std::sync::Condvar::new(), hevc: hevc10 });
         unsafe {
             let fmt = CFNumber::new_i32(if hevc10 {
                 kCVPixelFormatType_420YpCbCr10BiPlanarVideoRange
@@ -215,7 +216,7 @@ impl VtEncoder {
                 None => o.realtime,
             };
             set(kVTCompressionPropertyKey_RealTime, CFBoolean::new(realtime))?;
-            if std::env::var_os("RAEA_MEM_MARKS").is_some() {
+            if raea_io_trace::stat("RAEA_MEM_MARKS") {
                 eprintln!("vt_mark session realtime {realtime}");
             }
             set(kVTCompressionPropertyKey_ProfileLevel, if hevc10 { kVTProfileLevel_HEVC_Main10_AutoLevel } else { kVTProfileLevel_H264_High_AutoLevel })?;
@@ -285,7 +286,7 @@ impl VtEncoder {
             }
             st.inflight += 1;
             st.max_inflight = st.max_inflight.max(st.inflight);
-            if std::env::var_os("RAEA_MEM_MARKS").is_some() && self.n % 25 == 0 {
+            if raea_io_trace::stat("RAEA_MEM_MARKS") && self.n % 25 == 0 {
                 eprintln!("vt_mark frame {} in_flight {} max_in_flight {} kept_bytes {}", self.n, st.inflight, st.max_inflight, st.kept);
             }
         }
@@ -402,7 +403,7 @@ impl VideoEncoder for VtEncoder {
         })
     }
     fn finish(self: Box<Self>, audio: Option<&Audio>) -> R<EncodeStats> {
-        if std::env::var_os("RAEA_ENC_TRACE").is_some() && self.n > 0 {
+        if raea_io_trace::stat("RAEA_ENC_TRACE") && self.n > 0 {
             let ms = |i: usize| VT_PUSH_NS[i].load(std::sync::atomic::Ordering::Relaxed) as f64 / 1e6 / self.n as f64;
             eprintln!("raea encode: {} frames, a frame's submit: waiting for room and a buffer {:.3} ms, the copy into it {:.3} ms, encode_frame {:.3} ms (max in flight {})", self.n, ms(0), ms(1), ms(2), self.cap);
         }
@@ -428,32 +429,38 @@ impl VideoEncoder for VtEncoder {
         if let Some(e) = st.err.take() {
             return Err(e);
         }
-        let frames: Vec<(Vec<u8>, bool)> = std::mem::take(&mut st.frames).into_iter().enumerate().map(|(i, f)| f.ok_or(format!("VideoToolbox: frame {i} never came out"))).collect::<R<_>>()?;
+        // each frame's sample on disk (samples::Samples), read back one at a time as the mux asks
+        let frames = st.samples.take().ok_or("VideoToolbox: finished twice")?;
+        if let Some(i) = frames.missing() {
+            return Err(format!("VideoToolbox: frame {i} never came out"));
+        }
         if frames.len() != self.n as usize {
             return Err(format!("VideoToolbox: {} of {} frames came out", frames.len(), self.n));
         }
-        if std::env::var_os("RAEA_MEM_MARKS").is_some() {
+        if raea_io_trace::stat("RAEA_MEM_MARKS") {
             eprintln!("vt_mark finish frames {} max_in_flight {} kept_bytes {}", frames.len(), st.max_inflight, st.kept);
         }
         if st.discard {
             return Ok(EncodeStats { frames: frames.len(), bytes: 0, video_codec: "h264 (VideoToolbox, discarded)".into(), audio_codec: String::new() });
         }
+        let n = frames.len();
+        let mut read = frames.reader()?;
         let codec = if self.hevc10 { muxide::api::VideoCodec::H265 } else { muxide::api::VideoCodec::H264 };
         let audio_codec = match audio {
             Some(a) => {
                 let m4a = self.out.with_extension("aac.m4a");
                 write_aac(&m4a, a)?;
-                raea_io_codec::remux::annexb_mux(codec, &frames, self.opts.width, self.opts.height, self.opts.fps, Some(&m4a), &self.out)?;
+                raea_io_codec::remux::annexb_mux_from(codec, n, &mut read, self.opts.width, self.opts.height, self.opts.fps, Some(&m4a), &self.out)?;
                 let _ = std::fs::remove_file(&m4a);
                 "aac (AudioToolbox)".to_string()
             }
             None => {
-                raea_io_codec::remux::annexb_mux(codec, &frames, self.opts.width, self.opts.height, self.opts.fps, None, &self.out)?;
+                raea_io_codec::remux::annexb_mux_from(codec, n, &mut read, self.opts.width, self.opts.height, self.opts.fps, None, &self.out)?;
                 String::new()
             }
         };
         let video_codec = if self.hevc10 { "hevc main10 (VideoToolbox)" } else { "h264 (VideoToolbox)" };
-        Ok(EncodeStats { frames: frames.len(), bytes: std::fs::metadata(&self.out).map(|m| m.len()).unwrap_or(0), video_codec: video_codec.into(), audio_codec })
+        Ok(EncodeStats { frames: n, bytes: std::fs::metadata(&self.out).map(|m| m.len()).unwrap_or(0), video_codec: video_codec.into(), audio_codec })
     }
 }
 

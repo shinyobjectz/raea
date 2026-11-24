@@ -24,7 +24,8 @@ fn pack_resolved_light_sample(sample: ResolvedLightSample) -> ResolvedLightSampl
         sample.world_position.x,
         sample.world_position.y,
         sample.world_position.z,
-        pack2x16unorm(octahedral_encode(sample.world_normal)),
+        // raea: the lowest bit marks a sky portal's sample (w 2)
+        (pack2x16unorm(octahedral_encode(sample.world_normal)) & ~1u) | u32(sample.world_position.w == 2.0),
         vec3_to_rgb9e5_(log2(sample.radiance * view.exposure + 1.0)),
         sample.inverse_pdf * select(1.0, -1.0, sample.world_position.w == 0.0),
     );
@@ -32,7 +33,7 @@ fn pack_resolved_light_sample(sample: ResolvedLightSample) -> ResolvedLightSampl
 
 fn unpack_resolved_light_sample(packed: ResolvedLightSamplePacked, exposure: f32) -> ResolvedLightSample {
     return ResolvedLightSample(
-        vec4(packed.world_position_x, packed.world_position_y, packed.world_position_z, select(1.0, 0.0, packed.inverse_pdf < 0.0)),
+        vec4(packed.world_position_x, packed.world_position_y, packed.world_position_z, select(select(1.0, 0.0, packed.inverse_pdf < 0.0), 2.0, (packed.world_normal & 1u) != 0u)),
         octahedral_decode(unpack2x16unorm(packed.world_normal)),
         (exp2(rgb9e5_to_vec3_(packed.radiance)) - 1.0) / exposure,
         abs(packed.inverse_pdf),

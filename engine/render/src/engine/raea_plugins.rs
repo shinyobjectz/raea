@@ -47,6 +47,7 @@ raea_plugin! {
     FroxelGlassPlugin: super::froxel_glass::install, "Glass seen through froxel fog (froxel_glass.rs).";
     LookPlugin: super::look::install, "Models drawn as pixel art or the site's grain (look.rs).";
     OutlinePlugin: super::outline::install, "Ink outlines (outline.rs).";
+    SteadyPlugin: raea_sys_post::steady::install, "raea's temporal filter: each frame jittered and blended with those before it (raea-sys-post steady.rs, docs/realism.feature LT12).";
     ComposePlugin: super::compose::install, "Composition passes: each object's pass mask, read by Look, Outline, Bloom and Grade (compose.rs).";
     Text3dPlugin: super::text3d::install, "Text in the 3D world: bevy_rich_text3d and its faces (raea-sys-text3d).";
     FirePlugin: super::fire::install, "Flames drawn as volumes (fire.rs).";
@@ -58,7 +59,8 @@ raea_plugin! {
     ProcMatPlugin: raea_sys_procmat::install, "Procedural surfaces: wood, stone, brick, tiles and the rest, with dust and dirt (systems/procmat).";
     PaintPlugin: super::paint::install, "The paint and cartoon looks' surfaces (paint.rs).";
     PassesPlugin: super::passes::install, "Render passes per view (passes.rs).";
-    TracedAoPlugin: raea_sys_rt::passes, "Traced passes: ambient occlusion and raea GI's world probes (raea-sys-rt).";
+    TracedAoPlugin: raea_sys_rt::passes, "Traced passes: ambient occlusion, raea GI's world probes and the sun's far shadow map (raea-sys-rt).";
+    GiScreenPlugin: raea_sys_gi::install, "raea GI's light on screen: each pixel's indirect diffuse from the world cache, read by the main pass (raea-sys-gi, RAEA_GI=1).";
     VolumePlugin: super::volume::install, "Simulated smoke, clouds and contrails, raymarched (volume.rs).";
     GrassPlugin: raea_sys_grass::install, "Fields of grass, made in tiles as detailed as the camera's distance asks (systems/grass).";
     DetailPlugin: raea_sys_lod::install, "Where each part is drawn: levels by distance or size on screen, cross-faded, draw distance and shadows left to a coarser level (raea-sys-lod, docs/realism.feature LT21).";
@@ -73,6 +75,7 @@ raea_plugin! {
     PhaseItemPlugin: raea_sys_phase::install, "Your own draws in a camera's opaque phase, as Bevy's custom_phase_item queues one (raea-sys-phase).";
     LensPlugin: super::lens::install, "The camera's lens (Fisheye, LensDistortion), after tone mapping (lens.rs).";
     ParityPlugin: raea_sys_parity::install, "The parity probe: a frame's cost and World, written when RAEA_PARITY is set (raea-sys-parity, docs/control.feature FC0a).";
+    CameraCutPlugin: super::cut::install, "A camera that jumps is a cut: its history starts again and its motion blur waits (cut.rs, RT31).";
     MotionBlurPlugin: super::motion_blur::install, "Motion blur's frame counter pinned to the frame (motion_blur.rs).";
 }
 

@@ -24,6 +24,12 @@ const NORMAL_QUANTIZATION_FLOOR = 0.002;
 /// Distance, in meters, standing in for "infinitely far" when a mirror ray finds nothing.
 const ENVIRONMENT_VIRTUAL_DISTANCE = 10000.0;
 
+/// raea: under this roughness a reflection's own motion is traced, so the denoiser follows what it reflects (RT17).
+const SPECULAR_MOTION_ROUGHNESS = 0.0625;
+
+/// raea: the specular share over which such a pixel takes its reflection's depth (RT34).
+const REFLECTION_DEPTH_SHARE = 0.5;
+
 @compute @workgroup_size(8, 8, 1)
 fn resolve_dlss_rr_textures(@builtin(global_invocation_id) global_id: vec3<u32>) {
     let pixel_id = global_id.xy;
@@ -32,9 +38,8 @@ fn resolve_dlss_rr_textures(@builtin(global_invocation_id) global_id: vec3<u32>)
     let depth = textureLoad(depth_buffer, global_id.xy, 0);
     let surface_motion_vector = load_motion_vector(pixel_id);
 
-    textureStore(dlss_rr_depth, pixel_id, vec4(depth));
-
     if depth == 0.0 {
+        textureStore(dlss_rr_depth, pixel_id, vec4(depth));
         textureStore(specular_motion_vectors, pixel_id, vec4(surface_motion_vector, vec2(0.0)));
         textureStore(diffuse_albedo, pixel_id, vec4(0.0));
         textureStore(specular_albedo, pixel_id, vec4(0.5));
@@ -45,6 +50,17 @@ fn resolve_dlss_rr_textures(@builtin(global_invocation_id) global_id: vec3<u32>)
     let surface = gpixel_resolve(textureLoad(gbuffer, pixel_id, 0), depth, pixel_id, view.main_pass_viewport.zw, view.world_from_clip);
     let F0 = calculate_F0(surface.material.base_color, surface.material.metallic, vec3(surface.material.reflectance));
     let wo = normalize(view.world_position - surface.world_position);
+
+    // raea: with PSR_DEPTH_FOLLOWS_MOTION (guides.rs's, for MetalFX: one motion and one depth a pixel), a glossy pixel
+    // mostly reflecting takes its reflection's depth with its motion (replace_primary_surface), and keeps it on the
+    // frames it draws its diffuse lobe, as its motion is kept; flipping back to the glass's would read as a disocclusion
+    var depth_is_the_surfaces = true;
+    @if(PSR_DEPTH_FOLLOWS_MOTION) {
+        depth_is_the_surfaces = !depth_follows_reflection(surface.material, max(dot(surface.world_normal, wo), 0.0001));
+    }
+    if depth_is_the_surfaces {
+        textureStore(dlss_rr_depth, pixel_id, vec4(depth));
+    }
 
     textureStore(diffuse_albedo, pixel_id, vec4(calculate_diffuse_color(surface.material.base_color, surface.material.metallic, 0.0, 0.0), 0.0));
     textureStore(specular_albedo, pixel_id, vec4(env_brdf_approx2(F0, surface.material.roughness, surface.world_normal, wo), 0.0));
@@ -59,7 +75,14 @@ fn resolve_dlss_rr_textures(@builtin(global_invocation_id) global_id: vec3<u32>)
 }
 
 fn needs_specular_motion_vector(roughness: f32) -> bool {
-    return roughness <= 0.0625;
+    return roughness <= SPECULAR_MOTION_ROUGHNESS;
+}
+
+// raea: a pixel whose depth is its reflection's under PSR_DEPTH_FOLLOWS_MOTION: one whose motion is (a near-mirror) and
+// that mostly reflects (a dark monitor's glass, 0.88 of its light specular): when what it reflects moves off (an orb), the
+// denoiser sees the wall behind as a disocclusion and drops the orb's history, where at the glass's depth it smeared it
+fn depth_follows_reflection(material: ResolvedMaterial, NdotV: f32) -> bool {
+    return needs_specular_motion_vector(material.roughness) && specular_fraction(material, F_AB(material.perceptual_roughness, NdotV)) >= REFLECTION_DEPTH_SHARE;
 }
 
 /// Carried across every bounce of the path walk, so anything derivable from a value the walk already
@@ -108,9 +131,29 @@ fn psr_chain_mirror(psr: PsrState, plane_normal: vec3<f32>) -> PsrState {
     return chained;
 }
 
-fn psr_environment_miss(pixel_id: vec2<u32>, primary_wo: vec3<f32>) {
+fn psr_environment_miss(pixel_id: vec2<u32>, primary_wo: vec3<f32>, replace_fully: bool, primary_material: ResolvedMaterial, primary_normal: vec3<f32>) {
     let far_position = view.world_position - (primary_wo * ENVIRONMENT_VIRTUAL_DISTANCE);
-    textureStore(specular_motion_vectors, pixel_id, vec4(calculate_motion_vector(far_position, far_position), vec2(0.0)));
+    let motion = calculate_motion_vector(far_position, far_position);
+    textureStore(specular_motion_vectors, pixel_id, vec4(motion, vec2(0.0)));
+    // raea: a glossy pixel whose depth follows its reflection's motion, reflecting the sky: as far off as the point its
+    // motion is of
+    @if(PSR_DEPTH_FOLLOWS_MOTION) {
+        if !replace_fully && depth_follows_reflection(primary_material, max(dot(primary_normal, primary_wo), 0.0001)) {
+            let far_clip = view.unjittered_clip_from_world * vec4(far_position, 1.0);
+            textureStore(dlss_rr_depth, pixel_id, vec4(far_clip.z / far_clip.w));
+        }
+    }
+    // raea: a mirror that shows the sky is guided as the sky's own pixels are: infinitely far, nothing to denoise.
+    // Its diffuse albedo's alpha 1 says so to a denoiser other than DLSS-RR (guides.rs); left as the glass's, the
+    // denoiser smoothed the clouds a mirror shows away
+    if replace_fully {
+        textureStore(dlss_rr_depth, pixel_id, vec4(0.0));
+        @if(MOTION_VECTORS_READ_WRITE)
+        textureStore(motion_vectors, pixel_id, vec4(motion, vec2(0.0)));
+        textureStore(diffuse_albedo, pixel_id, vec4(0.0, 0.0, 0.0, 1.0));
+        textureStore(specular_albedo, pixel_id, vec4(0.5));
+        textureStore(normal_roughness, pixel_id, vec4(0.0, 0.0, 1.0, 0.0));
+    }
 }
 
 /// Primary surface replacement for perfect mirrors. The reflection chain has been followed to its
@@ -133,6 +176,8 @@ fn replace_primary_surface(
     // Too curved to track the reflection; fall back to the surface's own motion so the guide is not stale
     if psr.replace_fully && 2.0 * reflector_curvature(pixel_id, primary_normal) * psr.reflection_length > MAX_VIRTUAL_DEPTH_JITTER * path_length {
         textureStore(specular_motion_vectors, pixel_id, vec4(load_motion_vector(pixel_id), vec2(0.0)));
+        @if(PSR_DEPTH_FOLLOWS_MOTION)
+        textureStore(dlss_rr_depth, pixel_id, vec4(textureLoad(depth_buffer, pixel_id, 0)));
         return;
     }
 
@@ -144,6 +189,11 @@ fn replace_primary_surface(
     textureStore(specular_motion_vectors, pixel_id, vec4(specular_motion_vector, vec2(0.0)));
 
     if !psr.replace_fully {
+        @if(PSR_DEPTH_FOLLOWS_MOTION) {
+            if depth_follows_reflection(primary_material, max(dot(primary_normal, primary_wo), 0.0001)) {
+                textureStore(dlss_rr_depth, pixel_id, vec4(textureLoad(depth_buffer, pixel_id, 0) * primary_distance / path_length));
+            }
+        }
         return;
     }
 

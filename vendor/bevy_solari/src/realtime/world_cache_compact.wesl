@@ -1,6 +1,7 @@
 import package::realtime::world_cache_query::WORLD_CACHE_EMPTY_CELL;
 import package::realtime::bindings::{
     world_cache,
+    constants,
 };
 
 enable wgpu_ray_query;
@@ -14,7 +15,11 @@ var<workgroup> w2: array<u32, 1024u>;
 fn decay_world_cache(@builtin(global_invocation_id) global_id: vec3<u32>) {
     var life = world_cache.life[global_id.x];
     if life > 0u {
-        life -= 1u;
+        // raea: a reset (a cut) empties the cache whole, as a render's first frame finds it. blend_new_samples resets
+        // only the cells it picks to update that frame; the rest kept the last place's light, stored at its exposure,
+        // for dozens of frames, so a film rendered whole drew each place after a cut darker or lighter than the same
+        // frame rendered alone, and a part gone at a cut left its shade on the floor (docs/stage-guards.feature SG9)
+        life = select(life - 1u, 0u, bool(constants.reset));
         world_cache.life[global_id.x] = life;
 
         if life == 0u {

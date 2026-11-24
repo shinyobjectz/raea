@@ -1,0 +1,16 @@
+[package]
+name = "raea-sys-engine-shaders"
+version = "0.1.0"
+edition = "2024"
+license = "FSL-1.1-ALv2"
+publish = false
+description = "raea's and Bevy's own shaders read from a project's engine-shaders/ or a checkout as an Engine opens, and a shader's constants set from TypeScript (<ShaderConstants>), so trying either needs no build"
+
+[dependencies]
+bevy = { version = "=0.20.0", default-features = false, features = ["std", "default_app", "3d_bevy_render"] }
+raea-core-program = { path = "../../core/program" }
+# which embedded shaders raea forks (bevy_api::swapped) and their hash
+raea-sys-frame = { path = "../frame" }
+serde_json = "1"
+# what each engine shader was compiled from, in the run's trace
+raea-io-trace = { path = "../../io/trace" }

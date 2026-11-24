@@ -24,7 +24,7 @@ pub(crate) fn core_bounce(frames: &[(i64, Frame)], notes: &[raea_sys_mix::ToneCu
     if let Some(p) = std::env::var_os("RAEA_AUDIO_BOUNCE") {
         raea_sys_mix::write_wav(&a, Path::new(&p))?;
     }
-    if std::env::var_os("RAEA_MASTER_TRACE").is_some() {
+    if raea_io_trace::stat("RAEA_MASTER_TRACE") {
         eprintln!("core bounce: {:.2} s of sound in {:.0} ms, master {master:?}", a.duration(), t.elapsed().as_secs_f64() * 1e3);
     }
     Ok(Some(a))

@@ -1,0 +1,22 @@
+[package]
+name = "raea-app-lightbake"
+version = "0.1.0"
+edition = "2024"
+license = "FSL-1.1-ALv2"
+publish = false
+description = "raea bake light: bounce light baked into lightmaps on raea's own ray tracer, and the bar it is held to against Cycles (docs/bake.feature)"
+
+[dependencies]
+# the frames' distance in stops, as raea light check measures it (LT1)
+raea-light = { path = "../../engine/light" }
+# the CLI's flag reader and result type
+raea-runtime-bundle = { path = "../../runtime/bundle" }
+# raea's own files (the test set, the Blender library scripts) and the home folder
+raea-io-home = { path = "../../io/home" }
+image = { version = "0.25", default-features = false, features = ["png"] }
+serde_json = "1"
+sha2 = "0.10"
+
+[target.'cfg(unix)'.dependencies]
+# wait4: a step's peak memory
+libc = "0.2"

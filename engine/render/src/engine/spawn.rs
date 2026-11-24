@@ -143,7 +143,7 @@ pub fn screen_images(world: &World) -> Vec<(String, Handle<Image>, u32, u32)> {
 
 /// A live scene's rows dropped from a World, by kind and id (Engine::remove_rows, or a plain App's): their entities go,
 /// and the rows after them take their places.
-pub fn remove_rows_from(world: &mut World, rows: &[(String, String)]) {
+pub fn remove_rows_from(world: &mut World, rows: &[(String, String)]) -> Result<(), String> {
     // each dropped row's place as the rows stand now, then the places dropped from the last back, so a drop never
     // moves a place still to come. Before, each place was dropped as it was found: a second row dropped in the
     // same call took the place it had before the first moved it up, dropping its neighbour's values instead, and
@@ -151,10 +151,14 @@ pub fn remove_rows_from(world: &mut World, rows: &[(String, String)]) {
     // to make their meshes, dropped together on its third frame: its body gone and other parts drawn huge,
     // 2026-10-20)
     let mut places = Vec::new();
+    let mut gone = Vec::new();
     for (kind, id) in rows {
         let Some(e) = store::find(world, kind, id) else { continue };
         let Some(r) = world.resource::<FrameRows>().ix.get(&e).copied() else { continue };
-        store::despawn(world, e);
+        // its place drops either way (the store drops the row); a row whose entity had already gone is an error (SG4)
+        if let Err(m) = store::despawn(world, e) {
+            gone.push(m);
+        }
         places.push(r);
     }
     let any = !places.is_empty();
@@ -166,6 +170,7 @@ pub fn remove_rows_from(world: &mut World, rows: &[(String, String)]) {
         let ix: bevy::ecs::entity::EntityHashMap<usize> = store::rows(world).iter().enumerate().map(|(r, &e)| (e, r)).collect();
         world.resource_mut::<FrameRows>().ix = ix;
     }
+    if gone.is_empty() { Ok(()) } else { Err(gone.join("; ")) }
 }
 
 /// Where a plain App's 3D camera draws when its camera row arrives through apply_rows (an Engine's draws into its frame).

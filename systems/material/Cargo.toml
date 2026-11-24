@@ -15,6 +15,7 @@ native = ["dep:resvg"]
 multi-layer = ["bevy/pbr_multi_layer_material_textures"]
 
 [dependencies]
+raea-io-trace = { path = "../../io/trace" }
 raea-sys-frame = { path = "../frame" }
 raea-sys-sampler = { path = "../sampler" }
 raea-core-program = { path = "../../core/program" }

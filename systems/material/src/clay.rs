@@ -14,7 +14,7 @@ const GREY: [f32; 3] = [0.62, 0.62, 0.6];
 
 pub fn on() -> bool {
     static ENV: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
-    CLAY.load(Ordering::Relaxed) || *ENV.get_or_init(|| std::env::var_os("RAEA_CLAY").is_some_and(|v| v != "0"))
+    CLAY.load(Ordering::Relaxed) || *ENV.get_or_init(|| raea_io_trace::stat("RAEA_CLAY"))
 }
 
 fn is_clay(m: &StandardMaterial) -> bool {

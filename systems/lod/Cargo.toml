@@ -4,7 +4,10 @@ version = "0.1.0"
 edition = "2024"
 license = "FSL-1.1-ALv2"
 publish = false
-description = "Detail by distance and size on screen: where each part is drawn, its levels cross-faded, its shadow left to a coarser level, nothing drawn past its last (docs/realism.feature LT21)"
+description = "Detail by distance and size on screen: where each part is drawn, its levels cross-faded, its shadow left to a coarser level, nothing drawn past its last, the sun's shadows faded out at their distance (docs/realism.feature LT21)"
 
 [dependencies]
+raea-io-trace = { path = "../../io/trace" }
 bevy = { version = "=0.20.0", default-features = false, features = ["std", "default_app", "3d_bevy_render"] }
+# swapping Bevy's shadows.wesl for the one whose last cascade fades out (shadow.rs)
+raea-sys-frame = { path = "../frame" }

@@ -138,16 +138,26 @@ pub fn body(inputs: &serde_json::Map<String, J>, media: &[(String, String)], fie
         }
     }
     // a mask (image.edit's `mask`: where an inpainting model may paint) into the endpoint's mask field, not with the
-    // pictures (it went into image_urls beside the picture, and a fill model read no mask)
-    if let Some((_, u)) = media.iter().find(|(n, _)| n == "mask") {
-        let f = fields.iter().find(|(n, l)| !*l && n.contains("mask")).map(|(n, _)| n.clone()).unwrap_or_else(|| "mask_url".into());
-        b[f.as_str()] = json!(u);
+    // pictures (it went into image_urls beside the picture, and a fill model read no mask); a last frame
+    // (video.generate's `end_image`) into the endpoint's end-frame field
+    for (name, default) in [("mask", "mask_url"), ("end_image", "end_image_url")] {
+        if let Some((_, u)) = media.iter().find(|(n, _)| n == name) {
+            let f = fields.iter().find(|(n, l)| !*l && if name == "mask" { n.contains(name) } else { n.starts_with(name) }).map(|(n, _)| n.clone()).unwrap_or_else(|| default.into());
+            b[f.as_str()] = json!(u);
+        }
     }
-    let images: Vec<&String> = media.iter().filter(|(n, _)| n != "mask").map(|(_, u)| u).collect();
+    let images: Vec<&String> = media.iter().filter(|(n, _)| n != "mask" && n != "end_image").map(|(_, u)| u).collect();
     if images.is_empty() {
         return b;
     }
-    let field = |list: bool| fields.iter().find(|(n, l)| *l == list && n.contains("image_url")).map(|(n, _)| n.clone());
+    // the plain field first (image_url, image_urls), then any other picture field that isn't an end frame: Seedance's
+    // schema lists end_image_url before image_url, and its start frame went in as the end frame (fal answered 422)
+    let field = |list: bool| {
+        let plain = if list { "image_urls" } else { "image_url" };
+        fields.iter().find(|(n, l)| *l == list && n == plain)
+            .or_else(|| fields.iter().find(|(n, l)| *l == list && n.contains("image_url") && !n.starts_with("end_")))
+            .map(|(n, _)| n.clone())
+    };
     match (images.len(), field(false), field(true)) {
         (1, Some(one), _) => b[one.as_str()] = json!(images[0]),
         (_, _, Some(many)) => b[many.as_str()] = json!(images),
@@ -162,6 +172,21 @@ pub fn body(inputs: &serde_json::Map<String, J>, media: &[(String, String)], fie
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_start_frame_goes_to_image_url_not_the_end_frame() {
+        // Seedance 2.5's schema order: end_image_url comes before image_url
+        let fields: Vec<(String, bool)> = ["generate_audio", "resolution", "end_image_url", "image_url", "aspect_ratio", "prompt", "duration"].iter().map(|n| (n.to_string(), false)).collect();
+        let mut inputs = serde_json::Map::new();
+        inputs.insert("resolution".into(), json!("720p"));
+        inputs.insert("aspect_ratio".into(), json!("9:16"));
+        let b = body(&inputs, &[("start_image".to_string(), "https://f/start.jpg".to_string())], &fields);
+        assert_eq!(b["image_url"], "https://f/start.jpg");
+        assert!(b.get("end_image_url").is_none());
+        assert_eq!((b["resolution"].as_str(), b["aspect_ratio"].as_str()), (Some("720p"), Some("9:16")));
+        let b = body(&inputs, &[("start_image".into(), "https://f/a.jpg".into()), ("end_image".into(), "https://f/z.jpg".into())], &fields);
+        assert_eq!((b["image_url"].as_str(), b["end_image_url"].as_str()), (Some("https://f/a.jpg"), Some("https://f/z.jpg")));
+    }
 
     #[test]
     fn a_mask_goes_to_the_mask_field() {

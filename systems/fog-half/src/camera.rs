@@ -44,19 +44,25 @@ pub fn vfog(world: &mut World, e: Entity, vals: &Vals) {
     let grid = !reference && !march && env_mode.as_deref() != Ok("march");
     if grid {
         let lin = fog.ambient_color.to_linear();
-        froxel::insert(
-            world,
-            e,
-            froxel::FroxelFog {
-                ambient: Vec3::new(lin.red, lin.green, lin.blue) * fog.ambient_intensity,
-                slices: num(vals, "vfog_slices", 64.0).round().clamp(32.0, 256.0) as u32,
-                tile: num(vals, "vfog_tile", 16.0).round().clamp(4.0, 16.0) as u32,
-                samples: num(vals, "vfog_samples", 1.0).round().clamp(1.0, 8.0) as u32,
-                // (the ground truth integrates every light itself)
-                hero: num(vals, "vfog_hero", 1.0) != 0.0 && std::env::var("RAEA_FOG_HERO").as_deref() != Ok("0") && froxel::reference_steps().is_none(),
-            },
+        // the props, each RAEA_FOG_* variable over its own (raea_sys_fog::froxel::tuning)
+        let (tile, slices, samples) = froxel::tuning::grid(
+            num(vals, "vfog_tile", 16.0).round().clamp(4.0, 16.0) as u32,
+            num(vals, "vfog_slices", 64.0).round().clamp(32.0, 256.0) as u32,
+            num(vals, "vfog_samples", 1.0).round().clamp(1.0, 8.0) as u32,
         );
+        let f = froxel::FroxelFog {
+            ambient: Vec3::new(lin.red, lin.green, lin.blue) * fog.ambient_intensity,
+            slices,
+            tile,
+            samples,
+            // (the ground truth integrates every light itself)
+            hero: froxel::tuning::hero(num(vals, "vfog_hero", 1.0) != 0.0) && froxel::reference_steps().is_none(),
+            tune: froxel::tuning::tuning(vals),
+        };
+        froxel::tuning::record(e, "froxel", Some(&f));
+        froxel::insert(world, e, f);
     } else {
+        froxel::tuning::record(e, if reference { "reference" } else { "march" }, None);
         crate::insert(world, e, fog, if reference { 1.0 } else { num(vals, "vfog_resolution", 1.0) });
         if !reference && vals.get("vfog_dither").is_some_and(V::truthy) {
             world.entity_mut(e).insert(FogDither);

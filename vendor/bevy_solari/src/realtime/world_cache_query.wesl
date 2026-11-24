@@ -18,6 +18,14 @@ const WORLD_CACHE_EMPTY_CELL: u32 = 0u;
 
 @if(!WORLD_CACHE_NON_ATOMIC_LIFE_BUFFER)
 fn query_world_cache(world_position_in: vec3<f32>, world_normal: vec3<f32>, view_position: vec3<f32>, ray_t: f32, cell_lifetime: u32, rng: ptr<function, u32>) -> vec3<f32> {
+    return query_world_cache_found(world_position_in, world_normal, view_position, ray_t, cell_lifetime, rng).rgb;
+}
+
+/// raea: the cell's light, and in w 1 when the cell holds light, 0 when the query found none: the cell was made by this
+/// query, has had no update yet, or is lost to collisions. Read as light, such a miss is a zero, and a lamp shade's
+/// lining, whose bounces chain from cell to cell, lost a third of them (photo 1's desk, 0.82 of the path tracer's)
+@if(!WORLD_CACHE_NON_ATOMIC_LIFE_BUFFER)
+fn query_world_cache_found(world_position_in: vec3<f32>, world_normal: vec3<f32>, view_position: vec3<f32>, ray_t: f32, cell_lifetime: u32, rng: ptr<function, u32>) -> vec4<f32> {
     var world_position = world_position_in;
     var cell_size = get_cell_size(world_position, view_position, ray_t, rng);
 
@@ -32,8 +40,18 @@ fn query_world_cache(world_position_in: vec3<f32>, world_normal: vec3<f32>, view
 
     let world_position_quantized = bitcast<vec3<u32>>(quantize_position(world_position, cell_size));
     let world_normal_quantized = bitcast<vec3<u32>>(quantize_normal(world_normal));
-    var key = compute_key(world_position_quantized, world_normal_quantized);
-    let checksum = compute_checksum(world_position_quantized, world_normal_quantized);
+    // raea: the plane the surface lies in, along its normal, in quarter cells, and the cell's size, are part of a
+    // cell's key. Without the plane, surfaces facing the same way across a cavity the size of a cell (a lamp shade's
+    // lining on one side, its dark cladding on the other) shared cells, and the lining lost a sixth of its light
+    // (LightBench emitter.tsx cavity-8: 0.84 of the path tracer's at 15 cm cells). The jitter stays in the tangent
+    // plane, so a flat surface keeps one plane. Without the size, cells of two LOD levels could share a key
+    // Measured from the cell's centre, not the world's origin: from the origin, a curved surface a metre or more away
+    // changed planes every half degree of its normal, cut into strips of cells too thin to be found again
+    let cell_centre = (quantize_position(world_position, cell_size) + 0.5) * cell_size;
+    let plane = bitcast<u32>(i32(floor(dot(world_position - cell_centre, world_normal) / (cell_size * 0.25))));
+    let level = bitcast<u32>(cell_size);
+    var key = compute_key(world_position_quantized, world_normal_quantized, plane, level);
+    let checksum = compute_checksum(world_position_quantized, world_normal_quantized, plane, level);
 
     for (var i = 0u; i < WORLD_CACHE_MAX_SEARCH_STEPS; i++) {
         let cas = atomicCompareExchangeWeak(&world_cache.checksums[key], WORLD_CACHE_EMPTY_CELL, checksum);
@@ -49,19 +67,20 @@ fn query_world_cache(world_position_in: vec3<f32>, world_normal: vec3<f32>, view
 
         if existing_checksum == checksum {
             // Cache entry already exists - get radiance
-            return world_cache.radiance[key].rgb;
+            let radiance = world_cache.radiance[key];
+            return vec4(radiance.rgb, select(0.0, 1.0, radiance.a > 0.0));
         } else if existing_checksum == WORLD_CACHE_EMPTY_CELL && cas.exchanged {
             // Cell is empty - initialize it
             world_cache.geometry_data[key].world_position = world_position;
             world_cache.geometry_data[key].world_normal = world_normal;
-            return vec3(0.0);
+            return vec4(0.0);
         } else {
             // Collision - linear probe to next entry
             key += 1u;
         }
     }
 
-    return vec3(0.0);
+    return vec4(0.0);
 }
 
 fn get_cell_size(world_position: vec3<f32>, view_position: vec3<f32>, ray_t: f32, rng: ptr<function, u32>) -> f32 {
@@ -80,23 +99,27 @@ fn quantize_normal(world_normal: vec3<f32>) -> vec3<f32> {
     return floor(world_normal + 0.0001);
 }
 
-fn compute_key(world_position: vec3<u32>, world_normal: vec3<u32>) -> u32 {
+fn compute_key(world_position: vec3<u32>, world_normal: vec3<u32>, plane: u32, level: u32) -> u32 {
     var key = pcg_hash(world_position.x);
     key = pcg_hash(key + world_position.y);
     key = pcg_hash(key + world_position.z);
     key = pcg_hash(key + world_normal.x);
     key = pcg_hash(key + world_normal.y);
     key = pcg_hash(key + world_normal.z);
+    key = pcg_hash(key + plane);
+    key = pcg_hash(key + level);
     return wrap_key(key);
 }
 
-fn compute_checksum(world_position: vec3<u32>, world_normal: vec3<u32>) -> u32 {
+fn compute_checksum(world_position: vec3<u32>, world_normal: vec3<u32>, plane: u32, level: u32) -> u32 {
     var key = iqint_hash(world_position.x);
     key = iqint_hash(key + world_position.y);
     key = iqint_hash(key + world_position.z);
     key = iqint_hash(key + world_normal.x);
     key = iqint_hash(key + world_normal.y);
     key = iqint_hash(key + world_normal.z);
+    key = iqint_hash(key + plane);
+    key = iqint_hash(key + level);
     return max(key, 1u); // 0u is reserved for WORLD_CACHE_EMPTY_CELL
 }
 

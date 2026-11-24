@@ -21,7 +21,13 @@
     "./plugin": "./src/plugin.ts",
     "./screen": "./src/screen.tsx",
     "./bevy-own": "./src/bevy-own.gen.tsx",
-    "./feathers": "./src/feathers.ts"
+    "./feathers": "./src/feathers.ts",
+    "./camera/path": "./src/camera/path.ts",
+    "./camera/moves": "./src/camera/moves.ts",
+    "./3d/clock": "./src/3d/clock.ts",
+    "./3d/line": "./src/3d/line.tsx",
+    "./3d/label": "./src/3d/label.tsx",
+    "./3d/grades": "./src/3d/grades.ts"
   },
   "raea": {
     "plugins": {

@@ -1,9 +1,10 @@
 #!/bin/bash
-# P26's baseline (docs/ts-native.feature P26): frames of every composition in list.txt rendered by the Blitz page, the
-# reference the bevy_ui page must match (SSIM >= 0.98 per frame, fonts and brand styles included).
+# P26's baseline (docs/ts-native.feature P26a): frames of every composition in list.txt rendered by the published raea
+# 0.1.9, the reference every later page must match (SSIM >= 0.98 per frame, fonts and brand styles included). It was
+# the last Blitz build's until that build and its frames were lost (after 11-16); re-taken from 0.1.9 on 11-22.
 #
-#   bench/p26-baseline/capture.sh [RAEA_BIN]      (default: the Blitz build kept at
-#                                                         ~/Library/Caches/raea/p26-baseline/bin, P26_STORE to move it)
+#   bench/p26-baseline/capture.sh [RAEA_BIN]      (default: 0.1.9's raea, unpacked at
+#                                                  ~/Library/Caches/raea/p26-baseline/bin-v0.1.9, P26_STORE to move it)
 #
 # For each composition: its length probed (getCompositions, through `raea run`), nine frames rendered with
 # --manifest (0 to the last, evenly), and four kept: the first, the middle, the last and the one with the most text in
@@ -16,10 +17,10 @@ set -uo pipefail
 HERE=$(cd "$(dirname "$0")" && pwd)
 . "$HERE/lib.sh"
 ROOT=$(cd "$HERE/../.." && pwd)
-# the baseline's home outside the checkout and /tmp (Blitz is deleted at P27, so it can't be made again): the Blitz
-# binary and its libraea_bundle.dylib under bin/, the frames under frames/
+# the baseline's home outside the checkout and /tmp: 0.1.9's raea under bin-v0.1.9/ (its release tarball, unpacked),
+# the frames under frames/
 STORE=${P26_STORE:-$HOME/Library/Caches/raea/p26-baseline}
-BIN=${1:-$STORE/bin/raea-motion}
+BIN=${1:-$STORE/bin-v0.1.9/raea/bin/raea}
 [ -x "$BIN" ] || { echo "capture.sh: no raea at $BIN" >&2; exit 2; }
 SHA=$(shasum -a 256 "$BIN" | cut -d' ' -f1)
 BIN_SHOWN="~${BIN#"$HOME"}"; [ "${BIN#"$HOME"}" = "$BIN" ] && BIN_SHOWN=$BIN
@@ -78,7 +79,8 @@ EOF
   last=$((total - 1))
   cands=$({ for i in 0 1 2 3 4 5 6 7 8; do echo $((last * i / 8)); done; echo "$asked" | tr ',' '\n' | grep . | awk -v l=$last '$1 <= l'; } | sort -n | awk '!seen[$0]++' | paste -sd, -)
   rm -rf "$WORK/r" && mkdir -p "$WORK/r"
-  if ! (cd "$dir" && "$BIN" render "$src" ${copt[@]+"${copt[@]}"} --at "$cands" -o "$WORK/r/" --manifest "$WORK/r/m.json") > "$WORK/log" 2>&1; then
+  # the checks let through, as compare.sh does: a row is its pixels, and a scene that clips is still a frame to match
+  if ! (cd "$dir" && RAEA_DESPITE="all: the P26 baseline keeps a row's pixels; what its scene clips is in the log" "$BIN" render "$src" ${copt[@]+"${copt[@]}"} --at "$cands" -o "$WORK/r/" --manifest "$WORK/r/m.json") > "$WORK/log" 2>&1; then
     echo "$rel: $(grep -E 'REFUSED|error|Error' "$WORK/log" | head -2 | tr '\n' ' ')" >> "$HERE/failures.txt"
     echo "MISS $rel"
     continue

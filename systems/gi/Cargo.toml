@@ -1,0 +1,14 @@
+[package]
+name = "raea-sys-gi"
+version = "0.1.0"
+edition = "2024"
+license = "FSL-1.1-ALv2"
+publish = false
+description = "raea GI's screen side: each pixel's indirect diffuse light from the world cache, read by the main pass"
+
+[dependencies]
+raea-sys-rt = { path = "../rt" }
+raea-sys-compose = { path = "../compose" }
+bevy = { version = "=0.20.0", default-features = false, features = ["std", "default_app", "3d_bevy_render"] }
+# the screen passes' GPU timestamps (as raea-sys-rt times its own)
+wgpu = "=30.0.1"

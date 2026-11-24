@@ -8,7 +8,11 @@ description = "Froxel fog (one medium in a grid along the view), glass seen thro
 
 [dependencies]
 raea-sys-frame = { path = "../frame" }
+# whether the path tracer walks the fog volumes (<Pathtracer media>)
+raea-sys-rt = { path = "../rt" }
 raea-sys-volume = { path = "../volume" }
 raea-core-program = { path = "../../core/program" }
-bevy = { version = "=0.20.0", default-features = false, features = ["std", "default_app", "3d_bevy_render"] }
+raea-io-trace = { path = "../../io/trace" }
+serde_json = "1"
+bevy = { version = "=0.20.0", default-features = false, features = ["std", "default_app", "3d_bevy_render", "bevy_solari"] }
 bytemuck = "1"

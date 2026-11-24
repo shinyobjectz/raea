@@ -157,6 +157,14 @@ pub fn frame_post(its: &[Item]) -> BTreeMap<String, V> {
         }
     }
     let aa = first("aa").and_then(|a| a.get("mode")).and_then(Value::as_str);
+    // steady's rates (systems/post steady.rs)
+    if let Some(s) = first("aa").and_then(|a| a.get("steady")).and_then(Value::as_object) {
+        for (prop, col) in [("still", "aa_steady_still"), ("moving", "aa_steady_moving"), ("px", "aa_steady_px")] {
+            if let Some(x) = num(s, prop) {
+                row.insert(col.into(), V::N(x));
+            }
+        }
+    }
     match (aa, ssao.is_some()) {
         (Some("msaa") | None, true) => {
             row.insert("aa".into(), V::S("smaa".into()));
@@ -250,6 +258,41 @@ fn volfog(v: &Map<String, Value>, row: &mut BTreeMap<String, V>) {
     row.insert("vfog_ambient".into(), V::N(n(v, "ambient", 0.0)));
     if let Some(c) = hex(v.get("ambientColor")) {
         row.insert("vfog_ambient_color".into(), V::S(c));
+    }
+    // what it tunes beyond its look (raea_sys_fog::froxel::tuning, docs/nobuild.feature NB1a)
+    if let Some(s) = v.get("shadow").and_then(Value::as_str) {
+        row.insert("vfog_shadow".into(), V::S(s.into()));
+    }
+    let flag = |o: &Map<String, Value>, k: &str| o.get(k).and_then(Value::as_bool).map(|b| V::N(b as u8 as f64));
+    for (prop, col) in [("heroExact", "vfog_hero_exact"), ("tricubic", "vfog_tricubic")] {
+        if let Some(b) = flag(v, prop) {
+            row.insert(col.into(), b);
+        }
+    }
+    if let Some(o) = v.get("epipolar").and_then(Value::as_object) {
+        for (prop, col) in [("lineGap", "vfog_epi_line"), ("spacing", "vfog_epi_spacing"), ("every", "vfog_epi_every"), ("relTolerance", "vfog_epi_rel"), ("absTolerance", "vfog_epi_abs"), ("depthTolerance", "vfog_epi_depth")] {
+            if let Some(x) = num(o, prop) {
+                row.insert(col.into(), V::N(x));
+            }
+        }
+    }
+    match v.get("solari") {
+        Some(Value::Bool(b)) => {
+            row.insert("vfog_solari".into(), V::N(*b as u8 as f64));
+        }
+        Some(Value::Object(o)) => {
+            for (prop, col) in [("candidates", "vfog_solari_candidates"), ("frames", "vfog_solari_frames"), ("skyRays", "vfog_solari_sky_rays"), ("guide", "vfog_solari_guide")] {
+                if let Some(x) = num(o, prop) {
+                    row.insert(col.into(), V::N(x));
+                }
+            }
+            for (prop, col) in [("lamps", "vfog_solari_lamps"), ("sky", "vfog_solari_sky"), ("filter", "vfog_solari_filter")] {
+                if let Some(b) = flag(o, prop) {
+                    row.insert(col.into(), b);
+                }
+            }
+        }
+        _ => {}
     }
 }
 

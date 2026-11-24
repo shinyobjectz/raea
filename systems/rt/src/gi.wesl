@@ -1,9 +1,12 @@
-// raea GI's world radiance cache, its first form (gi.rs; docs/realism.feature LT2): a grid of probes around the
-// camera, each refreshed by 64 rays through the scene's TLAS. A ray that misses sees the sky (the camera's
-// environment); one that hits sees a flat stand-in surface (albedo 0.5, facing the ray) lit by the sun through one
-// shadow ray and by the sky's diffuse light, unshadowed, until hits know their surface (LT3, LT4). Each probe keeps a
-// running mean of its ambient cube (the light arriving along +-x, +-y, +-z) and writes it into Bevy's irradiance
-// volume, which every standard material samples in place of its environment's diffuse light.
+// raea GI's probes (gi.rs; docs/realism.feature LT2, LT3): a grid of probes around the camera, each refreshed by 64
+// rays through the scene's TLAS. A ray that misses sees the sky (the camera's environment); one that hits sees its
+// instance's record (records.rs, LT4's first tier: averaged albedo and emission; the surface faces the ray), lit by what the world cache has
+// learned there (cache.wesl: the sun and every bounce, the sky shadowed by what's around), or, where its cell is new,
+// by the sun through one shadow ray and the sky's diffuse light, unshadowed. Each probe keeps a running mean of its
+// ambient cube (the light arriving along +-x, +-y, +-z) and writes it into Bevy's irradiance volume, which every
+// standard material samples in place of its environment's diffuse light. `learn` and `blend` are the cache's update.
+import raea_sys_rt::cache::{read, rand, hash, radiance, cells, deltas, life, live, count, learned, sunlit, upkeep, LIFE};
+
 enable wgpu_ray_query;
 
 struct Params {
@@ -32,10 +35,16 @@ struct Params {
 @group(0) @binding(6) var voxels: texture_storage_3d<rgba16float, write>;
 // which world probe each slot holds (xyz) and whether it holds one (w), so a slot taken over starts afresh
 @group(0) @binding(7) var<storage, read_write> tags: array<vec4<i32>>;
+// each TLAS instance's record at its custom index (records.rs): its averaged albedo, and its emission (the radiance
+// raster draws it with)
+struct Record {
+    albedo: vec4<f32>,
+    emission: vec4<f32>,
+}
+@group(0) @binding(8) var<storage, read> records: array<Record>;
 
 const PI = 3.14159265;
 const RAYS = 64u;
-const ALBEDO = 0.5;
 // the most frames a probe's mean is kept over: after that each frame's rays count a 32nd
 const HISTORY = 32.0;
 const CASTS = 1u;
@@ -64,11 +73,6 @@ fn grid_ijk(i: u32) -> vec3<u32> {
     return vec3<u32>(i % r.x, (i / r.x) % r.y, i / (r.x * r.y));
 }
 
-fn hash(v: u32) -> u32 {
-    let s = v * 747796405u + 2891336453u;
-    let w = ((s >> ((s >> 28u) + 4u)) ^ s) * 277803737u;
-    return (w >> 22u) ^ w;
-}
 fn unit(h: u32) -> f32 {
     return f32(h >> 8u) / 16777216.0;
 }
@@ -96,16 +100,20 @@ fn fib(i: u32, n: u32) -> vec3<f32> {
 }
 
 // The queries live in functions of their own, a fresh one each call (traced_ao.wesl: Metal can't reassign one).
-// the distance to the first surface along a ray, or -1 where it reaches the sky
-fn first_hit(o: vec3<f32>, d: vec3<f32>) -> f32 {
+// the first surface along a ray: how far (-1 where the ray reaches the sky), and its instance's record
+struct Hit {
+    t: f32,
+    rec: u32,
+}
+fn first_hit(o: vec3<f32>, d: vec3<f32>) -> Hit {
     var rq: ray_query;
     rayQueryInitialize(&rq, tlas, RayDesc(0u, ALL, 0.01, 10000.0, o, d));
     rayQueryProceed(&rq);
     let h = rayQueryGetCommittedIntersection(&rq);
     if (h.kind == RAY_QUERY_INTERSECTION_NONE) {
-        return -1.0;
+        return Hit(-1.0, 0u);
     }
-    return h.t;
+    return Hit(h.t, h.instance_custom_data);
 }
 // whether a point sees the sun: only what casts shadows stops it (lib.rs's CASTS), as the shadow maps have it
 fn sees_sun(o: vec3<f32>, d: vec3<f32>) -> bool {
@@ -135,6 +143,41 @@ fn sky_irradiance(n: vec3<f32>) -> vec3<f32> {
     return textureSampleLevel(sky_diffuse, sky_sampler, sky_dir(n), 0.0).rgb * p.sun.w;
 }
 
+// The light arriving at a stand-in surface (irradiance, lux): what the cache has learned there, or where its cell is
+// new, the sun through one shadow ray and the sky's diffuse light, unshadowed (LT2's stand-in).
+fn irradiance_at(hit: vec3<f32>, n: vec3<f32>, keep: u32, seed: ptr<function, u32>) -> vec3<f32> {
+    let cached = read(hit, n, keep, seed);
+    if (cached.a > 0.0) {
+        return cached.rgb;
+    }
+    let ndl = dot(n, p.sun_dir.xyz);
+    var e = PI * sky_irradiance(n);
+    if (ndl > 0.0 && sees_sun(hit + n * 0.02, p.sun_dir.xyz)) {
+        e += p.sun.xyz * ndl;
+    }
+    return e;
+}
+
+// a direction about n, by the cosine (Malley: a point on the disc lifted to the hemisphere)
+fn cosine(n: vec3<f32>, seed: ptr<function, u32>) -> vec3<f32> {
+    let r = sqrt(rand(seed));
+    let a = 2.0 * PI * rand(seed);
+    let t = normalize(cross(n, select(vec3(1.0, 0.0, 0.0), vec3(0.0, 1.0, 0.0), abs(n.x) > 0.9)));
+    let b = cross(n, t);
+    return normalize(t * (r * cos(a)) + b * (r * sin(a)) + n * sqrt(max(1.0 - r * r, 0.0)));
+}
+
+fn luma(c: vec3<f32>) -> f32 {
+    return dot(c, vec3(0.2126, 0.7152, 0.0722));
+}
+
+// whether a listed cell learns this frame: about upkeep.run.y of the live cells do, the same ones in `learn` and
+// `blend` (the same first draw from the cell's seed)
+fn learns(cell: u32, seed: ptr<function, u32>) -> bool {
+    *seed = hash(cell ^ upkeep.run.x);
+    return rand(seed) < f32(upkeep.run.y) / f32(max(count, 1u));
+}
+
 // one workgroup a probe, one ray a thread each round
 @compute @workgroup_size(64, 1, 1)
 fn main(@builtin(workgroup_id) wg: vec3<u32>, @builtin(local_invocation_index) li: u32) {
@@ -156,18 +199,14 @@ fn main(@builtin(workgroup_id) wg: vec3<u32>, @builtin(local_invocation_index) l
         let q = random_turn(hash(p.run.z * 7919u + round * 104729u + probe));
         let d = turn(q, fib(li, RAYS));
         var l = vec3(0.0);
-        let t = first_hit(at, d);
-        if (t < 0.0) {
+        let h = first_hit(at, d);
+        if (h.t < 0.0) {
             l = sky_radiance(d);
         } else {
-            let hit = at + d * t;
-            let n = -d;
-            let ndl = dot(n, p.sun_dir.xyz);
-            var sun = vec3(0.0);
-            if (ndl > 0.0 && sees_sun(hit + n * 0.02, p.sun_dir.xyz)) {
-                sun = p.sun.xyz * ndl / PI;
-            }
-            l = ALBEDO * (sun + sky_irradiance(n));
+            let hit = at + d * h.t;
+            var seed = hash(p.run.z * 7919u + round * 104729u + probe * RAYS + li);
+            let r = records[h.rec];
+            l = r.albedo.rgb / PI * irradiance_at(hit, -d, LIFE, &seed) + r.emission.rgb;
         }
         light[li] = l;
         dirs[li] = d;
@@ -212,4 +251,67 @@ fn resolve(@builtin(global_invocation_id) id: vec3<u32>) {
         let c = select(vec3(0.0), cubes[probe * 6u + face].rgb, held);
         textureStore(voxels, vec3<u32>(ijk.x, ijk.y + r.y * (face & 1u), ijk.z + r.z * (face / 2u)), vec4(c, 1.0));
     }
+}
+
+// The cache's update, a thread a listed cell (an indirect dispatch: compact.wesl's count): the light arriving at the
+// cell this frame, from the sun through one shadow ray and one bounce by the cosine, which sees the cell it meets
+// (last frame's light there, times the stand-in's albedo) or the sky. Over frames that is every bounce.
+@compute @workgroup_size(64, 1, 1)
+fn learn(@builtin(global_invocation_id) id: vec3<u32>) {
+    if (id.x >= count) {
+        return;
+    }
+    let cell = live[id.x];
+    var seed = 0u;
+    if (!learns(cell, &seed)) {
+        return;
+    }
+    let c = cells[cell];
+    let n = c.n.xyz;
+    let o = c.at.xyz + n * 0.02;
+    var e = vec3(0.0);
+    var seen = 0.0;
+    let ndl = dot(n, p.sun_dir.xyz);
+    if (ndl > 0.0 && sees_sun(o, p.sun_dir.xyz)) {
+        e = p.sun.xyz * ndl;
+        seen = 1.0;
+    }
+    let d = cosine(n, &seed);
+    let h = first_hit(o, d);
+    if (h.t < 0.0) {
+        // a cosine sample's irradiance: pi times the radiance it sees
+        e += PI * sky_radiance(d);
+    } else {
+        // what the surface met sends back, its albedo of the light the cell met there has learned (that cell lives as
+        // long as the one reading it), and its own light
+        let r = records[h.rec];
+        e += r.albedo.rgb * irradiance_at(o + d * h.t, -d, atomicLoad(&life[cell]), &seed) + PI * r.emission.rgb;
+    }
+    // the light (rgb) and whether the sun was seen (a)
+    learned[id.x] = vec4(e, seen);
+}
+
+// Each cell that learned this frame takes its new light into its mean: up to upkeep.size.z frames, fewer while its
+// light is changing (its luminance step against its light), so a door opening or a sky changing shows within frames.
+@compute @workgroup_size(64, 1, 1)
+fn blend(@builtin(global_invocation_id) id: vec3<u32>) {
+    if (id.x >= count) {
+        return;
+    }
+    let cell = live[id.x];
+    var seed = 0u;
+    if (!learns(cell, &seed)) {
+        return;
+    }
+    let old = radiance[cell];
+    let now = learned[id.x].rgb;
+    let delta = deltas[cell];
+    let n = min(old.a + 1.0, upkeep.size.z);
+    let most = mix(upkeep.size.z, 1.0, pow(saturate(abs(delta) / max(luma(old.rgb), 0.001)), 1.0 / 8.0));
+    let reset = upkeep.run.z == 1u;
+    let w = select(1.0 / min(n, most), 1.0, reset);
+    let mixed = mix(old.rgb, now, w);
+    deltas[cell] = select(mix(delta, luma(mixed) - luma(old.rgb), 1.0 / 8.0), 0.0, reset);
+    radiance[cell] = vec4(mixed, n);
+    sunlit[cell] = mix(sunlit[cell], learned[id.x].a, w);
 }

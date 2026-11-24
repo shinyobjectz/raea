@@ -65,9 +65,13 @@ fn evaluate_and_sample_brdf(
 
     var wi: vec3<f32>;
     var wi_tangent: vec3<f32>;
-    let diffuse_selected = rand_f(rng) < diffuse_weight;
+    let lobe_draw = rand_f(rng);
+    let diffuse_selected = lobe_draw < diffuse_weight;
     if diffuse_selected {
-        wi = sample_cosine_hemisphere(world_normal, rng);
+        // raea: through to the far side for the material's diffuse_transmission share of the diffuse draws, decided by the
+        // same draw rescaled, so a material that lets none through draws exactly the numbers it did before
+        let through = lobe_draw < diffuse_weight * material.diffuse_transmission;
+        wi = sample_cosine_hemisphere(select(world_normal, -world_normal, through), rng);
         wi_tangent = vec3(dot(wi, T), dot(wi, B), dot(wi, N));
     } else {
         wi_tangent = sample_ggx_vndf(wo_tangent, material.roughness, rng);
@@ -87,8 +91,8 @@ fn evaluate_and_sample_brdf(
         }
     }
 
-    let diffuse_pdf = wi_tangent.z / PI;
-    let specular_pdf = ggx_vndf_pdf(wo_tangent, wi_tangent, material.roughness);
+    let diffuse_pdf = diffuse_lobe_pdf(wi_tangent.z, material.diffuse_transmission);
+    let specular_pdf = select(0.0, ggx_vndf_pdf(wo_tangent, wi_tangent, material.roughness), wi_tangent.z > 0.0);
     let pdf = (diffuse_weight * diffuse_pdf) + (specular_weight * specular_pdf);
     let throughput = evaluate_brdf(wo, wi, world_normal, material, F_ab) / pdf;
     return EvaluateAndSampleBrdfResult(wi, throughput, pdf, diffuse_selected);
@@ -104,14 +108,28 @@ fn evaluate_brdf(
     return evaluate_diffuse_brdf(wo, wi, world_normal, material, F_ab) + evaluate_specular_brdf(wo, wi, world_normal, material, F_ab);
 }
 
+// raea: with diffuse transmission (a leaf, a curtain, paper), the diffuse light is shared between the two sides: the
+// material's diffuse_transmission of it leaves the far side, Lambertian there as the rest is on the near one (Bevy's
+// raster splits it so: pbr_functions calculate_diffuse_color)
 fn evaluate_diffuse_brdf(wo: vec3<f32>, wi: vec3<f32>, world_normal: vec3<f32>, material: ResolvedMaterial, F_ab: vec2<f32>) -> vec3<f32> {
     let NdotL = dot(world_normal, wi);
     let NdotV = dot(world_normal, wo);
-    if NdotL < 0.0001 || NdotV < 0.0001 { return vec3(0.0); }
+    if NdotV < 0.0001 { return vec3(0.0); }
+    var share = 1.0 - material.diffuse_transmission;
+    if NdotL < 0.0001 {
+        if NdotL > -0.0001 || material.diffuse_transmission <= 0.0 { return vec3(0.0); }
+        share = material.diffuse_transmission;
+    }
     let F0_metal = material.base_color;
     let F0_dielectric = calculate_F0_dielectric(vec3(material.reflectance));
     let rho = lobe_reflectances(F0_metal, F0_dielectric, material, F_ab);
-    return rho.diffuse / PI * NdotL;
+    return rho.diffuse * share / PI * abs(NdotL);
+}
+
+// raea: the diffuse lobe's pdf for a direction whose cosine to the normal is cos_l: the near side's share of it
+// cosine-weighted above, the far side's below
+fn diffuse_lobe_pdf(cos_l: f32, diffuse_transmission: f32) -> f32 {
+    return select((1.0 - diffuse_transmission) * cos_l, diffuse_transmission * -cos_l, cos_l < 0.0) / PI;
 }
 
 fn evaluate_specular_brdf(wo: vec3<f32>, wi: vec3<f32>, world_normal: vec3<f32>, material: ResolvedMaterial, F_ab: vec2<f32>) -> vec3<f32> {
@@ -161,8 +179,8 @@ fn brdf_pdf(wo: vec3<f32>, wi: vec3<f32>, world_normal: vec3<f32>, material: Res
     let wo_tangent = vec3(dot(wo, T), dot(wo, B), dot(wo, N));
     let wi_tangent = vec3(dot(wi, T), dot(wi, B), dot(wi, N));
 
-    let diffuse_pdf = wi_tangent.z / PI;
-    let specular_pdf = ggx_vndf_pdf(wo_tangent, wi_tangent, material.roughness);
+    let diffuse_pdf = diffuse_lobe_pdf(wi_tangent.z, material.diffuse_transmission);
+    let specular_pdf = select(0.0, ggx_vndf_pdf(wo_tangent, wi_tangent, material.roughness), wi_tangent.z > 0.0);
     return (diffuse_weight * diffuse_pdf) + (specular_weight * specular_pdf);
 }
 

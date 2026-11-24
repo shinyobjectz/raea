@@ -74,11 +74,11 @@ pub fn export(args: &[String]) -> R<String> {
         }
     };
     if !player.exists() {
-        return Err(format!("no player at {} (build it: cargo build --profile game -p raea-app-game --bin raea-game --features player)", player.display()));
+        return Err(format!("no game player at {}: this raea ships without raea-game, which a game's export is made from; `raea bug \"export-game: no player\"` asks for it (docs/nobuild.feature NB3a)", player.display()));
     }
     // the release build's player is ~128 MB stripped, the game profile's ~74 MB (fat LTO, one codegen unit; lightspeed
-    // R7): say so when the bigger one ships because it's the newer
-    if !player.to_string_lossy().contains("/game/") && flag(args, "--player").is_none() {
+    // R7): say so when the bigger one ships because it's the newer, to a checkout's build (an installed raea has only its own)
+    if !player.to_string_lossy().contains("/game/") && player.to_string_lossy().contains("/target/") && flag(args, "--player").is_none() {
         let mb = std::fs::metadata(&player).map(|m| m.len() as f64 / 1048576.0).unwrap_or(0.0);
         eprintln!("raea export-game: shipping the release build's player ({mb:.0} MB before stripping): `cargo build --profile game -p raea-app-game --bin raea-game --features player` makes the ~74 MB one, which ships when it's the newer");
     }

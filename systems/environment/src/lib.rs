@@ -14,7 +14,8 @@
 //! Camera columns: env_srcs (a JSON list of panorama paths, or `room:SIGMA` for three's RoomEnvironment, which room.rs
 //! makes), env_i (which one this frame, -1 none; keyed), env_k (its
 //! intensity in cd/m²; keyed), env_rot (a turn about +Y, radians; keyed), sky_k (the sky's brightness, 0 no sky;
-//! keyed).
+//! keyed), env_portals (a JSON list of the openings the sky lights the scene through, each a corner and its two
+//! neighbours: bevy_solari's SkyPortals, for traced lighting).
 
 use std::collections::BTreeMap;
 use std::path::Path;
@@ -332,6 +333,10 @@ pub fn environment(world: &mut World, e: Entity, vals: &BTreeMap<String, V>, ins
         EnvMaps(maps.clone(), bakes),
         Suns(eqs.iter().map(Equirect::sun).collect()),
     ));
+    if let Some(V::S(list)) = vals.get("env_portals") {
+        let portals: Vec<[[f32; 3]; 3]> = serde_json::from_str(list).map_err(|e| format!("camera: env_portals: {e}"))?;
+        world.entity_mut(e).insert(bevy::solari::scene::SkyPortals(portals.iter().map(|q| q.map(Vec3::from)).collect()));
+    }
     if vals.contains_key("sky_k") {
         let k = num(vals, "sky_k", 0.0);
         world.entity_mut(e).insert(Skybox { image: (k > 0.0 && num(vals, "env_i", 0.0) > -0.5).then(|| maps[i.min(maps.len() - 1)].clone()), brightness: k, rotation: rot });

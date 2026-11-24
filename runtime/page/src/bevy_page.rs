@@ -214,10 +214,10 @@ impl BevyPage {
         self.page.boxes()
     }
 
-    /// Frame `f` of the render's manifest (render.json): the videos and text the page shows, as laid out.
+    /// Frame `f` of the render's manifest (render.json): the videos, text and pictures the page shows, as laid out.
     pub fn manifest_frame(&mut self, f: i64) -> Value {
-        let (videos, text) = self.page.manifest();
-        serde_json::json!({"frame": f, "videos": videos, "text": text})
+        let (videos, text, pictures) = self.page.manifest();
+        serde_json::json!({"frame": f, "videos": videos, "text": text, "pictures": pictures})
     }
 
     /// The page laid out, nothing drawn (`raea world`): what `manifest_frame` and `boxes` read after a `sync`.

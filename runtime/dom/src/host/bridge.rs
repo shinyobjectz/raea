@@ -190,7 +190,7 @@ impl EventHandler for Bridge<'_> {
         }
         let hearer = path.iter().find_map(|n| self.nodes.id_of(*n).filter(|id| self.nodes.hears(*id, ev)).map(|id| (id, *n)));
         // RAEA_PAGE_EVENTS=1: each DOM event the bridge sees and who hears it
-        if std::env::var_os("RAEA_PAGE_EVENTS").is_some() {
+        if raea_io_trace::stat("RAEA_PAGE_EVENTS") {
             eprintln!("raea-page: event {ev:?} target {} hearer {:?}", event.target, hearer.map(|h| h.0));
         }
         let msg = match (&event.data, hearer) {
@@ -289,7 +289,7 @@ impl EventHandler for Bridge<'_> {
             prevented = true;
         }
         if prevented {
-            if std::env::var_os("RAEA_PAGE_EVENTS").is_some() {
+            if raea_io_trace::stat("RAEA_PAGE_EVENTS") {
                 eprintln!("raea-page: event {ev:?} prevented");
             }
             state.prevent_default();

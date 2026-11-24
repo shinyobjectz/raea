@@ -28,6 +28,20 @@ pub fn env_shown(sent: Option<&V>, cam: &mut BTreeMap<String, V>) {
     cam.insert("env_srcs".into(), V::S(serde_json::to_string(&list).unwrap_or_default()));
 }
 
+/// <Environment portals>' openings, each four corners in order round it, as a corner and its two neighbours
+fn portal_corners(list: &[Value]) -> Vec<[[f64; 3]; 3]> {
+    let point = |p: &Value| -> Option<[f64; 3]> {
+        let a = p.as_array()?;
+        Some([a.first()?.as_f64()?, a.get(1)?.as_f64()?, a.get(2)?.as_f64()?])
+    };
+    list.iter()
+        .filter_map(|q| match q.as_array()?.iter().filter_map(point).collect::<Vec<_>>()[..] {
+            [a, b, _, d] => Some([a, b, d]),
+            _ => None,
+        })
+        .collect()
+}
+
 /// An <Environment>'s source in env_srcs: its panorama's path, or for <Environment room> `room:` and its blur (three's
 /// RoomEnvironment, which raea-sys-environment's room.rs makes, #165).
 pub fn env_src(e: &Item) -> Option<String> {
@@ -182,6 +196,10 @@ fn lit(all: &[Vec<Item>], p: &mut Program, row: &mut BTreeMap<String, V>, id: &s
         if sky.iter().any(|s| *s > 0.0) {
             column(p, row, id, "sky_k", &sky);
         }
+        // its sky portals (<Environment portals>), the first frame's: each a corner and its two neighbours
+        if let Some(list) = envs.iter().flatten().find_map(|e| e.props.get("portals")).and_then(Value::as_array) {
+            row.insert("env_portals".into(), V::S(serde_json::to_string(&portal_corners(list)).unwrap_or_default()));
+        }
     }
     // a <Grade>'s colour fringes, keyed: each frame's own (0 where a frame has none), so a glitch's spike draws on its
     // frames and a frame is the same whichever others the render holds (it was the first frame's, for every frame)
@@ -255,6 +273,9 @@ pub fn motion_blur(all: &[Vec<Item>], p: &mut Program, row: &mut BTreeMap<String
     column(p, row, id, "mb_shutter", &its.iter().map(|i| n(&i.props, "shutterAngle", 0.5)).collect::<Vec<_>>());
     if let Some(s) = num(&its[0].props, "samples") {
         row.insert("mb_samples".into(), V::N(s));
+    }
+    if its[0].props.get("kind").and_then(Value::as_str) == Some("bevy") {
+        row.insert("mb_bevy".into(), V::N(1.0));
     }
 }
 

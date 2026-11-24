@@ -26,6 +26,16 @@ pub fn run_bundle(bundle: &Path, secs: f64) -> R<(i32, String)> {
     }
 }
 
+/// `run_bundle` for a program whose output is the terminal (`raea run`, `raea test`, `raea blender run`): its console
+/// goes there too, log and info to stdout, warn and error to stderr (#168). raea check's asks and a spec's read keep
+/// theirs out of stdout, which is their answer.
+pub fn run_bundle_to_terminal(bundle: &Path, secs: f64) -> R<(i32, String)> {
+    let was = raea_runtime_react::native::CONSOLE.swap(true, std::sync::atomic::Ordering::SeqCst);
+    let ran = run_bundle(bundle, secs);
+    raea_runtime_react::native::CONSOLE.store(was, std::sync::atomic::Ordering::SeqCst);
+    ran
+}
+
 /// The composition's sound alone, mixed and mastered as a render's is (its <Mix>'s loudness and ceiling through raea-render's
 /// master row): React is stepped through every frame for its sounds, with no page painted and no video decoded. Live
 /// play hands this to the mixer, so a timeline sounds as its render does.
@@ -87,6 +97,11 @@ pub(crate) fn scene_program_checked(js: &Path, dir: &Path, upto: i64, wanted: Op
         Some(w) => frames.into_iter().filter(|(f, _)| w.contains(f)).collect(),
         None => frames,
     };
+    // stills: their end checks run once their page is laid out (render_bundle_with keeps each still's scene), so
+    // the page's words are known to them (SG11)
+    if wanted.is_some_and(|w| !w.is_empty()) {
+        return Ok(Some(p));
+    }
     // the clipping check on a thread of its own while the engine opens and the frames render (3 s over the Rome
     // film's 8,064 frames, which the render waited for before its engine opened); the render joins it at its end
     struct Prepassed(Vec<(i64, Frame)>);
@@ -95,8 +110,8 @@ pub(crate) fn scene_program_checked(js: &Path, dir: &Path, upto: i64, wanted: Op
     unsafe impl Send for Prepassed {}
     let owned = Prepassed(frames);
     *FED_CLIPPING.lock().unwrap() = Some(std::thread::spawn(move || {
-        let o = owned;
-        scene::told(&o.0, w, h, fps)
+        let mut o = owned;
+        scene::told_taking(&mut o.0, None, w, h, fps)
     }));
     Ok(Some(p))
 }

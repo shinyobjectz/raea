@@ -83,7 +83,7 @@ pub(crate) fn forward(
 ) {
     let primary = primary.iter().next();
     let targets: Vec<(Entity, Entity)> = overlays.iter().filter_map(|(e, o)| Some((e, o.window.or(primary)?))).collect();
-    let trace = std::env::var_os("RAEA_RUNE_BEVY_TRACE").is_some();
+    let trace = raea_io_trace::stat("RAEA_RUNE_BEVY_TRACE");
     let mut send = |window: Entity, ev: Input| {
         if trace {
             eprintln!("raea-rune-bevy: {window} {ev:?}");

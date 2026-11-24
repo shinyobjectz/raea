@@ -10,58 +10,108 @@ pub fn soft_resample(a: &Audio, to: u32) -> Audio {
     if a.rate == 0 || to == 0 {
         return Audio { rate: to, channels: vec![Vec::new(); a.channels.len()] };
     }
-    let (from, to_f) = (a.rate as f64, to as f64);
-    let n = (a.len() as f64 * to_f / from).round() as usize;
-    let cutoff = 0.97 * from.min(to_f) / from; // in cycles per input sample x2
-    let zc = 32.0;
-    let half = (zc / cutoff).ceil() as i64;
-    let beta = 9.0f64;
-    let i0 = |x: f64| {
-        let (mut s, mut t, mut k) = (1.0, 1.0, 1.0);
-        while t > 1e-12 * s {
-            t *= (x / (2.0 * k)).powi(2);
-            s += t;
-            k += 1.0;
+    let k = Kernel::new(a.rate, to, a.len());
+    let channels = a
+        .channels
+        .iter()
+        .map(|c| {
+            let mut out = vec![0f32; k.n];
+            k.fill(c, 0, &mut out);
+            out
+        })
+        .collect();
+    Audio { rate: to, channels }
+}
+
+/// soft_resample's samples handed to `f` a block at a time (the channel, the block's first sample, the block), the
+/// same bits, never held whole: a 7-minute film's master oversampled its sound 4x three times, 676 MB each (SG4a).
+pub fn soft_resample_blocks(a: &Audio, to: u32, mut f: impl FnMut(usize, usize, &[f32])) {
+    if a.rate == to {
+        for (ci, c) in a.channels.iter().enumerate() {
+            f(ci, 0, c);
         }
-        s
-    };
-    let i0b = i0(beta);
-    // the kernel at 1024 phases between input samples
-    const PH: usize = 1024;
-    let taps = (2 * half + 1) as usize;
-    let mut table = vec![0f32; (PH + 1) * taps];
-    for p in 0..=PH {
-        let frac = p as f64 / PH as f64;
-        for k in 0..taps {
-            let x = (k as i64 - half) as f64 - frac;
-            let u = x * cutoff;
-            let sinc = if u.abs() < 1e-12 {
-                1.0
-            } else {
-                (std::f64::consts::PI * u).sin() / (std::f64::consts::PI * u)
-            };
-            let r = x / (half as f64 + 1.0);
-            let w = if r.abs() >= 1.0 {
-                0.0
-            } else {
-                i0(beta * (1.0 - r * r).sqrt()) / i0b
-            };
-            table[p * taps + k] = (cutoff * sinc * w) as f32;
+        return;
+    }
+    if a.rate == 0 || to == 0 || a.channels.is_empty() {
+        return;
+    }
+    const BLOCK: usize = 1 << 20;
+    let k = Kernel::new(a.rate, to, a.len());
+    let mut buf = vec![0f32; k.n.min(BLOCK)];
+    for (ci, c) in a.channels.iter().enumerate() {
+        for from in (0..k.n).step_by(BLOCK) {
+            let m = (k.n - from).min(BLOCK);
+            k.fill(c, from, &mut buf[..m]);
+            f(ci, from, &buf[..m]);
         }
     }
-    let step = from / to_f;
-    // each output sample on its own (the same taps summed in the same order as one at a time, so the same bits), in
-    // spans across threads; a sample whose taps all land inside the input skips the bounds test. A film's master
-    // oversamples its 4.5 minutes 4x up to five times: 26.7 s a render on one thread (2026-10-20)
-    let one = |c: &[f32], i: usize| -> f32 {
-        let x = i as f64 * step;
+}
+
+/// the kernel at this many phases between input samples
+const PH: usize = 1024;
+
+/// What soft_resample sums: n output samples, each on its own from the input (the same taps in the same order, so
+/// the same bits however they're asked for).
+struct Kernel {
+    table: Vec<f32>,
+    taps: usize,
+    half: i64,
+    step: f64,
+    n: usize,
+}
+
+impl Kernel {
+    fn new(rate: u32, to: u32, len: usize) -> Kernel {
+        let (from, to_f) = (rate as f64, to as f64);
+        let n = (len as f64 * to_f / from).round() as usize;
+        let cutoff = 0.97 * from.min(to_f) / from; // in cycles per input sample x2
+        let zc = 32.0;
+        let half = (zc / cutoff).ceil() as i64;
+        let beta = 9.0f64;
+        let i0 = |x: f64| {
+            let (mut s, mut t, mut k) = (1.0, 1.0, 1.0);
+            while t > 1e-12 * s {
+                t *= (x / (2.0 * k)).powi(2);
+                s += t;
+                k += 1.0;
+            }
+            s
+        };
+        let i0b = i0(beta);
+        let taps = (2 * half + 1) as usize;
+        let mut table = vec![0f32; (PH + 1) * taps];
+        for p in 0..=PH {
+            let frac = p as f64 / PH as f64;
+            for k in 0..taps {
+                let x = (k as i64 - half) as f64 - frac;
+                let u = x * cutoff;
+                let sinc = if u.abs() < 1e-12 {
+                    1.0
+                } else {
+                    (std::f64::consts::PI * u).sin() / (std::f64::consts::PI * u)
+                };
+                let r = x / (half as f64 + 1.0);
+                let w = if r.abs() >= 1.0 {
+                    0.0
+                } else {
+                    i0(beta * (1.0 - r * r).sqrt()) / i0b
+                };
+                table[p * taps + k] = (cutoff * sinc * w) as f32;
+            }
+        }
+        Kernel { table, taps, half, step: from / to_f, n }
+    }
+
+    /// Output sample i of channel `c`; a sample whose taps all land inside the input skips the bounds test.
+    fn at(&self, c: &[f32], i: usize) -> f32 {
+        let x = i as f64 * self.step;
         let j = x.floor() as i64;
         let p = (((x - j as f64) * PH as f64).round() as usize).min(PH);
-        let row = &table[p * taps..(p + 1) * taps];
+        let row = &self.table[p * self.taps..(p + 1) * self.taps];
         let mut acc = 0f32;
-        let lo = j - half;
-        if lo >= 0 && ((lo + taps as i64) as usize) <= c.len() {
-            let src = &c[lo as usize..lo as usize + taps];
+        let lo = j - self.half;
+        if lo >= 0 && ((lo + self.taps as i64) as usize) <= c.len() {
+            let src = &c[lo as usize..lo as usize + self.taps];
             for (x, w) in src.iter().zip(row) {
                 acc += x * w;
             }
@@ -74,36 +124,30 @@ pub fn soft_resample(a: &Audio, to: u32) -> Audio {
             }
         }
         acc
-    };
-    let threads = if n * taps < 1 << 22 { 1 } else { std::thread::available_parallelism().map(|t| t.get()).unwrap_or(4).clamp(1, 8) };
-    let channels = a
-        .channels
-        .iter()
-        .map(|c| {
-            let mut out = vec![0f32; n];
-            if threads == 1 {
-                for (i, o) in out.iter_mut().enumerate() {
-                    *o = one(c, i);
-                }
-            } else {
-                let span = n.div_ceil(threads);
-                std::thread::scope(|sc| {
-                    for (t, part) in out.chunks_mut(span).enumerate() {
-                        let one = &one;
-                        sc.spawn(move || {
-                            for (k, o) in part.iter_mut().enumerate() {
-                                *o = one(c, t * span + k);
-                            }
-                        });
+    }
+
+    /// `out` as output samples `from`.. in spans across threads when it's long. A film's master oversamples its 4.5
+    /// minutes 4x up to five times: 26.7 s a render on one thread (2026-10-20)
+    fn fill(&self, c: &[f32], from: usize, out: &mut [f32]) {
+        let threads = if out.len() * self.taps < 1 << 22 { 1 } else { std::thread::available_parallelism().map(|t| t.get()).unwrap_or(4).clamp(1, 8) };
+        if threads == 1 {
+            for (k, o) in out.iter_mut().enumerate() {
+                *o = self.at(c, from + k);
+            }
+            return;
+        }
+        let span = out.len().div_ceil(threads);
+        std::thread::scope(|sc| {
+            for (t, part) in out.chunks_mut(span).enumerate() {
+                sc.spawn(move || {
+                    for (k, o) in part.iter_mut().enumerate() {
+                        *o = self.at(c, from + t * span + k);
                     }
                 });
             }
-            out
-        })
-        .collect();
-    Audio { rate: to, channels }
+        });
+    }
 }
-
 
 #[cfg(test)]
 mod resample_tests {
@@ -186,6 +230,17 @@ mod resample_tests {
                 assert_eq!(g.len(), w.len());
                 assert!(g.iter().zip(w).all(|(x, y)| x.to_bits() == y.to_bits()), "{rate} -> {to}, {len} samples");
             }
+        }
+        // a block at a time, past one block (2^20 samples): the same bits as the whole
+        let a = Audio { rate: 48000, channels: vec![noise(300_000), noise(300_000)] };
+        let whole = soft_resample(&a, 192_000);
+        let mut blocks = vec![Vec::new(); 2];
+        soft_resample_blocks(&a, 192_000, |c, from, b| {
+            assert_eq!(from, blocks[c].len());
+            blocks[c].extend_from_slice(b);
+        });
+        for (g, w) in blocks.iter().zip(&whole.channels) {
+            assert!(g.len() == w.len() && g.iter().zip(w).all(|(x, y)| x.to_bits() == y.to_bits()), "blocks");
         }
     }
 }

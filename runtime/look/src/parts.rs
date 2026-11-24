@@ -56,10 +56,11 @@ pub fn keyed_vec(p: &mut Program, row: &mut BTreeMap<String, V>, id: &str, its: 
 /// `own:uniforms` component rows from each frame they change, which raea-sys-shader's own_live.rs packs into the
 /// part's Material; none when they never change over a render's frames (the spec the part is made with holds them),
 /// but one for a single frame (live play's, whose next frame may change them). `spec` finds an item's Material spec: a
-/// mesh's material's `shader`, a 2D part's own. Called after the part's row is pushed.
-pub fn own_uniforms(p: &mut Program, id: &str, its: &[Item], spec: impl Fn(&Item) -> Option<&Value>) {
+/// mesh's material's `shader`, a 2D part's own. With `ext`, a ShaderExtension's spec (no `own`) is sent too: its
+/// uniforms froze at the part's first frame without (docs/stage-guards.feature SG1). Called after the part's row is pushed.
+pub fn own_uniforms(p: &mut Program, id: &str, its: &[Item], ext: bool, spec: impl Fn(&Item) -> Option<&Value>) {
     let each: Vec<(usize, Value)> = its.iter().enumerate().filter_map(|(f, it)| {
-        let s = spec(it).filter(|s| s.get("own").is_some())?;
+        let s = spec(it).filter(|s| ext || s.get("own").is_some())?;
         let v = serde_json::json!({ "uniforms": s.get("uniforms").cloned().unwrap_or(Value::Null), "buffers": s.get("buffers").cloned().unwrap_or(Value::Null) });
         Some((f, serde_json::json!({ "type": "own:uniforms", "value": v })))
     }).collect();

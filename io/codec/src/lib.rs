@@ -7,10 +7,11 @@ pub mod audio;
 pub mod mezz;
 #[cfg(feature = "mux")]
 pub mod remux;
+pub mod samples;
 mod resample;
 pub mod yuv;
 
-pub use resample::soft_resample;
+pub use resample::{soft_resample, soft_resample_blocks};
 
 /// A decoded frame still in VideoToolbox's buffer: NV12 (video range), IOSurface-backed and Metal-compatible, retained
 /// (frame_surface_at). Nothing was copied; a GPU can sample its two planes as textures.

@@ -113,7 +113,7 @@ fn make(take: &Path) -> Result<Track, String> {
             files.push(p);
         }
         let out = std::process::Command::new(&perceive).arg("eyes").args(&files).output().map_err(|e| {
-            format!("framing=\"face\" needs raea-perceive to find the face, and it couldn't be run ({}: {e}). Update raea (releases ship it in ~/.raea/bin), or from a checkout `cargo build --release -p raea-perceive`, or point RAEA_PERCEIVE at one; or frame the Video yourself with objectPosition", perceive.display())
+            format!("framing=\"face\" needs raea-perceive to find the face, and it couldn't be run ({}: {e}). Update raea (`curl -fsSL https://raea.io/install | sh`: releases ship it in ~/.raea/bin), or point RAEA_PERCEIVE at one; or frame the Video yourself with objectPosition", perceive.display())
         })?;
         if !out.status.success() {
             return Err(format!("framing=\"face\": raea-perceive eyes failed (an older raea-perceive has no eyes: update it): {}", String::from_utf8_lossy(&out.stderr).trim()));

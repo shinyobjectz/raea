@@ -12,15 +12,15 @@
 //!   sh_r sh_g sh_b (an animated shadow colour), rim_k, spec_k, outline_w
 
 use super::*;
-use bevy::asset::{load_internal_asset, uuid_handle};
 use bevy::light::{NotShadowCaster, NotShadowReceiver};
 use bevy::mesh::{MeshVertexBufferLayoutRef, VertexAttributeValues};
 use bevy::pbr::{ExtendedMaterial, MaterialExtension, MaterialPipeline, MaterialPipelineKey, MaterialPlugin};
 use bevy::render::render_resource::{AsBindGroup, Face, RenderPipelineDescriptor, ShaderType, SpecializedMeshPipelineError};
-use bevy::shader::{Shader, ShaderRef};
+use bevy::shader::ShaderRef;
 
-const TOON_SHADER: Handle<Shader> = uuid_handle!("6a0b6c1e-3f0e-4b8e-9d4f-5c2f1a7e0b31");
-const OUTLINE_SHADER: Handle<Shader> = uuid_handle!("9c3d2e7a-81b4-4f6a-a0c5-2d9e6b4f7a12");
+// embedded, so a project's engine-shaders/ and <ShaderConstants> reach them (docs/nobuild.feature NB5b)
+const TOON_SHADER: &str = "embedded://raea_sys_material/toon.wesl";
+const OUTLINE_SHADER: &str = "embedded://raea_sys_material/toon_outline.wesl";
 
 /// The toon surface: the standard material's inputs (base colour, its texture, emissive, opacity, fog) lit in bands.
 pub type ToonMaterial = ExtendedMaterial<StandardMaterial, ToonExt>;
@@ -44,7 +44,7 @@ pub struct ToonExt {
 
 impl MaterialExtension for ToonExt {
     fn fragment_shader() -> ShaderRef {
-        ShaderRef::Handle(TOON_SHADER)
+        TOON_SHADER.into()
     }
 }
 
@@ -64,10 +64,10 @@ pub struct OutlineMaterial {
 
 impl Material for OutlineMaterial {
     fn vertex_shader() -> ShaderRef {
-        ShaderRef::Handle(OUTLINE_SHADER)
+        OUTLINE_SHADER.into()
     }
     fn fragment_shader() -> ShaderRef {
-        ShaderRef::Handle(OUTLINE_SHADER)
+        OUTLINE_SHADER.into()
     }
     fn alpha_mode(&self) -> AlphaMode {
         if self.blend { AlphaMode::Blend } else { AlphaMode::Opaque }
@@ -87,8 +87,8 @@ impl Material for OutlineMaterial {
 
 /// The shaders and the two materials, on every engine (nothing is compiled until a toon part draws).
 pub fn install(app: &mut App) {
-    load_internal_asset!(app, TOON_SHADER, "toon.wesl", Shader::from_wesl);
-    load_internal_asset!(app, OUTLINE_SHADER, "toon_outline.wesl", Shader::from_wesl);
+    bevy::asset::embedded_asset!(app, "toon.wesl");
+    bevy::asset::embedded_asset!(app, "toon_outline.wesl");
     app.add_plugins((MaterialPlugin::<ToonMaterial>::default(), MaterialPlugin::<OutlineMaterial>::default()));
 }
 

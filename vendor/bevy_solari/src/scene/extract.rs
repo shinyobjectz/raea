@@ -1,4 +1,4 @@
-use super::{EnvironmentSun, RaytracingMesh3d, RaytracingSceneBindings};
+use super::{EnvironmentSun, RaytracingMesh3d, RaytracingSceneBindings, SkyPortals};
 use bevy_asset::{AssetEvent, AssetId, Assets, Handle};
 use bevy_camera::Camera;
 use bevy_ecs::{
@@ -160,6 +160,8 @@ pub struct ExtractedEnvironmentMapLight {
     pub rotation: Quat,
     // raea: the camera's EnvironmentSun
     pub sun: Option<EnvironmentSun>,
+    // raea: the camera's SkyPortals
+    pub portals: Vec<[bevy_math::Vec3; 3]>,
 }
 
 /// Finds the environment map light to use for the raytraced scene, if any.
@@ -170,13 +172,14 @@ pub fn extract_raytracing_environment_map_light(
             Option<&GeneratedEnvironmentMapLight>,
             Option<&EnvironmentMapLight>,
             Option<&EnvironmentSun>,
+            Option<&SkyPortals>,
         )>,
     >,
     mut environment_map_light: ResMut<ExtractedEnvironmentMapLight>,
 ) {
     let mut extracted_env_map_light = ExtractedEnvironmentMapLight::default();
 
-    for (camera, generated, pregenerated, sun) in &cameras {
+    for (camera, generated, pregenerated, sun, portals) in &cameras {
         if !camera.is_active {
             continue;
         }
@@ -187,12 +190,14 @@ pub fn extract_raytracing_environment_map_light(
                 intensity: generated.intensity,
                 rotation: generated.rotation,
                 sun: sun.copied(),
+                portals: portals.map(|p| p.0.clone()).unwrap_or_default(),
             },
             (None, Some(pregenerated)) => ExtractedEnvironmentMapLight {
                 cubemap: Some(pregenerated.specular_map.clone()),
                 intensity: pregenerated.intensity,
                 rotation: pregenerated.rotation,
                 sun: sun.copied(),
+                portals: portals.map(|p| p.0.clone()).unwrap_or_default(),
             },
             (None, None) => continue,
         };

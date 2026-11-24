@@ -1,15 +1,15 @@
 ---
 title: "raea ask"
 summary: "Ask about a piece's picture and sound: clef-omni answers in words and a probability, paid from your raea plan, and every answer is kept so a question can be calibrated."
-order: 130
+order: 131
 sources: ["apps/ask/src/verbs.rs", "apps/ask/src/prepare.rs", "apps/ask/src/runner.rs", "apps/ask/src/labels.rs", "apps/ask/src/calibrate.rs", "io/clef/src/route.rs", "core/ask/src/library.rs"]
 ---
 
 `raea ask` puts questions about a video, a sound or a picture to clef-omni, the decision model raea's checks use, and
 prints each answer in words with its probability, the window it looked at and what it cost. Ask in your own words, or
 use the standard questions: the craft rubric's (`rubric`), picture and sound together (`av`), the defects the
-fingerprint can't judge yet (`defects`), the platform checks (`platform`) and picking between versions (`decide`).
-`raea ask list` lists them all.
+fingerprint can't judge yet (`defects`), the platform checks (`platform`), picking between versions (`decide`) and the
+review loop's gate questions about a [`raea make`](make.md) job's sheets (`make`). `raea ask list` lists them all.
 
 Before it spends anything it reads what it can about the piece: what the file holds, the project's brief (the nearest
 `brief.ts` above the file, or `--brief`) and whether anyone speaks (`--words`, `--voice`). A question that doesn't
@@ -63,7 +63,7 @@ raea ask try "Is the voice hard to hear over the music?" --like own-does-the-mus
 ## Usage
 
 ```sh
-raea ask FILE [QUESTION...] [--choose A,B,C] [--grade] [--rate N] [--flag ANSWERS] [--set NAME] [--std ID] [--from S] [--to S] [--at S] [--with FILE2] [--brief brief.ts|none] [--words words.json] [--voice yes|no] [--state TEXT] [--dry] [--json] [--gate [any]] [--jobs N] | ask --batch FILE [--dry] [--json] [--gate [any]] [--jobs N] | ask list [SET] [--json] | ask verdict ANSWER WORD [--eye NAME] | ask calibrate [ID] [--json] | ask try WORDS --like ID [--dry] [--json] [--jobs N]   (questions about a piece's picture and sound, answered by clef-omni and paid from your raea plan's pool when the app is signed in, else RAEA_AGENT_KEY's, else your own Cloudflare keys: your own words, or the standard sets (rubric, av, defects, platform, decide); every question about one clip goes in one call, --batch (a JSON list or JSON lines, - for stdin) asks many clips in parallel; --dry says what would be sent and spends nothing; answers are advice until a question is calibrated: verdict labels an answer, calibrate holds each question to your verdicts, notes and approvals, try asks new words of its labelled clips)
+raea ask FILE [QUESTION...] [--choose A,B,C] [--grade] [--rate N] [--flag ANSWERS] [--set NAME] [--std ID] [--from S] [--to S] [--at S] [--with FILE2] [--brief brief.ts|none] [--words words.json] [--voice yes|no] [--state TEXT] [--dry] [--json] [--gate [any]] [--jobs N] | ask --batch FILE [--dry] [--json] [--gate [any]] [--jobs N] | ask list [SET] [--json] | ask verdict ANSWER WORD [--eye NAME] | ask calibrate [ID] [--json] | ask try WORDS --like ID [--dry] [--json] [--jobs N]   (questions about a piece's picture and sound, answered by clef-omni and paid from your raea plan's pool when the app is signed in, else RAEA_AGENT_KEY's, else your own Cloudflare keys: your own words, or the standard sets (rubric, av, defects, platform, decide, make); every question about one clip goes in one call, --batch (a JSON list or JSON lines, - for stdin) asks many clips in parallel; --dry says what would be sent and spends nothing; answers are advice until a question is calibrated: verdict labels an answer, calibrate holds each question to your verdicts, notes and approvals, try asks new words of its labelled clips)
 ```
 
 Headless: it needs nothing running and opens no window. Takes any number of arguments besides its flags.

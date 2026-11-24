@@ -12,3 +12,8 @@ libvpx-PATENTS.txt
 uv.exe
 uv-LICENSE-MIT.txt
 uv-LICENSE-APACHE.txt
+dxcompiler.dll
+dxil.dll
+dxc-LICENSE-MS.txt
+dxc-LICENSE-LLVM.txt
+dxc-LICENSE-MIT.txt

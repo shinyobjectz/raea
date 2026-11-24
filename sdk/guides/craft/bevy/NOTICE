@@ -9,3 +9,9 @@ examples/3d/solari.rs and its implementation (v0.20, MIT OR Apache-2.0); JMS55's
 (Solari)"; GPU Gems 1 ch. 1, "Effective Water Simulation from Physical Models"; Tessendorf's "Simulating Ocean
 Water"; an ocean simulation and rendering survey; Neopallium/bevy_water and mate-h/bevy_fft; and Bevy Elements'
 water research note.
+
+The make loop (bevy/scenes section 0 and its gates, bevy/kits, bevy/shots; apps/make, docs/make.feature) follows
+apekshik's AnyScene, AnyKit and AnyShot (MIT: github.com/apekshik/anyscene, anykit and anyshot): the plan stop and floor plan,
+the reference sheet and two-generator pick on clay, the per-kind critic rubrics and their "production base, at most
+five fixes" bar, the Stop hook that holds an agent to its deliverables, contact-point grounding, the camera rig's
+walk profile, clearance and shot language. raea's code and words are its own; the method and its numbers are theirs.

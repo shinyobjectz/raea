@@ -12,6 +12,7 @@ description = "A timeline baked: a composition's React commits recorded frame by
 modules = ["dep:raea-modules"]
 
 [dependencies]
+raea-io-trace = { path = "../../io/trace" }
 raea-io-home = { path = "../../io/home" }
 raea-runtime-react = { path = "../../runtime/react", default-features = false }
 raea-runtime-bundle = { path = "../bundle" }

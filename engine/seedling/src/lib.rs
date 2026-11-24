@@ -277,7 +277,7 @@ impl Host {
         if h.is_none() {
             eprintln!("raea seedling: {} has no sound", file.display());
         }
-        if std::env::var_os("RAEA_SEEDLING_TRACE").is_some() {
+        if raea_io_trace::stat("RAEA_SEEDLING_TRACE") {
             eprintln!("raea seedling: {} decoded in {:.1} ms", file.display(), t0.elapsed().as_secs_f64() * 1e3);
         }
         self.samples.insert(file.to_path_buf(), h.clone());
@@ -295,7 +295,7 @@ impl Host {
     /// seedling updated, and the frame's samples made. A frame that isn't the next starts seedling again from silence
     /// (a seek); the chunk is the frame's samples on the timeline.
     pub fn frame(&mut self, f: i64, plays: &[Play]) -> raea_io_media::Audio {
-        if std::env::var_os("RAEA_SEEDLING_TRACE").is_some() && f != self.next {
+        if raea_io_trace::stat("RAEA_SEEDLING_TRACE") && f != self.next {
             eprintln!("raea seedling: frame {f}, expected {}", self.next);
         }
         if f != self.next {
@@ -369,7 +369,7 @@ impl Host {
         let t1 = std::time::Instant::now();
         let n = (self.t(f + 1) - self.t(f)).max(0) as usize;
         let pcm = chunk(self.app.world_mut(), n);
-        if std::env::var_os("RAEA_SEEDLING_TRACE").is_some() && t0.elapsed().as_secs_f64() > 0.002 {
+        if raea_io_trace::stat("RAEA_SEEDLING_TRACE") && t0.elapsed().as_secs_f64() > 0.002 {
             eprintln!("raea seedling: frame {f}: update {:.1} ms, process {:.1} ms, {} players", (t1 - t0).as_secs_f64() * 1e3, t1.elapsed().as_secs_f64() * 1e3, self.players.len());
         }
         self.next = f + 1;

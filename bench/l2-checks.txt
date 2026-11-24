@@ -1,0 +1,11 @@
+# The bench checks L2 runs on every release candidate (tools/l2.sh), each with that commit's raea as RAEA_BIN; each
+# must exit 0. They hold what P26 can't: P26 compares with a baseline, and a baseline drawn by a raea with a fault
+# carries the fault. These say what is right.
+#
+# A frame drawn alone or out of order (--at, --frame) agrees with the render of every frame (docs/stage-guards.feature
+# SG17). 0.1.9 drew a CSS animation in a frame alone from the earliest <Sequence>'s start, or from the frame itself.
+bench/at-0/check.sh
+bench/at-time/check.sh
+bench/at-3d/check.sh
+bench/compute-frames/check.sh
+sdk/react/bench/css/check.sh

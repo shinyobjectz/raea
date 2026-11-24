@@ -1,7 +1,7 @@
 ---
 title: "raea skill"
 summary: "Print the agent skill this raea ships, matched to its version, or one of its references."
-order: 126
+order: 127
 sources: ["engine/cli/src/skill.rs"]
 ---
 

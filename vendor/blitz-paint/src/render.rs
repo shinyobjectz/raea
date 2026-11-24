@@ -690,6 +690,26 @@ impl<'dom, 'a> BlitzDomPainter<'dom, 'a> {
             })
     }
 
+    /// raea: whether an element's own box draws anything: a background, border, shadow or outline, text of its own (an
+    /// inline root draws all of its inline content's text in its box), or replaced or form content. One that doesn't (a wrapper such as a full-frame AbsoluteFill) adds nothing to a filter
+    /// layer but its descendants (`drawn_bounds`).
+    fn box_paints(&self, node: NodeId) -> bool {
+        let tree = self.dom.as_ref().tree();
+        let n = &tree[node];
+        let Some(s) = n.primary_styles() else { return true };
+        let bg = s.get_background();
+        let border = n.final_layout().border;
+        bg.background_color.resolve_to_absolute(&s.clone_color()).as_srgb_color().components[3] > 0.0
+            || bg.background_image.0.iter().any(|i| !matches!(i, style::values::computed::image::Image::None))
+            || border.top + border.right + border.bottom + border.left > 0.0
+            || !s.get_effects().box_shadow.0.is_empty()
+            || s.get_outline().outline_width.0.to_f64_px() > 0.0
+            || n.element_data().is_some_and(|e| e.image_data().is_some() || e.sub_doc_data().is_some() || e.text_input_data().is_some())
+            || ["input", "select", "button", "textarea", "img", "svg", "canvas", "video", "iframe"].contains(&&**n.local_name())
+            || n.flags.is_inline_root()
+            || n.children.iter().any(|c| matches!(&tree[*c].data, NodeData::Text(t) if !t.content.trim().is_empty()))
+    }
+
     /// raea: the paint phase a child of an element belongs to (Appendix E, see [`Phase`]), and whether it's an in-flow
     /// block drawn a phase at a time: one in a block formatting context that clips nothing, isn't replaced or a form
     /// control and isn't a stacking context (which effects, clip-path and mask make) or part of a 3D rendering context
@@ -728,10 +748,13 @@ impl<'dom, 'a> BlitzDomPainter<'dom, 'a> {
     /// The overflow itself reaches through every clip, so a layer made from it is as large as content nobody sees: a
     /// filtered card around a small clipping box with a page of content in it would be drawn into a texture the size
     /// of the page. With `own_filter`, grown by the reach of the element's own filter, which draws past its boxes (a
-    /// descendant's drop shadow).
-    fn drawn_bounds(&self, node_id: NodeId, own_filter: bool) -> Rect {
+    /// descendant's drop shadow). An element whose box draws nothing (`box_paints`) gives only its descendants' boxes,
+    /// and None when nothing in it draws: a full-frame wrapper around a 200 px square is a layer the square's size, as
+    /// Chrome sizes a filter's input by what's drawn. At 2160x3840 every filtered wrapper was a frame-sized image, and
+    /// Vello's atlas held six (#125).
+    fn drawn_bounds(&self, node_id: NodeId, own_filter: bool) -> Option<Rect> {
         let dom = self.dom.as_ref();
-        let Some(node) = dom.get_node(node_id) else { return Rect::ZERO };
+        let node = dom.get_node(node_id)?;
         let size = node.final_layout().size;
         let own = Rect::new(0.0, 0.0, size.width as f64 * self.scale, size.height as f64 * self.scale);
         let styles = node.primary_styles();
@@ -747,10 +770,11 @@ impl<'dom, 'a> BlitzDomPainter<'dom, 'a> {
             None => r,
         };
         let clip = own.inflate(grow.max(0.0), grow.max(0.0));
-        if clips_x && clips_y {
-            return filtered(clip);
+        let paints = self.box_paints(node_id);
+        if clips_x && clips_y && paints {
+            return Some(filtered(clip));
         }
-        let mut all = own;
+        let mut all = paints.then_some(own);
         let in_flow = node.layout_children.borrow();
         let in_flow = in_flow.iter().flatten().copied().filter(|&c| dom.get_node(c).is_some_and(|c| !c.is_out_of_flow()));
         let pseudos = [node.before(), node.after()].into_iter().flatten().filter(|&c| dom.get_node(c).is_some_and(|c| !c.is_out_of_flow()));
@@ -761,15 +785,19 @@ impl<'dom, 'a> BlitzDomPainter<'dom, 'a> {
             if let Some(t) = child.transform().as_deref() {
                 to_own *= *t;
             }
-            all = all.union(to_own.transform_rect_bbox(self.drawn_bounds(child_id, true)));
+            if let Some(b) = self.drawn_bounds(child_id, true) {
+                let b = to_own.transform_rect_bbox(b);
+                all = Some(all.map_or(b, |a| a.union(b)));
+            }
         }
+        let mut all = all?;
         if clips_x {
             (all.x0, all.x1) = (all.x0.max(clip.x0), all.x1.min(clip.x1));
         }
         if clips_y {
             (all.y0, all.y1) = (all.y0.max(clip.y0), all.y1.min(clip.y1));
         }
-        filtered(all)
+        Some(filtered(all))
     }
 
     fn render_element(
@@ -1245,6 +1273,8 @@ impl<'dom, 'a> BlitzDomPainter<'dom, 'a> {
                     .unwrap_or(Rect::ZERO);
 
                 let mut effect_layer_clip = cx.frame.border_box_path().bounding_box();
+                // the boxes drawn, None when the element and everything in it draws nothing (its border box then stays)
+                let mut drawn: Option<Rect> = None;
                 // raea: a filter's input is all the element draws, what its descendants draw outside its box
                 // included, as Chrome filters it (a 0x0 wrapper's absolutely positioned children were cut off at its
                 // box, a blur's reach of them left): its boxes up to the clips in their way (`drawn_bounds`), and the
@@ -1252,7 +1282,7 @@ impl<'dom, 'a> BlitzDomPainter<'dom, 'a> {
                 // above it (#39's `from_above`: the walk doesn't meet those), where hoisted_content_bbox places it.
                 // The stacking context's other boxes are met by the walk, under the clips they're painted under
                 if filter.is_some() {
-                    effect_layer_clip = effect_layer_clip.union(self.drawn_bounds(node_id, false));
+                    drawn = self.drawn_bounds(node_id, false);
                     for hoisted in node.stacking_context.iter().flat_map(|sc| sc.children.iter()).filter(|c| cx.from_above(c.node_id)) {
                         let Some(child) = self.dom.as_ref().get_node(hoisted.node_id) else { continue };
                         let (p, at) = (hoisted.position(node.tree(), node_id), child.final_layout().location);
@@ -1260,7 +1290,13 @@ impl<'dom, 'a> BlitzDomPainter<'dom, 'a> {
                         if let Some(t) = child.transform().as_deref() {
                             to_own *= *t;
                         }
-                        effect_layer_clip = effect_layer_clip.union(to_own.transform_rect_bbox(self.drawn_bounds(hoisted.node_id, true)));
+                        if let Some(b) = self.drawn_bounds(hoisted.node_id, true) {
+                            let b = to_own.transform_rect_bbox(b);
+                            drawn = Some(drawn.map_or(b, |d| d.union(b)));
+                        }
+                    }
+                    if let Some(d) = drawn {
+                        effect_layer_clip = d;
                     }
                 }
                 effect_layer_clip.x0 += filter_expansion_area.x0;

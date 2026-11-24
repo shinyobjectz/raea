@@ -7,10 +7,15 @@ publish = false
 description = "Where a 3D scene's parts meet, from their geometry: what each rests on, and the parts that float, sink or clip"
 
 [dependencies]
+raea-io-trace = { path = "../../io/trace" }
 raea-core-scene = { path = "../../core/scene" }
 raea-core-shape = { path = "../../core/shape" }
 # the Blender step a model calls for (an unloadable format, triangles over budget for its distance): docs/blender.feature
 raea-core-meshcheck = { path = "../../core/meshcheck" }
+# a glTF model's triangles, box and seat facing (scene.bounds, scene.facing)
+raea-core-modelbox = { path = "../../core/modelbox" }
+# faces in one plane over each other (z-fighting), between parts and inside one model (MK8)
+raea-core-zfight = { path = "../../core/zfight" }
 # its results as Findings (docs/direction.feature DR3)
 raea-core-facts = { path = "../../core/facts" }
 bevy = { version = "=0.20.0", default-features = false, features = ["std"] }

@@ -7,6 +7,9 @@
 //! camera's vertical field of view and its target's height in pixels, so a level looks the same at any output size.
 //! `shadow: false` keeps a level out of the shadow maps, for a coarser level to cast its shadow.
 
+// the sun's shadows fade out at their distance rather than end in a line
+mod shadow;
+
 use bevy::{
     camera::{
         primitives::Aabb,
@@ -23,7 +26,10 @@ use bevy::{
 /// distances to the part's nearest edge rather than its middle: a big part (a city's tile, a terrain chunk) whose
 /// middle is far from a camera standing in it. Bevy measures to one point, so each mesh's range is shifted every frame
 /// by the gap between that point and the part's nearest edge, exact for the shot's camera (and its shadow passes,
-/// which measure from it).
+/// which measure from it). `bounds`, six numbers (the low corner, then the high, in the part's own space), is the box
+/// the part is measured to and sized by in place of its meshes': a thing's levels given one box switch at one distance
+/// however far each level's meshes reach, and a caller holding levels by distance can measure exactly as raea does
+/// (City's tiles: a level's buildings overhang its tile by up to 100 m, and its LOD1 and LOD2 differ).
 #[derive(Component, Reflect, Clone, Debug, PartialEq)]
 #[reflect(Component, Default)]
 pub struct Detail {
@@ -35,11 +41,12 @@ pub struct Detail {
     pub shadow: bool,
     pub size: f32,
     pub edge: bool,
+    pub bounds: Vec<f32>,
 }
 
 impl Default for Detail {
     fn default() -> Self {
-        Self { near: 0.0, far: 0.0, min_px: 0.0, max_px: 0.0, fade: 0.1, shadow: true, size: 0.0, edge: false }
+        Self { near: 0.0, far: 0.0, min_px: 0.0, max_px: 0.0, fade: 0.1, shadow: true, size: 0.0, edge: false, bounds: vec![] }
     }
 }
 
@@ -49,22 +56,16 @@ struct ShadowLeft;
 
 pub fn install(app: &mut App) {
     app.register_type::<Detail>().add_systems(PostUpdate, apply.after(VisibilitySystems::CalculateBounds).after(bevy::transform::TransformSystems::Propagate).before(VisibilitySystems::CheckVisibility));
-    // Bevy 0.20 extracts meshes and visibility ranges in no set order. A mesh re-extracted for its changed range before
-    // the ranges are read bakes the range's previous slot into its uniform and keeps it until its range changes again:
-    // the GPU dithers it by a range the CPU no longer culls by (on the 540p fly a tile's LOD1, in range at 14% faded,
-    // drew nothing for two frames, then snapped in). Meshes are extracted after the ranges.
-    if let Some(render) = app.get_sub_app_mut(bevy::render::RenderApp) {
-        render.configure_sets(bevy::render::ExtractSchedule, bevy::pbr::MeshExtractionSystems.after(bevy::render::view::extract_visibility_ranges));
-    }
-    match std::env::var("RAEA_LOD_DEBUG").as_deref() {
-        Ok("time") => {
+    shadow::install(app);
+    match raea_io_trace::stat_value("RAEA_LOD_DEBUG").as_deref() {
+        Some("time") => {
             app.init_resource::<LodTime>();
             app.add_systems(PostUpdate, timed.after(apply));
         }
-        Ok(_) => {
+        Some(_) => {
             app.add_systems(PostUpdate, report.after(VisibilitySystems::CheckVisibility));
         }
-        Err(_) => {}
+        None => {}
     }
 }
 
@@ -82,13 +83,24 @@ fn timed(mut t: ResMut<LodTime>, changed: Query<(), Changed<Detail>>, parts: Que
     }
 }
 
-/// RAEA_LOD_DEBUG=1: each range's distances and whether Bevy kept it in range of each camera, on stderr
-fn report(views: Query<(Entity, Option<&Camera>, &GlobalTransform), Or<(With<Camera>, With<bevy::camera::ShadowLodOrigin>)>>, ranged: Query<(Entity, &VisibilityRange, &GlobalTransform, &ViewVisibility)>, ranges: Res<bevy::camera::visibility::VisibleEntityRanges>) {
+/// RAEA_LOD_DEBUG=1: each range's distances and whether Bevy kept it in range of each camera, on stderr, each named by
+/// its part (the nearest ancestor with a Detail and a Name); any other value but `time` reports only the parts whose
+/// name holds it (RAEA_LOD_DEBUG=tile-)
+#[allow(clippy::type_complexity)]
+fn report(views: Query<(Entity, Option<&Camera>, &GlobalTransform), Or<(With<Camera>, With<bevy::camera::ShadowLodOrigin>)>>, ranged: Query<(Entity, &VisibilityRange, &GlobalTransform, &ViewVisibility, &InheritedVisibility, Option<&Aabb>)>, ranges: Res<bevy::camera::visibility::VisibleEntityRanges>, parents: Query<&ChildOf>, named: Query<&Name, With<Detail>>, frame: Res<bevy::diagnostic::FrameCount>, vis: Query<(Option<&Visibility>, Option<&InheritedVisibility>, Option<&Name>)>) {
+    let only = raea_io_trace::stat_value("RAEA_LOD_DEBUG").filter(|v| v != "1");
     let cams: Vec<_> = views.iter().collect();
-    eprintln!("raea lod: {} views ({} active cameras)", cams.len(), cams.iter().filter(|(_, c, _)| c.is_some_and(|c| c.is_active)).count());
-    for (e, r, gt, vv) in &ranged {
+    eprintln!("raea lod: frame {} {} views ({} active cameras)", frame.0, cams.len(), cams.iter().filter(|(_, c, _)| c.is_some_and(|c| c.is_active)).count());
+    for (e, r, gt, vv, iv, aabb) in &ranged {
+        let part = std::iter::once(e).chain(parents.iter_ancestors(e)).find_map(|a| named.get(a).ok()).map_or("-", |n| n.as_str());
+        if only.as_deref().is_some_and(|o| !part.contains(o)) {
+            continue;
+        }
         let seen: Vec<String> = cams.iter().map(|(v, c, at)| format!("{v}{}:{:.1}m:{}", if c.is_some_and(|c| c.is_active) { "*" } else { "" }, at.translation().distance(gt.translation()), ranges.entity_is_in_range_of_view(e, *v))).collect();
-        eprintln!("raea lod: {e} {:?}..{:?} shown={} {}", r.start_margin, r.end_margin, vv.get(), seen.join(" "));
+        let bounds = aabb.map_or("-".to_string(), |a| format!("{:.0?}±{:.0?}", Vec3::from(a.center), Vec3::from(a.half_extents)));
+        // a hidden mesh: each ancestor's own visibility and what it inherited, up to the first that sees
+        let chain: String = if iv.get() { String::new() } else { parents.iter_ancestors(e).take(8).map(|a| vis.get(a).map_or(format!("{a}:?"), |(v, i, n)| format!("{a}:{}:{:?}:{:?}", n.map_or("", |n| n.as_str()), v, i.map(|i| i.get())))).collect::<Vec<_>>().join(" < ") };
+        eprintln!("raea lod: {part} {e} {:?}..{:?} shown={} inherited={} {} box={bounds} {chain}", r.start_margin, r.end_margin, vv.get(), iv.get(), seen.join(" "));
     }
 }
 
@@ -184,7 +196,7 @@ fn apply(cams: Query<(&Camera, &Projection, &GlobalTransform, Has<bevy::camera::
             continue;
         }
         if walk || at.is_changed() {
-            h.bounds = bounds(&h.meshes, &meshes);
+            h.bounds = given(d, &at).or_else(|| bounds(&h.meshes, &meshes));
             h.outside = h.meshes.iter().filter_map(|e| meshes.get(*e).ok()).any(|(_, a, ..)| a.is_some_and(outside));
         }
         let size = if d.size > 0.0 { d.size } else { h.bounds.map_or(0.0, |(lo, hi)| (hi - lo).length()) };
@@ -244,6 +256,14 @@ fn outside(a: &Aabb) -> bool {
     a.center.length() > a.half_extents.length()
 }
 
+/// a Detail's own `bounds`, in the world (its eight corners through the part's transform), when it gives six numbers
+fn given(d: &Detail, at: &GlobalTransform) -> Option<(Vec3, Vec3)> {
+    let [x0, y0, z0, x1, y1, z1] = d.bounds[..] else { return None };
+    let m = at.affine();
+    let corners = (0..8).map(|i| m.transform_point3(Vec3::new([x0, x1][i & 1], [y0, y1][(i >> 1) & 1], [z0, z1][i >> 2])));
+    Some((corners.clone().fold(Vec3::MAX, Vec3::min), corners.fold(Vec3::MIN, Vec3::max)))
+}
+
 /// the meshes' bounds together, in the world; None before any has bounds
 fn bounds(found: &[Entity], meshes: &Query<MeshRow, With<Mesh3d>>) -> Option<(Vec3, Vec3)> {
     let (mut lo, mut hi) = (Vec3::splat(f32::MAX), Vec3::splat(f32::MIN));
@@ -261,6 +281,16 @@ fn bounds(found: &[Entity], meshes: &Query<MeshRow, With<Mesh3d>>) -> Option<(Ve
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// A part's own box goes through its transform, corner by corner; without six numbers its meshes' are used.
+    #[test]
+    fn a_given_box_is_measured_in_the_world() {
+        let d = Detail { bounds: vec![0.0, 0.0, 0.0, 10.0, 2.0, 4.0], ..default() };
+        let at = GlobalTransform::from(Transform::from_xyz(100.0, 0.0, 0.0).with_rotation(Quat::from_rotation_y(std::f32::consts::FRAC_PI_2)));
+        let (lo, hi) = given(&d, &at).unwrap();
+        assert!(lo.abs_diff_eq(Vec3::new(100.0, 0.0, -10.0), 1e-4) && hi.abs_diff_eq(Vec3::new(104.0, 2.0, 0.0), 1e-4), "{lo} {hi}");
+        assert!(given(&Detail::default(), &at).is_none());
+    }
 
     #[test]
     fn metres_alone_are_kept() {

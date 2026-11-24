@@ -78,7 +78,7 @@ impl Raea {
         let e = self.engine.as_mut().expect("opened");
         let (rows, gone) = self.ls.frame(shot);
         if !gone.is_empty() {
-            e.remove_rows(&gone);
+            e.remove_rows(&gone).map_err(|e| JsError::new(&e))?;
         }
         if !rows.is_empty() {
             e.set_rows(&rows).map_err(|e| JsError::new(&e))?;

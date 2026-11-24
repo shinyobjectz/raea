@@ -1,0 +1,13 @@
+area = "pointer"
+title = "a press on a project in the rail makes it the current one and no other"
+window = [1440, 900]
+
+# the rail's rows are the workspace's projects since the shell's rework (0.1.9); the feed rows it had before are gone
+[[steps]]
+wait = { id = "project-p-pong", visible = true }
+[[steps]]
+expect = { all = [{ id = "project-p-ides", current = true }, { id = "project-p-*", current = true, count = 1 }] }
+[[steps]]
+input = { type = "click", at = "project-p-pong" }
+[[steps]]
+expect = { all = [{ id = "project-p-pong", current = true }, { id = "project-p-*", current = true, count = 1 }] }

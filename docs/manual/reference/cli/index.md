@@ -65,10 +65,11 @@ What's wrong before anyone watches it.
 | --- | --- |
 | [`raea check`](check.md) | Check a composition's text in a second, a project against every rule it holds, or an export against the floor: text, contrast, safe areas, freezes, flashing, cues and loudness. |
 | [`raea judge`](judge.md) | Judge a 3D scene's review sheets blind, by a model on a frozen rubric or a fresh agent session, with the pass decided in code. |
+| [`raea make`](make.md) | A scene, kit or shot made to its plan: the plan stop, the kit's references, generators, pick, prep and landing, a shot list's framing and lens charts, and whether it's done, decided in code; the agent's Stop hook holds it there. |
 | [`raea fingerprint`](fingerprint.md) | A person's sense of good work, learned on this Mac: axes with small heads over on-device encoders that score a render moment by moment and say what they can't judge yet. |
 | [`raea videoform`](videoform.md) | A kind of video you make again and again, read once from its references: files on your drive or links, keeping only what was measured, never the video. |
 | [`raea findings`](findings.md) | What each render and check found, read back from the project's record: fixed, new and carried since the one before. |
-| [`raea scene`](scene.md) | Find floating, sunk and clipping 3D parts, say what each part rests on, and meter a shot's light. |
+| [`raea scene`](scene.md) | Find floating, sunk and clipping 3D parts, say what each part rests on, meter a shot's light, and hold every frame to the stage checks a render runs. |
 | [`raea light`](light.md) | Measure a scene's light on each light path against its path-traced reference: distance in stops, the worst tile, flicker and cost. |
 | [`raea world`](world.md) | A frame as one world: its layers, text, 3D parts, camera, shots, clips, cues and lines as entities, queried across media. |
 | [`raea solid`](solid.md) | Measure, view and export a solid: parts built from code with exact volumes, joints and parameters. |
@@ -105,12 +106,13 @@ Music read, foley and instruments made on this machine.
 
 ## Generate and 3D tools
 
-Generated media, physics and weathering bakes, clothes and motion for SOMA's body, Blender and Godot.
+Generated media, physics, light and weathering bakes, clothes and motion for SOMA's body, Blender and Godot.
 
 | Verb | What it does |
 | --- | --- |
 | [`raea gen`](gen.md) | Generate images, video, music, sound, speech, 3D models and text through made.app, fal, Replicate, OpenRouter, Modal or ComfyUI. |
 | [`raea physics`](physics.md) | Make the bakes <Physics> and <Goo> play: rigid bodies, soft goo, and parts cut out of a .glb. |
+| [`raea bake`](bake.md) | Bake a composition's bounce light into lightmaps on raea's own ray tracer, and measure the bake against Cycles. |
 | [`raea wear`](wear.md) | Bake what weathers a model: where rain reaches and runs, what the sun sees, edges, hollows and touch, as maps raea/wear reads. |
 | [`raea clothes`](clothes.md) | Clothes for SOMA's body from words: make sews a garment from a sewing pattern (GarmentCode, MIT), cut to SOMA's measurements and draped by raea's own cloth, as assets/clothes/NAME.json and its .glb; cover lays one on the skin by procedure; wear puts garments on a body. |
 | [`raea motion`](motion.md) | Body motion made on this machine by Kimodo (NVIDIA), on MLX on a Mac and on PyTorch on Linux and Windows: a SOMA clip from a line of words and, with --keys, Kimodo constraints (full-body keyframes, hand or foot targets, a root path, as sdk/body/tools/between.ts writes them), as the clip sdk/body/tools/fromkimodo.ts reads. |
@@ -124,6 +126,7 @@ What an agent reads and shows the person, and the tools raea installs.
 | Verb | What it does |
 | --- | --- |
 | [`raea guide`](guide.md) | Print raea's craft guides: the floor read before any edit, the modes, the notes and the 3D guides. |
+| [`raea fix`](fix.md) | A problem looked up before you guess: what you see or the error text, "quoted" for an exact phrase. |
 | [`raea context`](context.md) | Print what to read before working on a project: its taste, brief and look, the floor and its modes' guides. |
 | [`raea notes`](notes.md) | A person's notes as files the work is held to: each taken word for word, then restated as asks before anything changes. |
 | [`raea show`](show.md) | Show the person something in the raea app, as an item they can use and answer: stills, a video, a sound, a script, an interactive .tsx or a question. |

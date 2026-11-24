@@ -30,10 +30,10 @@ See [Workspaces and projects](../../concepts/workspaces.md) for where each spec 
 <!-- generated:begin by tools/manual-ref/sdk.ts from the SDK's exports and doc comments; edit outside this block -->
 
 ```ts
-import { brief, fingerprint, parts, script } from "raea/brief"
+import { brief, fingerprint, kit, parts } from "raea/brief"
 ```
 
-`raea/brief` exports 5 functions, 24 types. Source: [sdk/raea/src/brief.ts](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/src/brief.ts).
+`raea/brief` exports 8 functions, 34 types. Source: [sdk/raea/src/brief.ts](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/src/brief.ts).
 
 ## Functions
 
@@ -54,6 +54,15 @@ A fingerprint (fingerprint.ts): its axes and the encoders its heads were trained
 function fingerprint(f: Fingerprint): Fingerprint
 ```
 
+### `kit`
+
+A kit: props in one style at real size (`style` is the paragraph every reference carries: era, palette, materials,
+wear and one fictional maker). Done is a GLB, a LOD1 and a thumbnail per object, a lineup and kit.json.
+
+```ts
+function kit(m: Omit<Make, "kind">): Make
+```
+
 ### `parts`
 
 An object's parts (NAME.parts.ts), written before any geometry: each by name, its level, count and material.
@@ -62,12 +71,30 @@ An object's parts (NAME.parts.ts), written before any geometry: each by name, it
 function parts(p: Parts): Parts
 ```
 
+### `scene`
+
+A job made to a frozen plan and held to the review loop: `make: scene({...})` on brief.ts. Every
+object has its real size and whether it came from the reference or was invented; `raea make status` decides when
+it's done, and the agent's Stop hook holds it there.
+
+```ts
+function scene(m: Omit<Make, "kind">): Make
+```
+
 ### `script`
 
 A storyboard or a screenplay (script.ts): scenes, beats, lines, camera and cut.
 
 ```ts
 function script(s: Script): Script
+```
+
+### `shot`
+
+Shots of a built scene, each named for the file it lands as and described in a crew's words.
+
+```ts
+function shot(m: Omit<Make, "kind">): Make
 ```
 
 ### `taste`
@@ -156,6 +183,7 @@ type Deliverable = { name: string, /** * "90 s", "16:9", "with sound" */ specs?:
 | `about` | `string` | One line: what it tracks and when it judges ("Short ads for one brand: pace, type on screen, the brand's colours"). |
 | `extends` | `string` | The fingerprint it builds on, by name: it started from that one's axes. |
 | `applies` | `Applies` | Which pieces it judges when its project or workspace holds more than one. |
+| `ask` | `"flags" \| "unsure"` | Its flags asked again of the decision model as it scores: "flags", or "unsure" for the moments it's unsure of too (`raea fingerprint score --ask`). Costs by the flags; each answer is clef's evidence, never yours. |
 | `axes` (required) | `Axis[]` | What it notices, each axis with its words and the sense its head reads. |
 | `encoders` | `Record<string, string>` | Each encoder's id and its file's sha256: heads trained on other encoders' columns are refused. |
 
@@ -169,6 +197,66 @@ type Level = "primary" | "secondary" | "tertiary"
 
 ```ts
 type Line = { /** * a character, or "narrator" */ who: string, says: string, /** * a screenplay's parenthetical ("quietly") */ how?: string, }
+```
+
+### `Make`
+
+```ts
+type Make = { kind: MakeKind, /** * the pictures the job answers to (paths beside the brief): what is in it and where for a scene, the style for a kit */ references?: Array<string>, /** * one paragraph every reference prompt carries: era, palette, materials, wear, and one fictional maker */ style?: string, /…
+```
+
+### `MakeDial`
+
+```ts
+type MakeDial = MakeDialValue | { value: MakeDialValue, source?: MakeSource, /** * what the value meant for this job, in one line */ means?: string, }
+```
+
+### `MakeDialValue`
+
+```ts
+type MakeDialValue = number | string
+```
+
+### `MakeKind`
+
+```ts
+type MakeKind = "scene" | "kit" | "shot"
+```
+
+### `MakeObject`
+
+```ts
+type MakeObject = { /** * snake_case, unique in the job */ id: string, label: string, /** * real height in metres */ h?: number, /** * [width, depth, height] in metres, for boxy things (generators invent depth) */ dims?: [number, number, number], /** * largest extent in metres, for things that lie flat (tools, pap…
+```
+
+### `MakeOrigin`
+
+```ts
+type MakeOrigin = "reference" | "invented"
+```
+
+### `MakePick`
+
+```ts
+type MakePick = { /** * "tripo-h31", "meshy", ... */ generator: string, /** * one line: why this one ("sharper dial numerals; Tripo fused the handset to the cradle") */ why: string, }
+```
+
+### `MakeRoute`
+
+```ts
+type MakeRoute = "solid" | "rule" | "gen" | "library" | "picture"
+```
+
+### `MakeShot`
+
+```ts
+type MakeShot = { /** * [a-z0-9_]: the file it lands as (out/shots/<name>.png or .mp4) */ name: string, /** * in a crew's words: "slow push along the counter, rack focus to the register" */ description?: string, /** * static, dolly, truck, pedestal, crane, pan, tilt, orbit, dollyZoom, path */ move?: string, seco…
+```
+
+### `MakeSource`
+
+```ts
+type MakeSource = "customer" | "reference"
 ```
 
 ### `Modality`
@@ -218,7 +306,7 @@ type RuleLevel = "error" | "warn" | "note"
 ### `Scene`
 
 ```ts
-type Scene = { /** * where and when ("INT. SENATE - NIGHT", or "The brief page") */ heading?: string, beats: Array<Beat>, /** * what the scene must land */ payoff?: string, }
+type Scene = { /** * where and when ("INT. SENATE - NIGHT", or "The brief page") */ heading?: string, beats: Array<Beat>, /** * what the scene must land */ payoff?: string, /** * the story beat it plays, by its id (raea/story's compileScript writes it; docs/story.feature ST0c) */ beat?: string, }
 ```
 
 ### `Script`

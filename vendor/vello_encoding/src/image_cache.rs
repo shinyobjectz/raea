@@ -5,9 +5,25 @@ use guillotiere::{AllocId, AtlasAllocator, size2};
 use peniko::ImageData;
 use std::collections::HashMap;
 use std::collections::hash_map::Entry;
+use std::sync::atomic::{AtomicI32, Ordering};
 
 const DEFAULT_ATLAS_SIZE: i32 = 1024;
-const MAX_ATLAS_SIZE: i32 = 8192;
+/// raea: the atlas's largest side, Vello's 8192 unless the renderer's device can make a larger texture
+/// (`set_max_atlas_size`). Every filtered element is an image in the atlas, and 8192 held six full-frame layers of a
+/// 2160x3840 page, so a page with a seventh was refused (#125); 16384 holds 28.
+static MAX_ATLAS_SIZE: AtomicI32 = AtomicI32::new(8192);
+
+/// raea: the side image atlases made now grow to (`set_max_atlas_size`)
+pub fn max_atlas_size() -> u32 {
+    MAX_ATLAS_SIZE.load(Ordering::Relaxed) as u32
+}
+
+/// raea: lets image atlases made after this grow to `px` a side (the device's `max_texture_dimension_2d`): the
+/// largest power of two up to it, from 1024 to 16384 (a full 16384 atlas is 1 GiB, made only when a page needs it).
+pub fn set_max_atlas_size(px: u32) {
+    let px = px.clamp(DEFAULT_ATLAS_SIZE as u32, 16384);
+    MAX_ATLAS_SIZE.store(1 << (31 - px.leading_zeros()), Ordering::Relaxed);
+}
 const EVICT_AFTER_GENERATIONS: u64 = 2;
 
 #[derive(Default)]
@@ -61,7 +77,7 @@ impl Default for ImageCache {
 
 impl ImageCache {
     pub(crate) fn new() -> Self {
-        Self::new_with_sizes(DEFAULT_ATLAS_SIZE, MAX_ATLAS_SIZE)
+        Self::new_with_sizes(DEFAULT_ATLAS_SIZE, MAX_ATLAS_SIZE.load(Ordering::Relaxed))
     }
 
     fn new_with_sizes(initial_size: i32, max_size: i32) -> Self {

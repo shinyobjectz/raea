@@ -10,12 +10,15 @@ description = "raea's render engine: an edit's rows drawn by Bevy (3D) or the di
 dunce = "1"
 # a frame's rows as the passes read them (FrameRows, the edit, the clock, row helpers, bevy_api)
 raea-sys-frame = { path = "../../systems/frame" }
+# the engine's shaders read from files as an Engine opens, and their constants set from TypeScript (NB5b, NB1a)
+raea-sys-engine-shaders = { path = "../../systems/engine-shaders" }
 # a part held where a hand has it, and wireframe (the app's scene inspector)
 raea-sys-hold = { path = "../../systems/hold" }
 # the passes, each a crate of its own (systems/)
 raea-sys-splat = { path = "../../systems/splat" }
 raea-sys-sprite = { path = "../../systems/sprite" }
 raea-sys-rt = { path = "../../systems/rt" }
+raea-sys-gi = { path = "../../systems/gi" }
 # soft shadows (experimental_pbr_pcss) are under the native feature with raea-runtime-scene3d/pcss: WebGPU refuses their sampling
 bevy = { version = "=0.20.0", default-features = false, features = ["std", "default_app", "multi_threaded", "3d_bevy_render", "ui_bevy_render", "png", "tonemapping_luts", "ktx2", "zstd_rust"] }
 image = { version = "0.25", default-features = false, features = ["png", "jpeg", "hdr"] }

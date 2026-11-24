@@ -3,11 +3,12 @@
 use super::*;
 
 pub(crate) static PGID: AtomicI32 = AtomicI32::new(0);
+/// the feed's host beside raea-page-host (launch.rs feed_host)
+pub(crate) static HOST_PGID: AtomicI32 = AtomicI32::new(0);
 
 extern "C" fn on_signal(sig: libc::c_int) {
-    let g = PGID.load(Ordering::SeqCst);
     unsafe {
-        if g > 0 {
+        for g in [PGID.load(Ordering::SeqCst), HOST_PGID.load(Ordering::SeqCst)].into_iter().filter(|g| *g > 0) {
             libc::killpg(g, libc::SIGKILL);
         }
         libc::_exit(128 + sig);
@@ -40,6 +41,8 @@ pub(crate) fn sweep() {
 
 pub(crate) struct Proc {
     pub(crate) child: Child,
+    /// where the signal handler finds its process group (PGID, HOST_PGID), cleared once it's stopped
+    pub(crate) group: &'static AtomicI32,
 }
 
 impl Drop for Proc {
@@ -55,13 +58,14 @@ impl Drop for Proc {
         }
         unsafe { libc::killpg(g, libc::SIGKILL) };
         let _ = self.child.wait();
-        PGID.store(0, Ordering::SeqCst);
+        self.group.store(0, Ordering::SeqCst);
     }
 }
 
-/// One case's world: a launched substrate (or an attached one), its folder, its log.
+/// One case's world: a launched substrate (or an attached one) and the feed's host beside it, its folder, its log.
 pub(crate) struct World {
     pub(crate) proc: Option<Proc>,
+    pub(crate) host: Option<Proc>,
     pub(crate) dir: Option<PathBuf>,
     pub(crate) workspace: PathBuf,
     pub(crate) log: Option<PathBuf>,
@@ -71,6 +75,7 @@ pub(crate) struct World {
 impl Drop for World {
     fn drop(&mut self) {
         self.proc.take();
+        self.host.take();
         if let Some(d) = self.dir.take() {
             let _ = std::fs::remove_dir_all(d);
         }

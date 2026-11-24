@@ -1,7 +1,7 @@
 ---
 title: "raea setup"
 summary: "Find Blender, or download its current LTS, and install raea's add-on and the MCP add-on."
-order: 128
+order: 129
 sources: ["apps/tools/src/blender.rs"]
 ---
 

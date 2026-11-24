@@ -47,8 +47,9 @@ pub fn rendered(args: &[String]) -> i32 {
     if let Some(m) = manifest {
         if let Some(mut v) = std::fs::read(&m).ok().and_then(|b| serde_json::from_slice::<Value>(&b).ok()) {
             // a video's text, held to the check's text rules as it finishes, a check's round sooner
-            if out.as_deref().and_then(|o| o.extension()).is_some_and(|x| x == "mp4" || x == "mov") {
-                for f in text_found(&v) {
+            if let Some(o) = out.as_deref().filter(|o| matches!(o.extension().and_then(|x| x.to_str()), Some("mp4" | "mov"))) {
+                // and a sample of its frames rendered again, each held to the video's (SG9, pure.rs)
+                for f in text_found(&v).into_iter().chain(crate::pure::check(args, o, &v)) {
                     println!("{}", f.line());
                     found.push(f);
                 }

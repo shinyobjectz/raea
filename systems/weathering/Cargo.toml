@@ -17,6 +17,6 @@ raea-sys-runoff = { path = "../runoff" }
 raea-sys-touch = { path = "../touch" }
 raea-sys-exposure = { path = "../exposure" }
 raea-sys-damage = { path = "../damage" }
-# a union-find's root (charts merged by shared edges)
-raea-core-meshcheck = { path = "../../core/meshcheck" }
 raea-sys-glb = { path = "../glb" }
+# the atlas the cause maps lie over (and the light bake's, docs/bake.feature BK1)
+raea-sys-atlas = { path = "../atlas" }

@@ -5,8 +5,8 @@
 - Put `<SolariLighting />` (`raea/light`) inside the `<Camera3d>` it lights. raea sets up what Bevy asks for around it
   (HDR, no MSAA, the deferred and depth prepasses). It needs a GPU with ray queries: Apple silicon on Metal, an RTX
   card on Vulkan. Elsewhere the scene draws raster-lit and raea says so. On the Mac, MetalFX's denoiser cleans the
-  result (`RAEA_SOLARI_DENOISE=0` shows the raw noise).
-- Its three props:
+  result (`denoise={false}` shows the raw noise).
+- Its main props:
   - `bounces`: how many times light bounces. Bevy's default is 3 when it's left out; 2 is enough for most rooms and
     costs less.
   - `restir`: reuse light samples between pixels and frames. It's off by default, as Bevy has it. Turn it on when
@@ -15,8 +15,26 @@
     the old shot's light smears into the new one for a few frames. A cut between cameras (`<Camera3d is_active>`,
     the first active one draws) needs none: the engine resets Solari's and the path tracer's history on the frame
     the shot changes.
+  - `scale`: draw the view at this fraction of its size a side and let MetalFX bring it up. A game at 0.67 traces 45%
+    of the pixels.
+  - `primarySamples` and `secondarySamples`: light samples at the first hit and at each bounce (Bevy's 8 and 4). After
+    the denoiser, 4 and 2 look the same in most rooms and save time.
+- Every other choice the engine makes for the traced light is a prop too, so an A/B is two compositions, never a
+  build: `denoise`, `guides`, `reflectionDepth`, `emissive` ("taa", "split", "mask"), `upscale` ("one", "two"),
+  `preexposure`, `aa`, `jitter`, `jitterFrames`, `emissiveSharpness`, `dynamic`, `firstBounce`, `confidenceCap` and `cache` (the world cache's
+  `frames`, `lightSamples`, `reach`, `updates`, `cellSize`, `lodScale`). Each prop's TSDoc says what it changes. The
+  defaults are the measured best, so leave them unless a test scene shows otherwise. A developer's environment
+  variable of the same setting (`RAEA_SOLARI_DENOISE=0`, `RAEA_METALFX_PREEXPOSURE=4`) overrides the prop on every
+  camera, for an A/B across many scenes at once.
+- The numbers inside Solari's and the denoiser's shaders are props too: `constants` (`spatialReuse`,
+  `mirrorRoughness`, `cacheEnd`, `cacheLifetime`, `cacheSearch`, the `reconnect...` three, `glossyLightFloor`,
+  `mirror`'s six rules, `emissiveHistory`, `emissiveClamp`). They're compiled into the shaders when the scene loads, so set them from the first frame; a value
+  that changes later isn't drawn. `<ShaderConstants>` sets a constant in any other engine shader (`bevy/limits`).
+- Keep a look's settings as a TypeScript object and spread it: `const LIVE = { primarySamples: 4, scale: 0.67 }`,
+  then `<SolariLighting {...LIVE} />` or `<SolariLighting {...LIVE} preexposure={32} />`.
 - For a still to judge the look against, use `<Pathtracer />` in its place: exact and slow, accumulating while the
-  view holds still. It isn't for motion.
+  view holds still. It isn't for motion. `<Pathtracer samples={256} />` has a render draw each frame that many times,
+  so a reference still converges; `media={false}` leaves the fog volumes' air out.
 - Light the scene with what Solari sees:
   - a `DirectionalLight` (the sun);
   - emissive surfaces: a `StandardMaterial` with `emissive`. A fluorescent tube is a thin glowing box, a bulb a small
@@ -43,14 +61,13 @@
   faces. The bounce cache's cells are 15 cm, so a wall thinner than that next to a bright light leaks too.
 - Keep an interior under about 50 m across. A bounce ray that goes 50 m without hitting anything counts as sky, so a
   bigger hall gets sky light in its bounce.
-- Put every light in the tree from the first frame, and change brightness with the sky, the glows and the exposure
-  rather than the sun's `illuminance`. As of raea 0.1.2:
-  - a `DirectionalLight` that appears after the first frame lights nothing directly;
-  - the traced sun keeps its first frame's strength (its direction does follow);
-  - one `--at` render that jumps more than about 4.5 s between two frames loses the traced sun for every frame
-    after.
-
-  So render stills one per process (`--frame N`), and a film a shot a chunk.
+- Lights may come, go and change. Under Solari a sun that appears after the first frame, a change of its strength or
+  colour, the exposure and a long `--at` jump all follow the frame (0.1.9, measured: a frame matches the same frame
+  rendered alone). Reset at each cut (`reset`), so the next place doesn't start from the last one's light.
+- Render a film whole, in one process. Up to 0.1.9 a part a frame left out stayed in the traced scene, unseen, and
+  shaded what was on screen, so a film's later places drew darker than the same frames alone. From the next release it
+  leaves, and `raea render` holds a film's frames to the same frames alone (`frame-pure`). On 0.1.9, render a film
+  that changes place a scene a process.
 - In a surface hook (`fn surface`), write `emissive` with alpha 1.0. Bevy reads that alpha as how much the camera's
   exposure applies, so 1.0 puts the hook's glow in the traced light's units. At 0.0 the glow skips the exposure and
   comes out about 1,000 times brighter at the default.
@@ -66,8 +83,8 @@ from a world-space cache that rays keep updating (the world cache), read whereve
 against acceleration structures built from the meshes. That's why it needs its own mesh layout (raea makes a copy per
 mesh, once), why only the `StandardMaterial` fields it knows are traced (base colour, emissive, metallic and roughness,
 normal maps, alpha masks, `uv_transform`), and why it's noisy until a denoiser runs. Reflections went in with 0.18
-(specular) and 0.19 (a mirror BRDF). Their motion vectors aren't there yet, so a polished floor's reflections smear
-when the camera moves.
+(specular) and 0.19 (a mirror BRDF). raea's patches give a mirror's and a glossy surface's pixels the motion and depth
+of what they reflect, so the denoiser follows a reflection instead of smearing it.
 
 Bevy changes Solari every release. It arrived in 0.17, gained specular in 0.18 and mirrors in 0.19, and 0.20 turned
 ReSTIR off by default, added the atmosphere and environment lighting, and ran on Metal (with no denoiser of its own:

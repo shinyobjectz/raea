@@ -3,12 +3,12 @@ title = "j selects the next card and k the one before, one card selected at a ti
 window = [1440, 900]
 
 [[steps]]
-wait = { id = "card-i-steps", state = "data-selected" }
+wait = { id = "card-i-set", state = "data-selected" }
 [[steps]]
 input = { type = "press", key = "j" }
 [[steps]]
-expect = { all = [{ id = "card-i-hero", state = "data-selected" }, { id = "card-*", state = "data-selected", count = 1 }] }
+expect = { all = [{ id = "card-i-ideas", state = "data-selected" }, { id = "card-*", state = "data-selected", count = 1 }] }
 [[steps]]
 input = { type = "press", key = "k" }
 [[steps]]
-expect = { all = [{ id = "card-i-steps", state = "data-selected" }, { id = "card-*", state = "data-selected", count = 1 }] }
+expect = { all = [{ id = "card-i-set", state = "data-selected" }, { id = "card-*", state = "data-selected", count = 1 }] }

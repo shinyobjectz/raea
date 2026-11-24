@@ -1,0 +1,12 @@
+[package]
+name = "raea-sys-fixes"
+version = "0.1.0"
+edition = "2024"
+license = "FSL-1.1-ALv2"
+publish = false
+description = "`raea fix`: a problem looked up in raea's own fixes (sdk/guides/fixes/raea.tsv) and a library of problem -> fix entries from permissively licensed skills and docs (a SQLite FTS5 file the release ships)"
+
+[dependencies]
+rusqlite = { version = "0.37", features = ["bundled"] }
+# where an install keeps its files (share/raea) and its models
+raea-io-home = { path = "../../io/home" }

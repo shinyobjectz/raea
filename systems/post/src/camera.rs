@@ -24,7 +24,8 @@ const GROUPS: [Group; 11] = [
     Group { keys: |k| k == "exposure", on: on::exposure, off: |w, e| { w.entity_mut(e).insert(bevy::camera::Exposure::default()); } },
     Group { keys: |k| k.starts_with("grade_"), on: on::grading, off: |w, e| { w.entity_mut(e).insert(bevy::render::view::ColorGrading::default()); } },
     Group { keys: |k| k.starts_with("vignette"), on: on::vignette, off: remove::<bevy::post_process::effect_stack::Vignette> },
-    Group { keys: |k| k.starts_with("ssao") || k == "aa", on: on::aa, off: remove::<(bevy::pbr::ScreenSpaceAmbientOcclusion, bevy::anti_alias::smaa::Smaa, bevy::anti_alias::fxaa::Fxaa)> },
+    // the temporal filter goes with its jitter, which would otherwise keep moving the levels' dither with no filter
+    Group { keys: |k| k.starts_with("ssao") || k == "aa" || k.starts_with("aa_"), on: on::aa, off: remove::<(bevy::pbr::ScreenSpaceAmbientOcclusion, bevy::anti_alias::smaa::Smaa, bevy::anti_alias::fxaa::Fxaa, crate::steady::Steady, bevy::render::camera::TemporalJitter)> },
     // depth of field: on with the frames that have one (their post set has dof_max), its aperture and focus following
     // the frame in sync_camera (RR1: it went on once, with the camera, so a play opening on a shot without it had none)
     Group { keys: |k| k == "dof_max" || k == "dof_mode", on: on::dof, off: remove::<bevy::post_process::dof::DepthOfField> },

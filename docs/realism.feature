@@ -277,6 +277,49 @@ Feature: raea Light: raea's own real-time realism renderer, measured against rae
         most three bounces ending in last frame's cache
       And on Berlin light no longer leaks through a facade into a room, and the TLAS's cost and the cache's are in
         LT2's table
+      And the plan, the cache first and measured on Berlin before anything rests on it (11-17): until hits know their
+        surface (LT4) a cell sees LT2's stand-in (albedo 0.5) and is keyed by the side a ray meets (its normal faces
+        the ray); LT2's probe rays seed it, the screen's 8x8-tile paths come after; behind RAEA_GI=1, timed per pass
+        | crate       | file                 | lines | job                                                                 |
+        | raea-sys-rt | src/cache.rs         | 130   | the cache's buffers (2^20 cells, 84 bytes each), its passes in order |
+        | raea-sys-rt | src/cache.wesl       | 170   | the hash grid: cell size by distance, key and checksum, claim, read  |
+        | raea-sys-rt | src/compact.wesl     | 80    | cells age out; the live ones listed (a two-level prefix sum)         |
+        | raea-sys-rt | src/gi.wesl          | +90   | a probe ray's hit reads its cell; `learn` and `blend`, the update     |
+        | raea-sys-rt | src/gi.rs            | +40   | the cache's GPU ms per pass and its live cells in RAEA_GI_STATS      |
+      And so far (11-17, branch realism; not done): the cache runs behind RAEA_GI=1 before the probes each frame, in
+        two compute passes (upkeep: cells age, the live ones listed; update: 40000 cells learn the sun and one bounce
+        into last frame's cache, and blend), and the probes' hits read it. Measured on Berlin's walk (light-walk) at
+        1080p by GPU timestamps, 131072 probe rays a frame:
+        | smallest cell | cache ms p50 | p90   | probes ms p50 | live cells p50 | max       |
+        | 0.15 m        | 0.931        | 1.211 | 0.310         | 541,923        | 1,032,116 |
+        | 0.5 m         | 0.512        | 0.688 | 0.259         | 210,165        | 479,631   |
+        | 1 m           | 0.456        | 0.541 | 0.241         | 99,018         | 189,480   |
+        | 0.5 m, 524288 rays | 0.594   | 0.718 | 0.799         | 289,538        | 488,563   |
+      And what they say: 0.5 m is the default; 0.15 m fills the table. Decay and listing over all 2^20 cells set a floor
+        near 0.4 ms; the frame's work p50 moves about 5 ms run to run (raster alone 45.4 ms), so the timestamps are the
+        measure. LT2's probes cost 0.253 ms at 131072 rays. Open: the cache lights nothing on screen yet (as LT2's
+        grid: Metal's sampler limit), so its light is unchecked; the persistent TLAS, compaction and the screen's
+        8x8-tile paths are still to build
+      And the cache's light reaches the screen (11-18, raea-sys-gi, behind RAEA_GI=1), a measuring step as LT2's grid
+        was meant to be: each pixel reads the cache at its own surface, from the depth and normal prepasses, with the
+        sun's share taken out by each cell's mean of seeing it (cache.wesl `sunlit`, 4 MiB more), since raster draws
+        the sun with its shadows. It's written a texel a pixel and drawn by the main pass in place of the irradiance
+        volume, the environment map's diffuse and the ambient (raea's bevy_pbr RaeaGiScreen, binding 41, read by
+        textureLoad: no sampler, so a hooked material at Metal's 16 still builds). A cell is read by hundreds of
+        pixels, so the cache's reads load before they write. With raea's temporal filter on both, raster against
+        gi: the glade's mean 1.750/1.474 stops, bias 1.532/1.241, worst 2.953/2.948, flicker 0.788/0.780, its
+        undergrowth darker where cells see less sky. But the glade's reference (Solari's path tracer) is near black,
+        unconverged and without its fog, so its numbers measure the reference more than the GI (LT5). FLOOR3 goes black
+        but for its ceiling panels, 4.8 stops under its reference: it is lit by their emission alone, which no cell
+        knows yet (LT4's first tier, a hit's record's albedo and emission); live 14.5/16.3 ms, the cache and its
+        probes 0.92 ms of GPU
+      And on Berlin's walk (11-18, filtered, frames 96 and 191; no reference) the shaded fronts come out darker and
+        blotchy, and live is 54.9 ms raster against 64.5 gi (the cache and probes 1.6 ms of GPU at 226k cells; the
+        rest is the normal prepass over the city). Updating every live cell each frame (RAEA_GI_UPDATES=300000: 2.0 ms,
+        407k cells) barely changes the blotches, so it's the readout, not how often a cell learns: a facade 30 to 40 m
+        off is 1.5 to 2 m cells, and each pixel's jittered read lands in a neighbouring cell with another value. A
+        pixel reading its own cell is the measuring step only: LT8's screen probes (rays from the pixels, their hits
+        read the cache, filtered in probe space) are what draws it. Posted to Shane, i-acp-mwlwy9eb-38
 
     Scenario: LT4. What a ray hit sees
       Given every MaterialExtension writes the deferred G-buffer with its own surface code (D4; procmat's is first,
@@ -288,6 +331,15 @@ Feature: raea Light: raea's own real-time realism renderer, measured against rae
         the scene's materials
       And Berlin's snow bounces white, and a lit window throws warm light into the street at dusk; a hook that can't
         run at a hit is named by D19's warning
+      And so far (11-18, the first tier): systems/rt keeps each TLAS instance's record at its custom index
+        (records.rs: its StandardMaterial's base colour times its texture's mean, less what is metal, and its emission
+        as the radiance it sends, as the reference takes it), and the probes' and the cache's hits read it in place of
+        LT2's stand-in. An instance with no StandardMaterial (a hook) keeps the stand-in. FLOOR3's lenses (4500 nits)
+        now light its cells: gi mean 4.819 to 2.381 stops, bias -4.796 to -2.118, worst 7.029 to 6.012, flicker
+        0.101 to 0.415, live 16.1 ms. It stays dark and blotchy because one cosine ray an update rarely finds a lens
+        that is 2 to 3% of the sky: emitters sampled by their power with a shadow ray (D7, LT6) are next. Glade gi
+        mean 1.474 to 1.319, bias 1.241 to 1.074 (against LT3's unreliable reference). Taking emission over the
+        exposure where Bevy draws it unexposed (emissive_exposure_weight 0, its default) made FLOOR3 3.2 stops bright
 
     Scenario: LT5. raea's path tracer, the reference and the film tier
       Then a path tracer on systems/rt takes its first hit from the camera's G-buffer and runs full materials at every
@@ -353,13 +405,34 @@ Feature: raea Light: raea's own real-time realism renderer, measured against rae
       And so far (11-17, branch realism; not done): a Model's `detail` (near, far, max_px, min_px, edge, fade,
         shadow) is raea-sys-lod's Detail. Bevy's dither now runs in raea's own fragments (ShaderExt, ShaderMaterial).
         Ranges are measured from each mesh's origin, as Bevy's GPU measures them, and moved to the part's nearest
-        edge. Meshes are extracted after the ranges. The live diff keeps its fast path with Detail rows (it had run in
-        full every frame, +19 ms a step). gambit's City draws `levels="detail"`, its tiles' levels cross-faded by
+        edge. The live diff keeps its fast path with Detail rows (it had run in full every frame, +19 ms a step). gambit's City draws `levels="detail"`, its tiles' levels cross-faded by
         distance, streamed or not
       And measured on the 540p fly over Berlin (240 frames; a one-frame spike is an 8x8 block whose change is over
         12/255 and 3 times the frames' either side): detail's level switches at frames 41, 117, 122 and 157 (45, 20,
         19 and 17 blocks) are gone, and JS levels' at 58, 106, 112 and 148 (41, 15, 16, 13) are unchanged. Two left
-        at 35 and 226 (29 and 12 blocks) came from Bevy's extract order; their fix waits for a rebuild to be checked
+        at 35 and 226 (29 and 12 blocks) aren't Bevy's extract order: ordering meshes after the ranges changed no
+        pixel (Bevy 0.20 already orders them, bevy_pbr mesh.rs:200), and it came out again. At 35 a held tile's
+        arcaded row fades out half stippled for three frames with the sky showing through, no level behind it, then
+        drops in one frame: open
+      And the sun's shadows no longer end in a line (Shane, 11-17, on the fly: "the shadow having a clear cull
+        distance"): Bevy draws past its last cascade fully lit, so raea-sys-lod swaps its shadows.wesl (hash checked)
+        for one whose last cascade fades to lit over the cascades' overlap, the last 30% of the distance; the fly's
+        frames change on about 2% of their pixels, all lighter. Reaching 900 m, where DAY's fog begins, costs too
+        much as it is: live at 2560x1440, median of 3, work p50 walk 45.9 ms at 300 m against 53.3 at 900, fly
+        42.5 against 54.3
+      And past the cascades the sun's shadow comes from the ray scene (Shane, 11-17, on the fly: "its the street it
+        shows it clearly"; raea-sys-rt far.rs, RAEA_SUN_FAR): a map of the sun's view 2 km square, 4096 texels a
+        side, each one ray down along the sun to its first shadow caster, holding how high along the sun it hit; the
+        last cascade fades into it and it shades everything past. Not a ray a pixel: the game's camera has no depth
+        prepass, and one would draw all of Berlin again. Bevy has no hook for it, so bevy_pbr is vendored for its two
+        bindings (39, 40; docs/bevy-upgrade.md). A texel is kept at its column modulo the map's size, so the map
+        follows the eye eight texels at a time and traces only the strip new to it; after the TLAS changes, 256 rows
+        a frame again in turn; the whole map only on the first frame or when the sun turns. On the 1440p fly
+        (11-17, GPU timestamps, p50): a strip 0.38 ms (36,500 rays), 256 rows 0.28 ms (1,048,576); the whole map
+        once, 16 to 31 ms. Live at 2560x1440, work p50, median of 3, without against with: walk 51.1 against 50.4,
+        fly 54.5 against 45.6, inside the runs' 5 to 10 ms spread. On the fly the street and far blocks keep their
+        shadows to the horizon; the frames' popped tiles are as before but for 0.4% more, far chimney shadows
+        shimmering at 600 m to 1 km, which LT12's filter is for. Off unless RAEA_SUN_FAR is set
       And measured live at 2560x1440 on an M-series Mac, work p50 JS levels against detail: walk 51.7 against 48.9
         ms (p99 144.8 against 78.2), fly 50.3 against 50.1 (four runs each, about 5 ms apart run to run), streamed
         run 34.7 against 31.8 (p99 143.3 against 114.6). Detail adds 0.4 to 1.3 ms of step. Footprint: walk 6.97
@@ -398,6 +471,21 @@ Feature: raea Light: raea's own real-time realism renderer, measured against rae
       And indirect diffuse is applied per pixel in place of the irradiance volume, as a correction to the baseline
         (D9); Berlin within 0.25 stops mean and 0.5 worst tile of its reference in every sky, with no more flicker
         than raster
+      And so far (11-18, the first step, raea-sys-gi): a probe every 16 pixels on the surface its tile shows traces
+        16 cosine rays a frame through the TLAS with gi.wesl's own functions (a hit is its record lit by the cache, a
+        miss the sky), keeps a running mean over up to 24 frames found by where it stood last frame (kept only on the
+        same surface), and is pooled with the probes up to two tiles around it on its own plane (probe space); each
+        pixel takes the four around it by depth and normal, and reads the cache at its own surface only where none is
+        on it. Not yet: the screen trace before the TLAS, a quarter refreshed a frame. LT2's probe grid is traced only
+        when shown (RAEA_GI_SHOW=volume): its rays claimed cells all over the volume, so the cache's updates went to
+        cells no pixel reads (Berlin's walk 250k live cells to 149k). Filtered, gi path, before (LT4's first tier) and
+        after: FLOOR3 mean 2.381 to 0.617 stops, bias -2.118 to -0.547, worst 6.012 to 5.170, flicker 0.415 to 0.131
+        (raster 1.392, -0.816, 3.392, 0.111), live 16.1 to 14.4 ms; glade 1.319 to 1.292, bias 1.074 to 1.041 (its
+        reference unreliable, LT3). FLOOR3's worst tile is its ceiling: lit only by what the floor sends up, and the
+        floor's cells rarely find a lens with one cosine ray (D7, LT6). Flicker is still a fifth above raster's. Live
+        at 1080p: Berlin's walk 38.9 ms gi against 39.1 raster, raea GI 1.32 ms of GPU (the cache 0.31, the screen
+        probes, their pooling and the pixels 1.01); the kitchen 52.1 ms, 1.91 of it GI (no reference). Berlin's shaded
+        fronts are smooth where each pixel's own cell was blotchy (fd442f2b48); posted to Shane
 
     Scenario: LT9. Reflections, glass and fog
       Then SSR runs first and hands what it can't find to traced rays below a roughness of 0.4, hits shaded by D5's
@@ -437,6 +525,21 @@ Feature: raea Light: raea's own real-time realism renderer, measured against rae
       And quality tiers scale it for smaller GPUs, each tier's numbers in LT1's table, down to a tier for GPUs with
         no ray-tracing hardware: screen traces and probes, the world cache filled by a compute traversal of the
         coarse ray scene, leaf translucency and the finish (LT19) intact, so the image degrades and never drops
+      And the temporal filter is raea's own (11-18; raea-sys-post steady.rs, <AntiAliasing mode="steady">, or
+        RAEA_STEADY on every 3D camera): 16 jitter places, one for each of the levels' cross-fade dither's 16, which
+        now moves each frame under a jittered view (raea's bevy_pbr pbr_functions.wesl, its prepass alike); the past
+        fetched by the depth and motion prepasses at the nearest neighbour's motion, clipped to the 3x3 YCoCg spread
+        (1.5 sigma still, 1 at 4 px a frame), blended in linear light at 1/n down to 1/32 still and 1/8 moving. MSAA
+        goes off under it. On Berlin's 1440p fly the dither's dot bands are gone at full size and the walk's heroes
+        leave no trail; the far city's roof slopes, a pixel wide, alias more without MSAA (prefiltered far levels,
+        LT21). Live 2560x1440 work p50, median of 3, MSAA 4x against steady: walk 53.0/55.0 ms, fly 47.3/42.5 (Bevy's
+        TAA: 52.9/53.5, 53.4/42.1). Off by default; a render's first frames have no past
+      And `raea light check` draws 16 frames before each still or shot that doesn't follow the frame before, unmeasured,
+        so what keeps a past has its own, and never steadies its reference (RAEA_STEADY's jitter moved the path-traced
+        shot by part of a pixel a frame: 0.478 stops of its own on FLOOR3, read as the paths' flicker). LT1 raster,
+        without and with the filter: FLOOR3 mean 1.379/1.392 stops, bias -0.801/-0.816, worst 3.370/3.392, flicker
+        0.101/0.111, live 12.6/14.5 ms (the prepasses cost more than MSAA saves on a small room); glade 1.758/1.750,
+        1.542/1.532, 3.000/2.953, flicker 0.817/0.788; gambit-walk live 49.0/44.1 ms; kitchen live 53.8/55.6 ms
 
     Scenario: LT19. The camera and the finish
       Given much of a photo's look is its camera's, not its light's (Shane's notes, 11-17: a good denoiser, AgX,

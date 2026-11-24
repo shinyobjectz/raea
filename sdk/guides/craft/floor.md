@@ -46,6 +46,13 @@ direction asks for it by name, and the direction then says why in a line.
 
 - **Close-ups with no reason.** A cut to a detail has to answer something the viewer just wondered about.
 - **Wide, empty shots.** Frame close or medium on a subject: a person, a product, the thing that's happening.
+- **Labels written into the 3D.** Words that name or point at a part are a `Label`: page type over the scene, sized in
+  pixels of the frame, placed through the shot's camera. Words in the world are only what's really there (a sign, a page in a book), and `raea render` fails on
+  any it can't read: too small, turned past 50°, behind a part or never fully revealed (`bevy` rule 9). A part a
+  `Label` names is what the shot is about, so it fails when the frame's edge cuts that part (`subject-cut`).
+- **A 3D film rendered a shot at a time.** Render the film whole. A frame looks the same however it's reached, and
+  `raea render` renders a sample of a film's frames again alone and fails on one that differs (`frame-pure`). A shot a
+  process works round an engine fault; when one shows, report it with `raea bug` instead of building round it.
 - **Cameras that ease from A to B and stop.** A camera keeps moving at the start and end of a shot, so cuts join
   motion to motion. Stop only when following a subject that stops.
 - **Cutting to a constant tempo.** Cut to the song's map (its beats, downbeats, builds and drops), never to a BPM

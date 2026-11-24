@@ -16,10 +16,13 @@ struct VertexBuffer { vertices: array<PackedVertex> }
 
 struct IndexBuffer { indices: array<u32> }
 
+// raea: the vertex colour after the tangent (Bevy lays a mesh's attributes out by id: position, normal, uv, tangent,
+// colour). A mesh without one is traced white (raea-render-raytrace solari.rs traceable)
 struct PackedVertex {
     a: vec4<f32>,
     b: vec4<f32>,
     tangent: vec4<f32>,
+    color: vec4<f32>,
 }
 
 struct Vertex {
@@ -27,6 +30,7 @@ struct Vertex {
     normal: vec3<f32>,
     uv: vec2<f32>,
     tangent: vec4<f32>,
+    color: vec4<f32>,
 }
 
 fn unpack_vertex(packed: PackedVertex) -> Vertex {
@@ -35,6 +39,7 @@ fn unpack_vertex(packed: PackedVertex) -> Vertex {
     vertex.normal = vec3(packed.a.w, packed.b.xy);
     vertex.uv = packed.b.zw;
     vertex.tangent = packed.tangent;
+    vertex.color = packed.color;
     return vertex;
 }
 
@@ -53,10 +58,17 @@ struct Material {
     alpha_mode: u32,
     alpha_cutoff: f32,
     reflectance: f32,
-    // raea: StandardMaterial's uv_transform: columns x (xy) and y (zw), then the translation (xy)
+    // raea: StandardMaterial's uv_transform: columns x (xy) and y (zw), then the translation
     uv_transform_xy: vec4<f32>,
-    uv_transform_t: vec4<f32>,
+    uv_transform_t: vec2<f32>,
+    // raea: StandardMaterial's diffuse_transmission: the share of the diffuse light let through to the far side
+    diffuse_transmission: f32,
+    // raea: MATERIAL_* (assets.rs)
+    flags: u32,
 }
+
+// raea: StandardMaterial's double_sided (assets.rs MATERIAL_DOUBLE_SIDED)
+const MATERIAL_DOUBLE_SIDED = 1u;
 
 const TEXTURE_MAP_NONE = 0xFFFFFFFFu;
 
@@ -91,6 +103,29 @@ fn facing_normal(world_normal: vec3<f32>, geometric_world_normal: vec3<f32>, wo:
     return normalize(min_cos * wo + sqrt(1.0 - min_cos * min_cos) * tangent);
 }
 
+// raea: a hit seen from its back (a leaf's underside, a curtain from the window's side) shaded as its front: both its
+// normals turned toward the ray, as raster turns a double-sided material's. A ray found a back face black before (its
+// BRDF has nothing below the normal), in the path tracer and in Solari alike. Light passes a thin surface by its
+// material's diffuse_transmission (brdf.wesl), never by which side was hit. Emission stays one-sided, as light sampling
+// has it: a caller checks the side before the turn. Only a two-sided hit (back_lit) is shaded from behind; a caller
+// ends a path at any other back face, the inside of a closed solid, as before
+fn face_hit(hit: ResolvedRayHitFull, wo: vec3<f32>) -> ResolvedRayHitFull {
+    var faced = hit;
+    if dot(faced.geometric_world_normal, wo) < 0.0 {
+        faced.geometric_world_normal = -faced.geometric_world_normal;
+        faced.world_normal = -faced.world_normal;
+    }
+    faced.world_normal = facing_normal(faced.world_normal, faced.geometric_world_normal, wo);
+    return faced;
+}
+
+// raea: where a ray leaving a surface at p starts: off the side it leaves by, along offset_normal (the geometric normal
+// at a hit). A ray below the shading normal has passed through (diffuse transmission) and starts off the far side, or
+// it would stop on the surface it left
+fn offset_ray_origin(p: vec3<f32>, offset_normal: vec3<f32>, shading_normal: vec3<f32>, direction: vec3<f32>) -> vec3<f32> {
+    return p + offset_normal * select(-RAY_T_MIN, RAY_T_MIN, dot(shading_normal, direction) >= 0.0);
+}
+
 // raea: the share of light a premultiplied surface's clear coat reflects at an angle (Schlick, F0 from its reflectance)
 fn coat_albedo(reflectance: f32, cos_theta: f32) -> f32 {
     let f0 = 0.16 * reflectance * reflectance;
@@ -106,6 +141,8 @@ struct LightSource {
 
 const LIGHT_SOURCE_KIND_EMISSIVE_MESH = 0u;
 const LIGHT_SOURCE_KIND_DIRECTIONAL = 1u;
+// raea: an opening the environment map lights the scene through (SkyPortals); id: its index in environment_map_light
+const LIGHT_SOURCE_KIND_SKY_PORTAL = 3u;
 
 struct DirectionalLight {
     direction_to_light: vec3<f32>,
@@ -121,6 +158,27 @@ struct EnvironmentMapLight {
     sun_direction: vec3<f32>,
     sun_cos: f32,
     sky: vec3<f32>,
+    // raea: 1 when some material is see-through (bind_group.rs), else trace_ray skips its second query
+    any_alpha: u32,
+    // raea: the sky portals (bind_group.rs pack_sky_portals): three rows each, the corner and the area, then the edges
+    portal_count: u32,
+    portals: array<vec4<f32>, 24>,
+}
+
+// raea: a sky portal, the parallelogram corner + a u + b v for a and b from 0 to 1; normal: cross(u, v), unit length
+struct SkyPortal {
+    corner: vec3<f32>,
+    area: f32,
+    u: vec3<f32>,
+    v: vec3<f32>,
+    normal: vec3<f32>,
+}
+
+fn sky_portal(id: u32) -> SkyPortal {
+    let c = environment_map_light.portals[3u * id];
+    let u = environment_map_light.portals[3u * id + 1u].xyz;
+    let v = environment_map_light.portals[3u * id + 2u].xyz;
+    return SkyPortal(c.xyz, c.w, u, v, normalize(cross(u, v)));
 }
 
 const LIGHT_NOT_PRESENT_THIS_FRAME = 0xFFFFFFFFu;
@@ -160,6 +218,7 @@ fn trace_ray(ray_origin: vec3<f32>, ray_direction: vec3<f32>, ray_t_min: f32, ra
     rayQueryInitialize(&rq, tlas, RayDesc(ray_flag, RAY_MASK_OPAQUE, ray_t_min, ray_t_max, ray_origin, ray_direction));
     rayQueryProceed(&rq);
     let opaque = rayQueryGetCommittedIntersection(&rq);
+    if environment_map_light.any_alpha == 0u { return opaque; }
     var t_max = ray_t_max;
     if opaque.kind != RAY_QUERY_INTERSECTION_NONE { t_max = opaque.t; }
 
@@ -180,6 +239,7 @@ fn trace_ray_previous_frame(ray_origin: vec3<f32>, ray_direction: vec3<f32>, ray
     rayQueryInitialize(&rq, previous_frame_tlas, RayDesc(ray_flag, RAY_MASK_OPAQUE, ray_t_min, ray_t_max, ray_origin, ray_direction));
     rayQueryProceed(&rq);
     let opaque = rayQueryGetCommittedIntersection(&rq);
+    if environment_map_light.any_alpha == 0u { return opaque; }
     var t_max = ray_t_max;
     if opaque.kind != RAY_QUERY_INTERSECTION_NONE { t_max = opaque.t; }
 
@@ -241,6 +301,8 @@ struct ResolvedMaterial {
     perceptual_roughness: f32,
     roughness: f32,
     metallic: f32,
+    // raea: Material's
+    diffuse_transmission: f32,
 }
 
 struct ResolvedRayHitFull {
@@ -249,6 +311,11 @@ struct ResolvedRayHitFull {
     world_normal: vec3<f32>,
     geometric_world_normal: vec3<f32>,
     world_tangent: vec4<f32>,
+    // raea: whether its back is lit as its front: a double-sided material (a sheet, a leaf, a curtain) or one passing
+    // light through (diffuse transmission). Any other material is a closed solid's outside, whose inside (found only by a
+    // ray started within a hair of a contact) is dark: a path there ends, as raster's back-face culling has it, rather
+    // than bounce round a white sphere's inside a hundred times for nothing
+    back_lit: bool,
     uv: vec2<f32>,
     triangle_area: f32,
     triangle_count: u32,
@@ -279,6 +346,7 @@ fn resolve_material(material: Material, uv: vec2<f32>) -> ResolvedMaterial {
     }
 
     m.roughness = m.perceptual_roughness * m.perceptual_roughness;
+    m.diffuse_transmission = material.diffuse_transmission;
 
     return m;
 }
@@ -355,7 +423,9 @@ fn resolve_triangle_data_full(instance_id: u32, triangle_id: u32, barycentrics: 
     let triangle_edge1 = world_vertices[0] - world_vertices[2];
     let triangle_area = length(cross(triangle_edge0, triangle_edge1)) / 2.0;
 
-    let resolved_material = resolve_material(material, uv);
+    var resolved_material = resolve_material(material, uv);
+    // raea: the vertex colour multiplies the base colour, as Bevy's StandardMaterial does in raster
+    resolved_material.base_color *= (mat3x4(vertices[0].color, vertices[1].color, vertices[2].color) * barycentrics).rgb;
 
     return ResolvedRayHitFull(
         world_position,
@@ -363,6 +433,7 @@ fn resolve_triangle_data_full(instance_id: u32, triangle_id: u32, barycentrics: 
         world_normal,
         geometric_world_normal,
         world_tangent,
+        (material.flags & MATERIAL_DOUBLE_SIDED) != 0u || material.diffuse_transmission > 0.0,
         uv,
         triangle_area,
         instance_geometry_ids.triangle_count,

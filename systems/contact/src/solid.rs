@@ -195,44 +195,173 @@ pub(crate) fn grid(tris: &[[Vec3; 3]], lo: Vec3, hi: Vec3, cell: f32) -> Solid {
     Solid { name: String::new(), min, cell, n, depth, inside, surf: Vec::new(), fine: None, lo, hi }
 }
 
+/// Each file's or shape expression's solids, made once until [`crate::forget`]
+static CACHE: OnceLock<Mutex<HashMap<String, Result<Arc<Vec<Solid>>, String>>>> = OnceLock::new();
+
+/// Lets every made solid go (crate::forget).
+pub(crate) fn forget_solids() {
+    if let Some(c) = CACHE.get() {
+        c.lock().unwrap().clear();
+    }
+}
+
+/// What a part's solids are made from: its model's file, or its shape expression.
+fn key_of(it: &Item) -> String {
+    match it.kind {
+        "model" => format!("model:{}", src_path(it.props.get("src").and_then(Value::as_str).unwrap_or(""))),
+        _ => format!("mesh:{}", it.shape.as_deref().unwrap_or("")),
+    }
+}
+
 /// A part's solids (one per mesh node of a model), made once per file or shape expression this process (an Err: not
 /// checked, and why).
 pub(crate) fn solid_of(it: &Item) -> Result<Arc<Vec<Solid>>, String> {
-    static CACHE: OnceLock<Mutex<HashMap<String, Result<Arc<Vec<Solid>>, String>>>> = OnceLock::new();
-    let key = match it.kind {
-        "model" => format!("model:{}", src_path(it.props.get("src").and_then(Value::as_str).unwrap_or(""))),
-        _ => format!("mesh:{}", it.shape.as_deref().unwrap_or("")),
-    };
+    let key = key_of(it);
     if let Some(s) = CACHE.get_or_init(Default::default).lock().unwrap().get(&key) {
         return s.clone();
     }
-    let made = (|| {
-        let groups: Vec<(String, Vec<[Vec3; 3]>)> = if it.kind == "model" {
-            let (g, moves) = gltf_tris(&key["model:".len()..])?;
-            if moves {
-                return Err("it animates".into());
-            }
-            g
-        } else {
-            let t = raea_core_shape::cached(it.shape.as_deref().ok_or("no shape")?)?;
-            vec![(String::new(), t.positions.chunks_exact(3).map(|c| [Vec3::from(c[0]), Vec3::from(c[1]), Vec3::from(c[2])]).collect())]
-        };
-        // the whole model, and each mesh on its own when there are several: a statue in open pieces is only solid
-        // whole, a ruin's thin column only resolved alone
-        let mut solids: Vec<Solid> = Vec::new();
-        if groups.len() > 1 {
-            let whole: Vec<[Vec3; 3]> = groups.iter().flat_map(|(_, t)| t.iter().copied()).collect();
-            solids.extend(voxelize(&whole));
-            solids.extend(groups.into_iter().filter_map(|(name, t)| voxelize(&t).map(|mut s| {
-                s.name = name;
-                s
-            })));
-        } else {
-            solids.extend(groups.into_iter().filter_map(|(_, t)| voxelize(&t)));
-        }
-        solids.retain(Solid::solid);
-        if solids.is_empty() { Err("it has no volume".to_string()) } else { Ok(Arc::new(solids)) }
-    })();
+    let made = make(it, &key);
     CACHE.get_or_init(Default::default).lock().unwrap().insert(key, made.clone());
     made
+}
+
+fn make(it: &Item, key: &str) -> Result<Arc<Vec<Solid>>, String> {
+    let groups: Vec<(String, Vec<[Vec3; 3]>)> = if it.kind == "model" {
+        let (g, moves) = gltf_tris(&key["model:".len()..])?;
+        if moves {
+            return Err("it animates".into());
+        }
+        g
+    } else {
+        let t = raea_core_shape::cached(it.shape.as_deref().ok_or("no shape")?)?;
+        vec![(String::new(), t.positions.chunks_exact(3).map(|c| [Vec3::from(c[0]), Vec3::from(c[1]), Vec3::from(c[2])]).collect())]
+    };
+    // the whole model, and each mesh on its own when there are several: a statue in open pieces is only solid
+    // whole, a ruin's thin column only resolved alone
+    let mut solids: Vec<Solid> = Vec::new();
+    if groups.len() > 1 {
+        let whole: Vec<[Vec3; 3]> = groups.iter().flat_map(|(_, t)| t.iter().copied()).collect();
+        solids.extend(voxelize(&whole));
+        solids.extend(groups.into_iter().filter_map(|(name, t)| voxelize(&t).map(|mut s| {
+            s.name = name;
+            s
+        })));
+    } else {
+        solids.extend(groups.into_iter().filter_map(|(_, t)| voxelize(&t)));
+    }
+    solids.retain(Solid::solid);
+    if solids.is_empty() { Err("it has no volume".to_string()) } else { Ok(Arc::new(solids)) }
+}
+
+/// The parts' solids as a render's frames come (Clipping): a shape's made when its part first shows, shared by the parts
+/// holding it, and let go once its part has been gone GONE frames (made again from the part's first frame if it comes
+/// back: the same cells); a model's from the process's cache (its file, a few at most). A film's shapes change as its
+/// words and parts do: a 13,175-frame film's 1,323 shapes held at once were 2.9 GB of cells at its end, its render's
+/// peak (docs/stage-guards.feature SG4a).
+#[derive(Default)]
+pub(crate) struct Held {
+    pub(crate) solids: Vec<Option<Arc<Vec<Solid>>>>,
+    /// each part's first item (what its solid is made from), whether that failed, and the last frame it was in
+    first: Vec<Item>,
+    failed: Vec<bool>,
+    seen: Vec<usize>,
+    /// the parts holding a solid
+    holding: Vec<usize>,
+    shared: HashMap<String, Result<std::sync::Weak<Vec<Solid>>, String>>,
+}
+
+/// A part gone this many frames lets its solid go.
+pub(crate) const GONE: usize = 120;
+
+impl Held {
+    /// Frame k's parts (each part's index, numbered as they first show, and its item there): their solids made where
+    /// they have none.
+    pub(crate) fn at(&mut self, k: usize, here: &[(usize, &Item)]) {
+        for &(i, it) in here {
+            if i == self.solids.len() {
+                self.solids.push(None);
+                self.first.push(it.clone());
+                self.failed.push(false);
+                self.seen.push(k);
+            }
+            self.seen[i] = k;
+            if self.solids[i].is_some() || self.failed[i] {
+                continue;
+            }
+            let it = &self.first[i];
+            let key = key_of(it);
+            let had = match self.shared.get(&key) {
+                Some(Ok(w)) => w.upgrade().map(Ok),
+                Some(Err(e)) => Some(Err(e.clone())),
+                None => None,
+            };
+            let s = had.unwrap_or_else(|| {
+                let s = if it.kind == "model" { solid_of(it) } else { make(it, &key) };
+                self.shared.insert(key, s.as_ref().map(Arc::downgrade).map_err(Clone::clone));
+                s
+            });
+            self.failed[i] = s.is_err();
+            self.solids[i] = s.ok();
+            if self.solids[i].is_some() {
+                self.holding.push(i);
+            }
+        }
+    }
+
+    /// After frame k: the solids of the parts gone GONE frames let go, but those `keep` names (an overlap still to be
+    /// said with their pieces' names).
+    pub(crate) fn after(&mut self, k: usize, keep: impl Fn(usize) -> bool) {
+        let (solids, seen) = (&mut self.solids, &self.seen);
+        self.holding.retain(|&i| {
+            let gone = k >= seen[i] + GONE && !keep(i);
+            if gone {
+                solids[i] = None;
+            }
+            !gone
+        });
+    }
+}
+
+/// The pieces that hide others on a frame: every checked part in it (`here`: each part's index and item), see-through
+/// ones left out.
+pub(crate) fn occluders<'a>(here: &[(usize, &'a Item)], solids: &'a [Option<Arc<Vec<Solid>>>]) -> Vec<(&'a Solid, Mat4)> {
+    here.iter().filter_map(|&(i, it)| Some((it, solids[i].as_ref()?)))
+        .filter(|(it, _)| !excused(it) || it.props.get("allowOverlap").and_then(Value::as_bool) == Some(true))
+        .flat_map(|(it, ss)| ss.iter().map(move |s| (s, it.world)))
+        .collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn mesh(shape: &str) -> Item {
+        Item { kind: "mesh", props: Arc::new(serde_json::Map::new()), shape: Some(shape.into()), material: None, at: None, world: Mat4::IDENTITY }
+    }
+
+    #[test]
+    fn a_shape_is_held_while_its_parts_show() {
+        let (a, b) = (mesh("box(1, 1, 1)"), mesh("box(2, 1, 1)"));
+        let mut held = Held::default();
+        held.at(0, &[(0, &a), (1, &a)]);
+        assert!(Arc::ptr_eq(held.solids[0].as_ref().unwrap(), held.solids[1].as_ref().unwrap()), "one shape's parts share its solid");
+        held.after(0, |_| false);
+        assert!(held.solids[1].is_some(), "held while its part may come back");
+        // part 1 gone GONE frames: let go; part 0, still showing, keeps the shape
+        for k in 1..=GONE {
+            held.at(k, &[(0, &a), (2, &b)]);
+            held.after(k, |_| false);
+        }
+        assert!(held.solids[1].is_none() && held.solids[0].is_some() && held.solids[2].is_some());
+        // back: the shape's solid again, the one part 0 holds
+        held.at(GONE + 1, &[(1, &a)]);
+        assert!(Arc::ptr_eq(held.solids[1].as_ref().unwrap(), held.solids[0].as_ref().unwrap()));
+        for k in GONE + 2..=3 * GONE {
+            held.at(k, &[]);
+            held.after(k, |i| i == 2);
+        }
+        assert!(held.solids[2].is_some(), "kept for an overlap still to be said");
+        assert!(held.solids[0].is_none() && held.solids[1].is_none());
+        assert!(held.shared["mesh:box(1, 1, 1)"].as_ref().is_ok_and(|w| w.upgrade().is_none()), "let go once no part holds it");
+    }
 }

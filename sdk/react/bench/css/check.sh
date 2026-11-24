@@ -1,11 +1,13 @@
 #!/bin/sh
 # A composition's CSS imports and CSS modules reach its page (docs/vite-in-raea.md A2): edit.tsx bundled in process
 # (RAEA_BUNDLER=rolldown), its first frame rendered, five pixels checked against what Chrome paints for the same CSS.
-#   sdk/react/bench/css/check.sh [RAEA_MOTION]
+#   sdk/react/bench/css/check.sh [RAEA]       (default: RAEA_BIN, else the repo's target/release/raea)
 # Build first: lane build -- cargo build --release -p raea-cli.
 set -e
+ROOT=$(cd "$(dirname "$0")/../../../.." && pwd)
+case ${1:-} in /*|"") ;; *) set -- "$PWD/$1" ;; esac
 cd "$(dirname "$0")/../.."
-BIN=${1:-target/release/raea}
+BIN=${1:-${RAEA_BIN:-$ROOT/target/release/raea}}
 OUT=${TMPDIR:-/tmp}/raea-css-check
 mkdir -p "$OUT"
 RAEA_BUNDLER=rolldown RAEA_BUNDLE_CACHE=0 RAEA_AUDIO_MUTE=1 RAEA_READBACK=rgba "$BIN" render bench/css/edit.tsx -o "$OUT/frame.png" --frame 0 > "$OUT/render.log" 2>&1 || { echo "css: FAIL the render failed (see $OUT/render.log)"; exit 1; }

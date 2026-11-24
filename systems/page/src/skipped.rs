@@ -9,8 +9,8 @@
 //! at those sizes, or refuses one skipped at them too, so the render fails naming it.
 //! RAEA_PAGE_DRAWN_CHECK=0 draws without the check (for measuring what it costs; a skipped draw goes unseen again).
 //! And whether it drew every image: one that finds no room in Vello's image atlas is drawn at no size, again with no
-//! error. A layer with a filter or a perspective transform is such an image, the size of its box, so a page of many
-//! lost its nearest ones. The resolve counts them (vendor/vello_encoding `take_images_left_out`) and the frame is
+//! error. A layer with a filter or a perspective transform is such an image, the size of what it draws, so a page of
+//! many lost its nearest ones. The resolve counts them (vendor/vello_encoding `take_images_left_out`) and the frame is
 //! refused (raea_gpu_device::check::refuse), so the render fails naming it.
 
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -61,7 +61,8 @@ pub fn render(renderer: &mut vello::Renderer, device: &wgpu::Device, queue: &wgp
     renderer.render_to_texture(device, queue, scene, &target.create_view(&Default::default()), params).map_err(|e| format!("vello, {what}: {e}"))?;
     let left_out = vello::low_level::vello_encoding::take_images_left_out();
     if left_out > 0 {
-        let why = format!("{what} ({}x{}) was drawn without {left_out} of its images: Vello's image atlas (8192 px a side) has no room for them. Each element with a filter or a perspective transform is an image the size of its box, so fewer of them, or smaller boxes, draw it", params.width, params.height);
+        let side = vello::low_level::vello_encoding::max_atlas_size();
+        let why = format!("{what} ({}x{}) was drawn without {left_out} of its images: Vello's image atlas ({side} px a side, this GPU's largest texture) has no room for them. Each element with a filter or a perspective transform is an image the size of what it draws, so fewer of them, or smaller ones, draw it", params.width, params.height);
         bevy::log::error!("raea-page: {why}");
         raea_gpu_device::check::refuse(why);
     }

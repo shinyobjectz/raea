@@ -66,7 +66,7 @@ pub fn sprites(tracks: &[Track], p: &mut Program) {
         place2d(p, &mut row, &id, &its, "#ffffff");
         visible(p, &mut row, &id, track);
         p.spawns.push(("sprite".into(), vec![row]));
-        own_uniforms(p, &id, &its, |it| it.props.get("shader"));
+        own_uniforms(p, &id, &its, false, |it| it.props.get("shader"));
     }
 }
 
@@ -99,7 +99,7 @@ pub fn shapes(tracks: &[Track], p: &mut Program) {
         place2d(p, &mut row, &id, &its, "#ffffff");
         visible(p, &mut row, &id, track);
         p.spawns.push(("shape2d".into(), vec![row]));
-        own_uniforms(p, &id, &its, |it| it.props.get("shader"));
+        own_uniforms(p, &id, &its, false, |it| it.props.get("shader"));
     }
 }
 

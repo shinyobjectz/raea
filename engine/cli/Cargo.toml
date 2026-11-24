@@ -52,6 +52,8 @@ serde_json = "1"
 raea-neural = { path = "../neural" }
 # `raea light check` (docs/realism.feature LT1)
 raea-light = { path = "../light" }
+# `raea fix`: a problem looked up in raea's own fixes and the library of community ones the release ships
+raea-sys-fixes = { path = "../../systems/fixes" }
 regex = "1"
 # the app crates' verbs: `raea check`, `raea ci`, and the local tools' (sao, tokensynth, setup-audio, sounds, splat)
 raea-app-check = { path = "../../apps/check" }
@@ -70,8 +72,13 @@ raea-app-engines = { path = "../../apps/engines" }
 raea-app-solid = { path = "../../apps/solid" }
 # raea judge: review sheets judged by clef-omni
 raea-app-judge = { path = "../../apps/judge" }
+# raea scene lint|explain|light|stage (docs/stage-guards.feature)
+raea-app-scene = { path = "../../apps/scene" }
 raea-app-ask = { path = "../../apps/ask" }
 raea-app-videoform = { path = "../../apps/videoform" }
+# raea bake light (docs/bake.feature)
+raea-app-lightbake = { path = "../../apps/lightbake" }
+raea-app-make = { path = "../../apps/make" }
 raea-app-media = { path = "../../apps/media" }
 # `raea app run|check|bundle` and `raea rune` on either target (docs/targets.feature T0b)
 raea-app-targets = { path = "../../apps/targets" }
@@ -85,9 +92,18 @@ bevy = { version = "=0.20.0", default-features = false }
 raea-core-program = { path = "../../core/program" }
 raea-core-animate = { path = "../../core/animate" }
 
+# the plugin catalog in the macOS build (docs/nobuild.feature NB4a): every plugin compiled in, added to an App only when
+# its project chooses it. Windows and Linux follow once their builders have built and checked it (tools/nobuild.sh catalog)
+[target.'cfg(target_os = "macos")'.dependencies]
+raea-bevy-plugins = { path = "../../engine/bevy-plugins", features = ["catalog"] }
+raea-runtime-react = { path = "../../runtime/react", default-features = false, features = ["bevy-plugins"] }
+
 [features]
 # Bevy plugins compiled in (raea-bevy-plugins), as tools/bevy-plugins.sh names them: bevy-plugins,raea-bevy-plugins/avian,...
 bevy-plugins = ["dep:raea-bevy-plugins", "raea-runtime-react/bevy-plugins"]
+# every plugin engine/bevy-plugins declares but those it leaves out of its catalog, each added to an App only when its
+# project chooses it (raea_runtime_plugins::choose, docs/nobuild.feature NB4a)
+catalog = ["bevy-plugins", "raea-bevy-plugins/catalog"]
 
 [package.metadata.cargo-shear]
 # depended on only to turn their features on (raea-runtime-bake's modules, raea-runtime-sound's seedling and ml)

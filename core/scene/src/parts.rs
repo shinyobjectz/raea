@@ -132,6 +132,7 @@ pub fn label(it: &Item, piece: &str) -> String {
 }
 
 /// A part's triangles in the world, with the node each came from.
+#[derive(Clone)]
 pub struct Part {
     pub label: String,
     pub tris: Vec<[Vec3; 3]>,

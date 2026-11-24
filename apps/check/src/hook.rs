@@ -150,7 +150,9 @@ pub fn hook(args: &[String]) -> R<String> {
     // to end goes on to take it up
     let sent = if matches!(event, "PostToolUse" | "AfterTool" | "Stop") { crate::inbox::told(agent, &v) } else { None };
     if event == "Stop" {
-        return Ok(sent.map(|s| json!({"decision": "block", "reason": s}).to_string()).unwrap_or_default());
+        // what the person sent, and a `make` job that isn't done (docs/make.feature MK2): either keeps the turn going
+        let reasons: Vec<String> = [sent, raea_app_check_make::stop(&v)].into_iter().flatten().collect();
+        return Ok(if reasons.is_empty() { String::new() } else { json!({"decision": "block", "reason": reasons.join("\n\n")}).to_string() });
     }
     let after_tool = matches!(event, "PostToolUse" | "AfterTool");
     if let Some(cmd) = shell_command(&v).filter(|_| !after_tool) {

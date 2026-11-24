@@ -1,7 +1,7 @@
 ---
 title: "raea wear bake"
 summary: "Bake what weathers a model: where rain reaches and runs, what the sun sees, edges, hollows and touch, as maps raea/wear reads."
-order: 104
+order: 105
 sources: ["runtime/wear/src/lib.rs", "systems/weathering/src"]
 ---
 

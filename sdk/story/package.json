@@ -1,0 +1,20 @@
+{
+  "name": "@raea/story",
+  "license": "FSL-1.1-ALv2",
+  "private": true,
+  "version": "0.1.0",
+  "description": "raea's stories as data (docs/story.md, docs/story.feature): a world of facts and caused events, tellings of it as beats, an ECS whose systems derive value curves, knowledge, suspense, the cause graph and tension, lenses for the storytelling frameworks, seeded sampling, exact checks, mutation for training data, and compilers to raea/brief's Script, storylets and dialogue. No runtime dependencies.",
+  "type": "module",
+  "main": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./raea/checks": "./src/raea/checks.ts",
+    "./raea/compose": "./src/raea/compose.tsx"
+  },
+  "scripts": {
+    "test": "bun test test"
+  },
+  "peerDependencies": {
+    "react": "19.2.0"
+  }
+}

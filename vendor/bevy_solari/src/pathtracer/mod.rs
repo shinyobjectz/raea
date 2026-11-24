@@ -30,6 +30,7 @@ pub struct PathtracingPlugin;
 impl Plugin for PathtracingPlugin {
     fn build(&self, app: &mut App) {
         embedded_asset!(app, "pathtracer.wesl");
+        bevy_shader::load_shader_library!(app, "media.wesl");
     }
 
     fn finish(&self, app: &mut App) {
@@ -46,6 +47,7 @@ impl Plugin for PathtracingPlugin {
         }
 
         render_app
+            .init_resource::<PathtracerMedia>()
             .add_systems(
                 RenderStartup,
                 init_pathtracer_pipelines.after(init_gpu_resource::<RaytracingSceneBindings>),
@@ -63,6 +65,11 @@ impl Plugin for PathtracingPlugin {
             );
     }
 }
+
+/// raea: the participating media the path tracer walks (media.wesl): raea_sys_fog's froxel.rs puts its fog volumes'
+/// buffer here each frame (froxel_volume.wesl's `Volume`). None: the tracer walks a single empty volume.
+#[derive(bevy_ecs::resource::Resource, Default)]
+pub struct PathtracerMedia(pub Option<bevy_render::render_resource::Buffer>);
 
 #[derive(Component, Reflect, Default, Clone)]
 #[reflect(Component, Default, Clone)]

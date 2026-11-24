@@ -29,7 +29,7 @@ const Box = () => (
 import { ATTRIBUTE_COLOR, ATTRIBUTE_NORMAL, ATTRIBUTE_POSITION, ATTRIBUTE_TANGENT } from "raea/mesh"
 ```
 
-`raea/mesh` exports 14 components, 1 function, 2 classes, 10 values, 24 types. Bevy's counterpart: `bevy_mesh, bevy_shape`. Source: [sdk/raea/src/mesh.ts](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/src/mesh.ts).
+`raea/mesh` exports 16 components, 1 function, 2 classes, 10 values, 26 types. Bevy's counterpart: `bevy_mesh, bevy_shape`. Source: [sdk/raea/src/mesh.ts](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/src/mesh.ts).
 
 ## Components
 
@@ -100,6 +100,22 @@ Bevy: `bevy_pbr::render::mesh::MeshPipeline (automatic batching of entities shar
 
 Takes [`InstancesProps`](3d.md#instancesprops)'s props.
 
+### `Line3d`
+
+A line through points in 3D: one flat mesh of a width, round at its ends and joins, drawn up to `p` of its length.
+One part, so a curve that grows is solid at every frame (never a chain of parts: SG6). Its material is its child.
+`<Line3d points={pts} width={0.04} p={t}><StandardMaterial base_color="#e5484d" unlit /></Line3d>`
+
+| Prop | Type | What it does |
+| --- | --- | --- |
+| `points` (required) | `readonly Vec3[]` | the points it passes through, in order (two or more); give enough for a curve to read smooth |
+| `p` | `number` | how much of it is drawn, 0 to 1 of its length from the first point (1): animate it to draw the line on |
+| `width` | `number` | its width in metres (0.05) |
+| `normal` | `Vec3` | the way its face looks: the normal of the plane it lies in (left out: the plane of its points, else +z) |
+| `children` | `ReactNode` | its material (a white StandardMaterial when left out) |
+
+Also takes the props of `MeshProps` (`animate`, `name`, `read`, `pass`, `quaternion`, `allowOverlap`, `posed`, `shape`, `driven`, `shadow`, `material`, `castShadow`, `surface`, `receiveShadow`, `attributes`, `compressed`, `layers`); `PointerHandlers3d` (`onClick`, `onDrag`, `onDragEnd`, `onDragEnter`, `onDragLeave`, `onDragOver`, `onDragStart`, `onDrop`, `onPointerDown`, `onPointerMove`, `onPointerUp`, `onPointerEnter`, `onPointerLeave`, `onPointerOver`, `onPointerOut`, `onWheel`); [`Mesh3dProps`](#mesh3dprops) (`visibility`, `transform`, `detail`).
+
 ### `Mesh2d`
 
 Bevy's Mesh2d with its Transform, a primitive and a ColorMaterial: <Shape2D> in Bevy's 2D world.
@@ -123,7 +139,7 @@ shadow="only" draws it with the shadow-only material (engine/render shadow_only.
 | `detail` | `Detail` | where it's drawn: its distances or sizes on screen, cross-faded, and its shadow (Detail; raea-sys-lod) |
 | `children` | `ReactNode` | its material and child entities |
 
-Also takes the props of `MeshProps` (`animate`, `name`, `pass`, `quaternion`, `allowOverlap`, `posed`, `shape`, `driven`, `shadow`, `material`, `castShadow`, `surface`, `receiveShadow`, `attributes`, `compressed`, `layers`); `PointerHandlers3d` (`onClick`, `onDrag`, `onDragEnd`, `onDragEnter`, `onDragLeave`, `onDragOver`, `onDragStart`, `onDrop`, `onPointerDown`, `onPointerMove`, `onPointerUp`, `onPointerEnter`, `onPointerLeave`, `onPointerOver`, `onPointerOut`, `onWheel`).
+Also takes the props of `MeshProps` (`animate`, `name`, `read`, `pass`, `quaternion`, `allowOverlap`, `posed`, `shape`, `driven`, `shadow`, `material`, `castShadow`, `surface`, `receiveShadow`, `attributes`, `compressed`, `layers`); `PointerHandlers3d` (`onClick`, `onDrag`, `onDragEnd`, `onDragEnter`, `onDragLeave`, `onDragOver`, `onDragStart`, `onDrop`, `onPointerDown`, `onPointerMove`, `onPointerUp`, `onPointerEnter`, `onPointerLeave`, `onPointerOver`, `onPointerOut`, `onWheel`).
 
 Used in: [ui/render_ui_to_texture](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/ui/render_ui_to_texture.tsx), [ui/widgets/viewport_node](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/ui/widgets/viewport_node.tsx), [3d/fog](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/3d/fog.tsx), [3d/vertex_colors](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/3d/vertex_colors.tsx), [3d/rotate_environment_map](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/3d/rotate_environment_map.tsx), [3d/transparency_3d](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/3d/transparency_3d.tsx), [3d/spherical_area_lights](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/3d/spherical_area_lights.tsx), [3d/animated_material](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/3d/animated_material.tsx), and 54 more.
 
@@ -152,6 +168,20 @@ Used in: [3d/fog](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/
 *From Bevy's `bevy_shape::Torus`:* A torus primitive, often representing a ring or donut shape The set of points some distance from a circle centered at the origin
 
 Also takes the props of [`TorusProps`](3d.md#torusprops) (`args`, `major_radius`, `minor_radius`).
+
+### `Tube`
+
+A line through points in 3D with a round section (a pipe, a wire): one mesh, drawn up to `p` of its length.
+
+| Prop | Type | What it does |
+| --- | --- | --- |
+| `points` (required) | `readonly Vec3[]` | the points it passes through, in order (two or more); give enough for a curve to read smooth |
+| `p` | `number` | how much of it is drawn, 0 to 1 of its length from the first point (1): animate it to draw the line on |
+| `children` | `ReactNode` | its material (a white StandardMaterial when left out) |
+| `radius` | `number` | its radius in metres (0.025) |
+| `sides` | `number` | sides around its section (12) |
+
+Also takes the props of `MeshProps` (`animate`, `name`, `read`, `pass`, `quaternion`, `allowOverlap`, `posed`, `shape`, `driven`, `shadow`, `material`, `castShadow`, `surface`, `receiveShadow`, `attributes`, `compressed`, `layers`); `PointerHandlers3d` (`onClick`, `onDrag`, `onDragEnd`, `onDragEnter`, `onDragLeave`, `onDragOver`, `onDragStart`, `onDrop`, `onPointerDown`, `onPointerMove`, `onPointerUp`, `onPointerEnter`, `onPointerLeave`, `onPointerOver`, `onPointerOut`, `onWheel`); [`Mesh3dProps`](#mesh3dprops) (`visibility`, `transform`, `detail`).
 
 ## Functions
 
@@ -357,7 +387,8 @@ height (0.5), standing up: a tapered Cylinder of args [radius_top, radius_bottom
 
 ### `CuboidProps`
 
-Bevy's Cuboid: half its size along each axis ([0.5, 0.5, 0.5], a 1 m cube, as Bevy's default).
+Bevy's Cuboid: half its size along each axis ([0.5, 0.5, 0.5], a 1 m cube, as Bevy's default). Bevy's UVs show a
+picture upside down on its front face (+z) and the right way up on its back (-z): turn a printed label half a turn.
 
 | Field | Type | What it is |
 | --- | --- | --- |
@@ -401,6 +432,12 @@ copy together). Rotation in radians, XYZ order, as everywhere.
 | `receiveShadow` | `boolean` | false: no shadow falls on the copies |
 | `pass` | `string` | the composition pass it draws in ("scene" by default) |
 | `children` | `ReactNode` | the mesh form: a geometry and a material (MeshStandardMaterial, MeshPhysicalMaterial or MeshBasicMaterial). The glTF form: MeshStandardMaterial children re-covering its materials, as on a Model |
+
+### `Line3dProps`
+
+Line3d's props: a flat line of a width, its ends and joins round.
+
+The props of [`Line3d`](#line3d), tabled there.
 
 ### `Mesh2dProps`
 
@@ -543,6 +580,12 @@ subdivisions, or `ico` of them (Bevy's `.ico(n)`, 0 to 80), or a UV sphere of `u
 | `args` | `[number, number]` | [major radius, minor radius] |
 | `major_radius` | `number` | from the centre to the middle of the tube, metres (0.75) |
 | `minor_radius` | `number` | the tube's radius, metres (0.25) |
+
+### `TubeProps`
+
+Tube's props: a line with a round section.
+
+The props of [`Tube`](#tube), tabled there.
 
 ### `Vec3`
 

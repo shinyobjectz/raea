@@ -6,6 +6,8 @@ members = [
     "core/animate",
     "core/ask",
     "core/brief",
+    "core/zfight",
+    "core/modelbox",
     "core/facts",
     "core/ease",
     "core/fonts",
@@ -92,6 +94,7 @@ members = [
     "systems/vision",
     "systems/columns",
     "systems/index",
+    "systems/fixes",
     "systems/fingerprint",
     "systems/fingerprint-use",
     "systems/fingerprint-things",
@@ -117,6 +120,7 @@ members = [
     "systems/page-net",
     "systems/page-ops",
     "systems/frame",
+    "systems/engine-shaders",
     "systems/shots",
     "systems/hold",
     "systems/body",
@@ -124,11 +128,14 @@ members = [
     "systems/layers",
     "systems/splat",
     "systems/sprite",
+    "systems/stage",
     "systems/rt",
+    "systems/gi",
     "systems/text3d",
     "runtime/gpuframe",
     "runtime/scene3d",
     "systems/copies",
+    "systems/share",
     "systems/screen",
     "systems/matchmove",
     "systems/grid",
@@ -170,6 +177,7 @@ members = [
     "runtime/cssurls",
     "bench/bridge",
     "bench/bevy-parity",
+    "bench/lightbench",
     "bench/bridge/swatch",
     "bench/rerender/ios",
     "core/alloc",
@@ -182,6 +190,7 @@ members = [
     "runtime/wear",
     "runtime/canvas",
     "runtime/export",
+    "runtime/endchecks",
     "runtime/live",
     "runtime/page",
     "runtime/appscreen",
@@ -191,11 +200,15 @@ members = [
     "runtime/scene2d",
     "runtime/shared",
     "apps/ask",
+    "apps/lightbake",
+    "systems/lightbake",
+    "systems/atlas",
     "apps/double",
     "apps/check",
     "apps/check/cause",
     "apps/check/flash",
     "apps/check/inbox",
+    "apps/check/make",
     "apps/check/read",
     "apps/check/text",
     "apps/direction",
@@ -213,7 +226,9 @@ members = [
     "apps/videoform",
     "systems/videoform",
     "systems/videoform-rules",
+    "apps/make",
     "apps/solid",
+    "apps/scene",
     "apps/media",
     "apps/targets",
     "apps/game",
@@ -332,6 +347,8 @@ muxide = { path = "vendor/muxide" }
 usvg = { path = "vendor/usvg" }
 # bevy_seedling 0.8.0 without its cpal 0.18 paths, ported to Bevy 0.20 (changes marked "raea:")
 bevy_seedling = { path = "vendor/bevy_seedling" }
+# bevy_rich_text3d 0.8.0 whose glyph that grows the atlas is drawn whole (changes marked "raea:", docs/stage-guards.feature SG3)
+bevy_rich_text3d = { path = "vendor/bevy_rich_text3d" }
 # bevy_text 0.20.0 on parley 0.12, so one parley builds (changes marked "raea:", docs/bevy-upgrade.md)
 bevy_text = { path = "vendor/bevy_text" }
 # bevy_ui 0.20.0 on Taffy 0.15, Blitz's, so one Taffy builds (changes marked "raea:", docs/bevy-upgrade.md)
@@ -340,6 +357,8 @@ bevy_ui = { path = "vendor/bevy_ui" }
 # uv_transform, and a panorama's sun sampled as a light rather than found by reflection rays alone (changes marked
 # "raea:", docs/raytracing.feature RT6). Back to upstream once Solari has these.
 bevy_solari = { path = "vendor/bevy_solari" }
+# the sun's far shadow map (raea-sys-rt far.rs) bound in Bevy's mesh view group (docs/bevy-upgrade.md, docs/realism.feature LT21)
+bevy_pbr = { path = "vendor/bevy_pbr" }
 # bevy_ui_widgets 0.20.0 on parley 0.12, Blitz's (docs/blitz-bevy.feature B0a)
 bevy_ui_widgets = { path = "vendor/bevy_ui_widgets" }
 # blitz-paint 0.3.0-beta.4 with angled gradients in tiles laid out around the tile, many-tile gradient layers drawn

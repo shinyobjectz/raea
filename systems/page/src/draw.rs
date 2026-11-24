@@ -157,6 +157,8 @@ pub fn draw(mut scenes: ResMut<Scenes>, mut vello: ResMut<Vello>, device: Res<Re
         if std::env::var("RAEA_PAGE_CG_YMAP").as_deref() != Ok("0") {
             vello::low_level::vello_encoding::set_glyph_tops(raea_sys_fonts::coregraphics_tops);
         }
+        // the image atlas (each filtered element is an image in it) as large as the device can make, not Vello's 8192
+        vello::low_level::vello_encoding::set_max_atlas_size(device.limits().max_texture_dimension_2d);
         vello::Renderer::new(
             device,
             vello::RendererOptions { antialiasing_support: vello::AaSupport::area_only(), num_init_threads: std::num::NonZeroUsize::new(1), ..default() },
@@ -236,7 +238,7 @@ pub fn draw(mut scenes: ResMut<Scenes>, mut vello: ResMut<Vello>, device: Res<Re
         for layer in layers {
             renderer.override_image(&layer.image, None);
         }
-        if std::env::var_os("RAEA_TRACE").is_some() {
+        if raea_io_trace::stat("RAEA_TRACE") {
             eprintln!("trace raea-page: page drawn {}x{}, full bump {}, {}", px.x, px.y, REDRAW_FULL.load(std::sync::atomic::Ordering::Relaxed), drew.as_ref().map_or_else(Clone::clone, |_| "ok".into()));
         }
         if let Err(err) = drew {

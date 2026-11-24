@@ -68,7 +68,7 @@ pub fn install(app: &mut App) {
 #[bind_group_data(ExtKey)]
 pub struct ShaderExt {
     #[uniform(100)]
-    slots: [Vec4; SLOTS],
+    pub(crate) slots: [Vec4; SLOTS],
     // one sampler for all four (the first texture's): the standard material and the view already bind 13 of the
     // fragment stage's 16 samplers, so four more failed the pipeline ("Too many bindings of type Samplers", 17)
     #[texture(101)]
@@ -84,6 +84,35 @@ pub struct ShaderExt {
     #[texture(109, dimension = "2d_array")]
     arr: Option<Handle<Image>>,
     shader: u128,
+    /// how a frame's uniforms repack `slots` (own_live.rs: a ShaderExtension's uniforms that change over the frames)
+    #[reflect(ignore)]
+    repack: Option<std::sync::Arc<Repack>>,
+}
+
+/// What a ShaderExt's slots are packed from: its uniforms' names in slot order with their first values, and its own
+/// @binding(100) struct's fields when the source declares one (layout.rs)
+#[derive(Debug)]
+pub struct Repack {
+    names: Vec<String>,
+    first: Vec<Vec4>,
+    fields: Option<Vec<(String, String)>>,
+}
+
+impl ShaderExt {
+    /// The slots a frame's uniforms ({name: value}) pack into, None when they're the ones it holds; a uniform the
+    /// frame doesn't give takes its first value
+    pub fn slots_for(&self, given: &serde_json::Map<String, Value>) -> Result<Option<[Vec4; SLOTS]>, String> {
+        let Some(r) = &self.repack else { return Ok(None) };
+        let mut vals = Vec::with_capacity(r.names.len());
+        for (n, f) in r.names.iter().zip(&r.first) {
+            vals.push((n.clone(), given.get(n).map(|x| uniform(n, x).map(|u| u.value)).transpose()?.unwrap_or(*f)));
+        }
+        let slots = match &r.fields {
+            Some(fields) => layout::pack(fields, &vals)?,
+            None => std::array::from_fn(|i| vals.get(i).map_or(Vec4::ZERO, |v| v.1)),
+        };
+        Ok((slots != self.slots).then_some(slots))
+    }
 }
 
 /// What picks a ShaderExt's pipeline: its shader's uuid.
@@ -326,16 +355,18 @@ pub fn build(world: &mut World, v: &Value, mut image: impl FnMut(&mut World, &Va
         true => ext_bind::fit(&ins.src, &ins.textures)?,
         false => (ins.src.clone(), ins.textures.iter().map(|x| Some(x.1.clone())).collect()),
     };
-    let (src, slots) = match layout::own_struct(&own, &ins.defs).or_else(|| file.then(|| Ok(vec![]))) {
+    let (src, slots, fields) = match layout::own_struct(&own, &ins.defs).or_else(|| file.then(|| Ok(vec![]))) {
         Some(fields) => {
-            let vals: Vec<(String, Vec4)> = ins.uniforms.iter().map(|u| (u.name.clone(), u.value)).collect();
-            (own, layout::pack(&fields?, &vals)?)
+            let (fields, vals) = (fields?, ins.uniforms.iter().map(|u| (u.name.clone(), u.value)).collect::<Vec<_>>());
+            (own, layout::pack(&fields, &vals)?, Some(fields))
         }
-        None => (module(&ins.src, &names, &tnames, ins.array.as_ref().map(|a| a.0.as_str())), ins.slots()),
+        None => (module(&ins.src, &names, &tnames, ins.array.as_ref().map(|a| a.0.as_str())), ins.slots(), None),
     };
+    let (names, first) = ins.uniforms.iter().map(|u| (u.name.clone(), u.value)).unzip();
+    let repack = (!ins.uniforms.is_empty()).then(|| std::sync::Arc::new(Repack { names, first, fields }));
     let id = register(world, src, &ins.defs, "raea surface shader", "raea_sys_shader");
     let mut t = tex.into_iter();
-    Ok(ShaderExt { slots, tex0: t.next().flatten(), tex1: t.next().flatten(), tex2: t.next().flatten(), tex3: t.next().flatten(), arr: ins.array.map(|a| a.1), shader: id })
+    Ok(ShaderExt { slots, tex0: t.next().flatten(), tex1: t.next().flatten(), tex2: t.next().flatten(), tex3: t.next().flatten(), arr: ins.array.map(|a| a.1), shader: id, repack })
 }
 
 /// A mesh row's shader put on its part: a <Material>'s own (own.rs) or a ShaderExtension over its standard material.
@@ -347,7 +378,8 @@ pub fn put(world: &mut World, e: Entity, v: &Value, mut image: impl FnMut(&mut W
     }
     let ext = build(world, v, image)?;
     shade(world, e, &ext, made);
-    Ok(())
+    // the frame's uniforms a row gave before it was on (own_live.rs)
+    own_live::settle(world, e)
 }
 
 /// A shaded part: the standard material the rows animate (sync_meshes writes it), copied onto the shaded one's base
@@ -396,6 +428,19 @@ pub fn sync_shaded(stds: Res<Assets<StandardMaterial>>, mut shaded: ResMut<Asset
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn a_frame_s_uniforms_repack_the_slots_they_change() {
+        use bevy::math::Vec4;
+        let repack = super::Repack { names: vec!["glow".into(), "tint".into()], first: vec![Vec4::ZERO, Vec4::new(1.0, 0.5, 0.0, 0.0)], fields: None };
+        let mut ext = super::ShaderExt { slots: [Vec4::ZERO; super::SLOTS], tex0: None, tex1: None, tex2: None, tex3: None, arr: None, shader: 0, repack: Some(std::sync::Arc::new(repack)) };
+        ext.slots[1] = Vec4::new(1.0, 0.5, 0.0, 0.0);
+        // frame 0's values are the ones it holds: nothing to write
+        assert_eq!(ext.slots_for(serde_json::json!({ "glow": 0.0 }).as_object().unwrap()).unwrap(), None);
+        // a later frame's glow goes in its slot, the tint it didn't give keeps its first value
+        let s = ext.slots_for(serde_json::json!({ "glow": 0.75 }).as_object().unwrap()).unwrap().expect("glow changed");
+        assert_eq!((s[0].x, s[1]), (0.75, Vec4::new(1.0, 0.5, 0.0, 0.0)));
+    }
+
     #[test]
     fn hooks_are_found_by_name() {
         assert!(super::defines("fn surface(in: VertexOutput, pbr: ptr<function, PbrInput>) {}", "surface"));

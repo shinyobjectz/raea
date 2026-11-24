@@ -2,7 +2,8 @@
 //! frame gives them. The rows send a part's <Material> uniforms and buffers as keyed `own:uniforms` component rows
 //! from each frame they change (raea-runtime-look own_uniforms), and `patch` packs them into the part's OwnMaterial
 //! and its ShaderBuffers, as Bevy's examples change a material's fields and buffers in their update systems
-//! (shader/storage_buffer's colours, sprite_material's dissolve).
+//! (shader/storage_buffer's colours, sprite_material's dissolve); a ShaderExtension's uniforms go into its shaded
+//! material's slots (`shaded`).
 
 use bevy::prelude::*;
 use bevy::render::storage::ShaderBuffer;
@@ -61,6 +62,7 @@ pub fn patch(world: &mut World, e: Entity, v: &Value) -> Result<(), String> {
     let got = match (&h, &arr) {
         (Some(h), _) => world.resource::<Assets<OwnMaterial>>().get(h).map(packed),
         (None, Some(a)) => world.resource::<Assets<OwnArrayMaterial>>().get(a).map(|m| packed(&m.own)),
+        (None, None) if world.get::<MeshMaterial3d<crate::ShadedMaterial>>(e).is_some() => return shaded(world, e, v),
         // a row applied before the part's Material is put on (shade_rows runs after the rows): kept for `put`
         (None, None) => {
             world.entity_mut(e).insert(Pending(v.clone()));
@@ -82,6 +84,19 @@ pub fn patch(world: &mut World, e: Entity, v: &Value) -> Result<(), String> {
         let sb = storage(&p.src, &p.defs, name, ty, x)?;
         if let Some(mut cur) = world.resource_mut::<Assets<ShaderBuffer>>().get_mut(&b) {
             *cur = sb;
+        }
+    }
+    Ok(())
+}
+
+/// A ShaderExtension's uniforms this frame, packed into its shaded material's slots (lib.rs slots_for), written only
+/// when they change (SG1: they were read from the part's first frame alone, so a uniform driven by the frame froze)
+fn shaded(world: &mut World, e: Entity, v: &Value) -> Result<(), String> {
+    let (Some(h), Some(given)) = (world.get::<MeshMaterial3d<crate::ShadedMaterial>>(e).map(|m| m.0.clone()), v.get("uniforms").and_then(Value::as_object)) else { return Ok(()) };
+    let Some(m) = world.resource::<Assets<crate::ShadedMaterial>>().get(&h) else { return Err("own:uniforms: its shaded material isn't made".into()) };
+    if let Some(slots) = m.extension.slots_for(given)? {
+        if let Some(mut m) = world.resource_mut::<Assets<crate::ShadedMaterial>>().get_mut(&h) {
+            m.extension.slots = slots;
         }
     }
     Ok(())

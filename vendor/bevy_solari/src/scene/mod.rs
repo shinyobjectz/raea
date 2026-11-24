@@ -8,7 +8,7 @@ use bevy_shader::load_shader_library;
 pub use binder::prepare_raytracing_scene_resources;
 pub use binder::{RaytracingSceneBindings, RaytracingSceneNeedsPreviousFrameData};
 // raea: EnvironmentSun, a panorama's sun sampled as a light
-pub use types::{EnvironmentSun, RaytracingMesh3d};
+pub use types::{EnvironmentSun, RaytracingMesh3d, SkyPortals, MAX_SKY_PORTALS};
 
 use crate::SolariPlugins;
 use bevy_app::{App, Plugin};

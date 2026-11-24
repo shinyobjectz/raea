@@ -46,8 +46,8 @@ impl GpuView {
         let mut dt = DirectTimes::default();
         // RAEA_GPU_TIMES: one frame at a time, with GPU timestamps: [2,3] the composite, [4,5] nv12buf.k, [6,7] the
         // copy into the readback ring, [8..16] up to four uploads (each its own copy)
-        let timing = std::env::var_os("RAEA_GPU_TIMES").is_some() && self.gpu.device.features().contains(wgpu::Features::TIMESTAMP_QUERY | wgpu::Features::TIMESTAMP_QUERY_INSIDE_ENCODERS);
-        if std::env::var_os("RAEA_GPU_TIMES").is_some() && !timing {
+        let timing = raea_io_trace::stat("RAEA_GPU_TIMES") && self.gpu.device.features().contains(wgpu::Features::TIMESTAMP_QUERY | wgpu::Features::TIMESTAMP_QUERY_INSIDE_ENCODERS);
+        if raea_io_trace::stat("RAEA_GPU_TIMES") && !timing {
             eprintln!("RAEA_GPU_TIMES: this device has no timestamp queries inside encoders: GPU stage times unsupported");
         }
         dt.gpu_timed = timing;

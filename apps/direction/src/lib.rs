@@ -7,6 +7,8 @@ pub use world::{cli, find, Find, USAGE};
 // how `raea render` ends: its findings counted last, and 1 on an error not let through (DR3)
 mod rendered;
 pub use rendered::rendered;
+// frame purity at a render's end: a sample of its frames rendered again and held to the video's (SG9)
+mod pure;
 
 // `raea findings`: the project's record read back, fixed, new and carried (DR3)
 pub mod findings;

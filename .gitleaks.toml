@@ -1,11 +1,11 @@
 # gitleaks: the default rules, minus raea's asset ledgers, whose "key" field is a content hash of the made file
 # (prompt, seed and model), not a credential; and Bevy's batching code, whose `prev_key = item.sort_key.0` is a
-# render-phase sort key.
+# render-phase sort key and whose `Opaque3dBinKey` and `Wireframe3dBinKey` (vendor/bevy_pbr) are bin keys' type names.
 [extend]
 useDefault = true
 
 [allowlist]
-description = "asset ledgers and Bevy sort keys"
+description = "asset ledgers and Bevy sort and bin keys"
 paths = ['''(^|/)assets/made\.jsonl$''']
 regexTarget = "line"
-regexes = ['''prev_key = item\.sort_key''']
+regexes = ['''prev_key = item\.sort_key''', '''(bin_key|BinKey) = [A-Za-z0-9]+BinKey\b''']

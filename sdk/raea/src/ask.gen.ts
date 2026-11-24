@@ -79,4 +79,4 @@ date: string,
  */
 by: string, };
 
-export const SETS = ["rubric", "av", "defects", "platform", "decide"] as const;
+export const SETS = ["rubric", "av", "defects", "platform", "decide", "make"] as const;

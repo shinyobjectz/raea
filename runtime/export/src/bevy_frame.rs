@@ -35,6 +35,11 @@ pub(crate) fn snapshot_bevy(world: &mut World, page: &mut raea_runtime_page::Bev
     Ok(Frame { screens, mix: cx.mix, page: stored, sounds: cx.sounds.clone(), scene: cx.scene.clone(), clear: cx.clear.clone(), same: false })
 }
 
+/// A live scene's error with the frame it came on (docs/stage-guards.feature SG4), unless it names one already.
+fn on_frame(r: Result<(), String>, now: i64) -> Result<(), String> {
+    r.map_err(|m| if m.starts_with("frame ") { m } else { format!("frame {now}: {m}") })
+}
+
 /// One frame on the bevy_ui page over its 3D drawn live (cx.scene3d, the engine render_fed opens: handles resolved from
 /// the edit's folder, world calls answered): each <Screen>'s picture handed to the engine, the 3D drawn as the fed render
 /// draws it and its target read back, and the page laid over it. Straight RGBA, opaque (with --alpha, transparent where nothing is drawn: #114).
@@ -58,7 +63,7 @@ pub(crate) fn bevy_over_3d(world: &mut World, page: &mut raea_runtime_page::Bevy
     // a game's: this frame's 3D, just stepped, set on its engine (opened at the first frame with any), as the Blitz
     // fed render's snapshot_retained does
     if let Some(ls) = cx.live3d.as_mut() {
-        live_scene(world, ls, &mut cx.scene3d, (page.w, page.h), fps, cx.dir)?;
+        on_frame(live_scene(world, ls, &mut cx.scene3d, (page.w, page.h), fps, cx.dir), cx.now)?;
     }
     let (px, pics) = bevy_page_frame(world, page, cx)?;
     // with --alpha (#114) what the page and its 3D leave empty stays transparent, as a page alone does; else over black
@@ -81,12 +86,13 @@ pub(crate) fn bevy_over_3d(world: &mut World, page: &mut raea_runtime_page::Bevy
     e.set_view_box(view);
     let mats = page.set_ui_materials(e.world_mut())?;
     // one draw a frame, as the fed render draws it (drawn again, a frame's auto exposure and temporal passes move on);
-    // RAEA_LIGHT_SPP=N draws it N times, the last kept, so a path-traced reference converges (docs/realism.feature LT1),
+    // <Pathtracer samples={N}> (or RAEA_LIGHT_SPP=N) draws it N times, the last kept, so a path-traced reference converges (docs/realism.feature LT1),
     // its accumulation started afresh so the frame before isn't in it
-    if spp() > 1 {
+    let spp = raea_sys_rt::pathtracer::samples(e.world_mut());
+    if spp > 1 {
         raea_render::restart_pathtracer(e.world_mut());
     }
-    for _ in 1..spp() {
+    for _ in 1..spp {
         e.draw(cx.now);
     }
     e.draw(cx.now);
@@ -153,8 +159,7 @@ pub(crate) fn bevy_fed_buffer(w: u32, h: u32) -> R<wgpu::Buffer> {
 }
 
 /// One frame of a fed render on the bevy_ui page: the page laid over the frame's 3D (drawn live, bevy_over_3d), or
-/// the page alone, written into the frame buffer raea-render takes; the frame's sound, mix and screens as the Blitz fed frame
-/// carries them.
+/// the page alone, written into the frame buffer raea-render takes; the frame's sound, mix and screens as Blitz's fed frame carries them.
 pub(crate) fn bevy_fed(world: &mut World, page: &mut raea_runtime_page::BevyPage, cx: &mut Ctx, buf: &wgpu::Buffer, fps: f64) -> R<Frame> {
     let g = raea_runtime_view::gpuview::paint_device().ok_or("a fed render needs the shared GPU device")?;
     // on the GPU (B1d), unless the frames are dumped as files or RAEA_FEED_CPU=1 asks for the readback it replaced
@@ -178,7 +183,7 @@ thread_local! {
 /// GPU too; read back only on a frame where a screen has no image in the 3D yet (its first).
 pub(crate) fn bevy_fed_gpu(world: &mut World, page: &mut raea_runtime_page::BevyPage, cx: &mut Ctx, buf: &wgpu::Buffer, fps: f64, device: &wgpu::Device, queue: &wgpu::Queue) -> R<()> {
     if let Some(ls) = cx.live3d.as_mut() {
-        live_scene(world, ls, &mut cx.scene3d, (page.w, page.h), fps, cx.dir)?;
+        on_frame(live_scene(world, ls, &mut cx.scene3d, (page.w, page.h), fps, cx.dir), cx.now)?;
     }
     bevy_page_sync(world, page, cx)?;
     page.draw();
@@ -328,10 +333,4 @@ pub(crate) fn page_dump(frame: i64, px: &[u8], w: u32, h: u32, boxes: Option<Vec
         std::fs::write(dir.join(format!("{frame}.json")), Value::Object(m).to_string()).map_err(|e| e.to_string())?;
     }
     Ok(())
-}
-
-/// RAEA_LIGHT_SPP: how many times each frame's 3D is drawn (1 unset): a path tracer's samples a pixel, one a draw
-fn spp() -> u32 {
-    static N: std::sync::OnceLock<u32> = std::sync::OnceLock::new();
-    *N.get_or_init(|| std::env::var("RAEA_LIGHT_SPP").ok().and_then(|v| v.parse().ok()).filter(|n| *n >= 1).unwrap_or(1))
 }

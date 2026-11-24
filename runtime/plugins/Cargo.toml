@@ -18,6 +18,8 @@ serde = "1"
 raea-core-shape = { path = "../../core/shape" }
 raea-bevy-world = { path = "../../engine/bevy-world" }
 serde_json = "1"
+# which plugins an Engine chose, into the run's trace (choose.rs)
+raea-io-trace = { path = "../../io/trace" }
 
 # Bevy's window plugin compiled in on the desktop, so `group` always has it to leave out (#182): raea's Engines are
 # headless, and a build that brings bevy_winit any other way (raea-page-host's window, a plugin's x11, or cargo unifying

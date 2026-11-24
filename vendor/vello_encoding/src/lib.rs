@@ -41,6 +41,7 @@ mod glyph_cache;
 // raea: the GlyphTops hook, glyph outlines placed in y where the platform rasterizer draws them
 pub use glyph_cache::{GlyphTops, set_glyph_tops};
 mod image_cache;
+pub use image_cache::{max_atlas_size, set_max_atlas_size};
 mod mask;
 pub mod math;
 mod monoid;

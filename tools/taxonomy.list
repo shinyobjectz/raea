@@ -6,6 +6,7 @@
 web Audio            HTML's <audio>: sound in step with the frame
 web Img              HTML's <img>: the renderer holds the frame until it has loaded
 web Video            HTML's <video>: a clip in step with the frame
+raea OffthreadVideo   <Video> under the name a project moving in from another React video tool uses (docs/move-in.feature MV3)
 web OffscreenCanvas  the web's OffscreenCanvas: a canvas no page shows, its 2D context measured and read back (layout-reads LR6)
 web Tone             Tone.js as a namespace (import * as Tone), as its users write it
 web Loop             Tone.js's Loop: a callback every interval in transport time
@@ -52,6 +53,7 @@ raea SurfaceShader   one WGSL/WESL surface for every material in the scene (docs
 raea ShaderMesh      a mesh drawn by its own shader, uniforms set at load (Mesh3d with a raea Material)
 web ThreeShaderMaterial  three.js's ShaderMaterial (GLSL) or node material (WGSL) as it is, run by raea's engine (docs/r3f.feature R3F11)
 raea FramePass       a full-screen pass over the camera's frame (docs/shaders.feature)
+raea ShaderConstants a `const` in one of the engine's own shaders (raea's, Bevy's, Solari's) set as the scene loads: WGSL has no Bevy type for it (docs/nobuild.feature)
 raea Compute         a compute shader run once a frame before the cameras draw (docs/shaders.feature SH10)
 raea ShaderExtension raea's MaterialExtension running a surface shader (ExtendedMaterial's extension)
 raea GridExtension   raea's MaterialExtension drawing a grid (ExtendedMaterial's extension)
@@ -71,6 +73,7 @@ raea RichText        3D text in runs (raea-render's text3d), as HTML's rich text
 raea Span            a run of a RichText (HTML's <span>, inside RichText only)
 raea Text3D          solid 3D letters as a mesh's geometry (Manifold's text3d)
 raea BufferMesh      a mesh from its own vertex buffers (Bevy's Mesh built from attributes, as JSX)
+raea Tube            a line through points with a round section, one mesh drawn on to a share of its length (SG6; Bevy has no swept shape)
 raea Instances       one mesh or glTF drawn at many placements (Bevy batches the copies; it has no component of its own)
 raea Grass           a field of grass the engine makes in tiles by distance from a few grids of the ground (no Bevy component)
 raea MeshSequence    a baked simulation, one mesh a frame

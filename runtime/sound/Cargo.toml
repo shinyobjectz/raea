@@ -14,6 +14,7 @@ seedling = ["dep:raea-seedling"]
 ml = ["dep:raea-runtime-calls", "raea-runtime-calls/ml"]
 
 [dependencies]
+raea-io-trace = { path = "../../io/trace" }
 raea-io-assets = { path = "../../io/assets" }
 raea-runtime-react = { path = "../../runtime/react", default-features = false }
 raea-sys-mix = { path = "../../systems/mix" }

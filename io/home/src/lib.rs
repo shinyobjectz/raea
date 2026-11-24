@@ -110,6 +110,21 @@ pub fn logs() -> Option<std::path::PathBuf> {
     user_dir("Library/Logs/raea", "XDG_STATE_HOME", ".local/state", "logs")
 }
 
+/// A new temp file named `raea-NAME-PID-N`, open to read and write, gone when raea is: unlinked once open on unix,
+/// delete-on-close on Windows, so a render that dies leaves nothing behind (an encoder's samples, a render's parts).
+pub fn scratch_file(name: &str) -> Result<std::fs::File, String> {
+    static N: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+    let p = std::env::temp_dir().join(format!("raea-{name}-{}-{}", std::process::id(), N.fetch_add(1, std::sync::atomic::Ordering::Relaxed)));
+    let mut o = std::fs::OpenOptions::new();
+    o.read(true).write(true).create_new(true);
+    #[cfg(windows)]
+    std::os::windows::fs::OpenOptionsExt::custom_flags(&mut o, 0x0400_0000); // FILE_FLAG_DELETE_ON_CLOSE
+    let f = o.open(&p).map_err(|e| format!("{}: {e}", p.display()))?;
+    #[cfg(unix)]
+    let _ = std::fs::remove_file(&p);
+    Ok(f)
+}
+
 /// macOS's folder under HOME, the XDG base folder (its variable, else its default under HOME) with raea in it, or raea's
 /// folder of that kind under %LOCALAPPDATA%. An XDG variable that isn't an absolute path is ignored, as the spec says.
 fn user_dir(apple: &str, xdg: &str, xdg_default: &str, windows: &str) -> Option<std::path::PathBuf> {

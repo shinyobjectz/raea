@@ -5,10 +5,20 @@ order: 8
 sources: ["engine/cli/src/cli.rs"]
 ---
 
-`raea run` bundles a TypeScript file and runs it on the engine's own V8, with no window and no composition. If the
-file's default export is a function, it's called. What the program prints is the answer; a throw ends the run with
-exit code 1. It's how checks such as a room's `checkLayout` run, and it reaches the engine's native calls (solids,
-ECS worlds) the way a composition does.
+`raea run` bundles a TypeScript file and runs it on the engine's JavaScript, with no window and no composition. If
+the file's default export is a function, it's called and awaited, and what it returns is printed: a string as it is,
+anything else as JSON. The program's console goes to the terminal as node's does: `console.log` and `console.info`
+to stdout, `console.warn` and `console.error` to stderr. A throw prints the error's name, message and stack, and ends
+the run with exit code 1. It's how checks such as a room's `checkLayout` run, and it reaches the engine's native
+calls (solids, ECS worlds) the way a composition does.
+
+```ts
+// count.ts: a line on stderr while it works, then its answer as JSON on stdout
+export default async function () {
+  console.error("counting")
+  return { rooms: 3, errors: 0 }
+}
+```
 
 ```sh
 raea run checks/layout.ts

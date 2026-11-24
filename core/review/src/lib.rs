@@ -78,10 +78,16 @@ pub fn boxes_of(found: &[Value]) -> Vec<Box3> {
     }).filter(|(lo, hi)| (0..3).all(|k| hi[k].is_finite() && lo[k].is_finite() && hi[k] >= lo[k])).collect()
 }
 
-/// The parts' box from scene lint's findings, flat wide parts (a ground slab) left out when anything else stands.
+/// The parts' box from scene lint's findings, ground slabs left out when anything else stands: a flat part wider
+/// than 5 m, or a thin one (under a twentieth of its span) lying at the bottom of the scene, the floor a few props
+/// stand on. A raised slab (a table top, a shelf) stays.
 pub fn parts_box(found: &[Value]) -> Option<Box3> {
     let boxes = boxes_of(found);
-    let flat_wide = |(lo, hi): &([f64; 3], [f64; 3])| hi[1] - lo[1] < 0.25 && (hi[0] - lo[0]).max(hi[2] - lo[2]) > 5.0;
+    let bottom = boxes.iter().map(|(lo, _)| lo[1]).fold(f64::INFINITY, f64::min);
+    let flat_wide = |(lo, hi): &([f64; 3], [f64; 3])| {
+        let (h, span) = (hi[1] - lo[1], (hi[0] - lo[0]).max(hi[2] - lo[2]));
+        h < 0.25 && (span > 5.0 || (h < 0.05 * span && hi[1] <= bottom + 0.05))
+    };
     let standing: Vec<Box3> = boxes.iter().copied().filter(|b| !flat_wide(b)).collect();
     whole(if standing.is_empty() { &boxes } else { &standing })
 }
@@ -113,11 +119,27 @@ fn wanted() -> Option<&'static ([f64; 3], [f64; 3], Option<f64>)> {
     .as_ref()
 }
 
+/// RAEA_LENS="mm": the scene's own camera kept where it is, with that focal length's field of view on a full-frame
+/// sensor (a lens chart, docs/make.feature MK15).
+fn lens() -> Option<f64> {
+    static LENS: OnceLock<Option<f64>> = OnceLock::new();
+    *LENS.get_or_init(|| std::env::var("RAEA_LENS").ok()?.trim().parse::<f64>().ok().filter(|mm| *mm > 0.0).map(fov_of_lens))
+}
+
+/// The vertical field of view (degrees) of a focal length (mm) on a 36 x 24 mm sensor.
+pub fn fov_of_lens(mm: f64) -> f64 {
+    2.0 * (12.0 / mm).atan().to_degrees()
+}
+
 /// A review's fixed camera in place of the scene's own: every frame's camera item is moved there, or one is added when
-/// the scene has none. With RAEA_CAMERA unset, nothing changes.
+/// the scene has none; or, with RAEA_LENS, the scene's own camera given that lens. With both unset, nothing changes.
 pub fn camera_override(out: &mut Vec<Item>) {
     if let Some((eye, at, fov)) = wanted() {
         place_camera(out, *eye, *at, *fov);
+    } else if let Some(fov) = lens()
+        && let Some(c) = out.iter_mut().find(|i| i.kind == "camera")
+    {
+        Arc::make_mut(&mut c.props).insert("fov".into(), json!(fov));
     }
 }
 
@@ -157,9 +179,16 @@ mod tests {
         let r = 3f64.sqrt();
         assert!(d * (fov / 2.0).to_radians().sin() >= r * 0.99, "{d} {r}");
         assert_eq!(cams[4].1[1], 0.3);
+        // a 50 mm lens on full frame: about 27 degrees vertical (MK15's lens chart)
+        assert!((fov_of_lens(50.0) - 26.99).abs() < 0.01);
         assert_eq!(passed(&["render", "e.tsx", "-o", "x", "--review", "d", "--clay", "--composition", "A"].map(String::from)), vec!["--composition", "A"]);
         let found = vec![json!({"box": {"min": [-50, -0.1, -50], "max": [50, 0, 50]}}), json!({"box": {"min": [0, 0, 0], "max": [1, 1, 1]}})];
         assert_eq!(parts_box(&found), Some(([0.0, 0.0, 0.0], [1.0, 1.0, 1.0])));
+        // a small floor under a few props (a kit's lineup) is a ground slab too; a raised table top isn't
+        let kit = vec![json!({"box": {"min": [-0.6, -0.01, -0.6], "max": [0.6, 0, 0.6]}}), json!({"box": {"min": [-0.2, 0, -0.05], "max": [0.2, 0.14, 0.05]}})];
+        assert_eq!(parts_box(&kit), Some(([-0.2, 0.0, -0.05], [0.2, 0.14, 0.05])));
+        let table = vec![json!({"box": {"min": [-0.8, 0.72, -0.4], "max": [0.8, 0.75, 0.4]}}), json!({"box": {"min": [-0.7, 0, -0.3], "max": [-0.65, 0.72, -0.25]}})];
+        assert_eq!(parts_box(&table), Some(([-0.8, 0.0, -0.4], [0.8, 0.75, 0.4])));
         // a room with a ceiling is seen from inside: every camera within its walls and under its ceiling
         let room = vec![json!({"box": {"min": [-5, 0, -5], "max": [5, 0.1, 5]}}), json!({"box": {"min": [-5, 2.9, -5], "max": [5, 3, 5]}}), json!({"box": {"min": [0, 0, 0], "max": [1, 1, 1]}})];
         let (lo, hi) = whole(&boxes_of(&room)).unwrap();

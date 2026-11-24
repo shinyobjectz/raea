@@ -23,7 +23,7 @@ export interface AskEntry {
   file: string;
   /** questions in your own words (yes or no) or written out */
   questions?: (string | Question)[];
-  /** standard sets by name: rubric, av, defects, platform, decide */
+  /** standard sets by name: rubric, av, defects, platform, decide, make */
   set?: string | string[];
   /** standard questions by id (`raea ask list` lists them) */
   std?: string[];

@@ -1,0 +1,15 @@
+[package]
+name = "raea-sys-stage"
+version = "0.1.0"
+edition = "2024"
+license = "FSL-1.1-ALv2"
+publish = false
+description = "The stage checks a render runs on its frames' scenes: 3D type that can't be read, parts that snap, a camera that lurches or reverses, frames with nothing composed in them (docs/stage-guards.feature SG10-SG14)"
+
+[dependencies]
+raea-core-scene = { path = "../../core/scene" }
+raea-core-shape = { path = "../../core/shape" }
+# its results as Findings (docs/direction.feature DR3)
+raea-core-facts = { path = "../../core/facts" }
+bevy = { version = "=0.20.0", default-features = false, features = ["std"] }
+serde_json = "1"

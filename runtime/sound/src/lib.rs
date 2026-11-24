@@ -137,7 +137,7 @@ pub fn tone_at(world: &mut bevy::prelude::World, f: i64, fps: f64, dir: &Path, m
     }
     #[cfg(not(feature = "seedling"))]
     let _ = (f, fps);
-    if std::env::var_os("RAEA_SEEDLING_TRACE").is_some() && t0.elapsed().as_secs_f64() > 0.008 {
+    if raea_io_trace::stat("RAEA_SEEDLING_TRACE") && t0.elapsed().as_secs_f64() > 0.008 {
         eprintln!("raea seedling: tone_at {f}: plays {:.1} ms, tone {:.1} ms, seedling {:.1} ms", (t1 - t0).as_secs_f64() * 1e3, (t2 - t1).as_secs_f64() * 1e3, t2.elapsed().as_secs_f64() * 1e3);
     }
     cue

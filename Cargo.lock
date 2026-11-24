@@ -3065,8 +3065,6 @@ dependencies = [
 [[package]]
 name = "bevy_pbr"
 version = "0.20.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fb760932d1e683e7c00011f5c99e4e1cc893646a3a7b7224da6daf9bfa94853d"
 dependencies = [
  "arrayvec",
  "bevy_app",
@@ -3438,8 +3436,6 @@ dependencies = [
 [[package]]
 name = "bevy_rich_text3d"
 version = "0.8.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "97b3cfe8f7187fb6f8e4889b8e7dcf39ff36bf7a84fcbd4f7b69f7d3b8a7bfe4"
 dependencies = [
  "bevy",
  "cosmic-text",
@@ -13673,6 +13669,7 @@ dependencies = [
  "raea-app-check-cause",
  "raea-app-check-flash",
  "raea-app-check-inbox",
+ "raea-app-check-make",
  "raea-app-check-read",
  "raea-app-check-text",
  "raea-core-brief",
@@ -13701,6 +13698,16 @@ version = "0.1.0"
 name = "raea-app-check-inbox"
 version = "0.1.0"
 dependencies = [
+ "raea-io-home",
+ "serde_json",
+]
+
+[[package]]
+name = "raea-app-check-make"
+version = "0.1.0"
+dependencies = [
+ "dunce",
+ "raea-core-facts",
  "raea-io-home",
  "serde_json",
 ]
@@ -13741,6 +13748,7 @@ name = "raea-app-direction"
 version = "0.1.0"
 dependencies = [
  "dunce",
+ "image",
  "raea-app-check",
  "raea-app-check-text",
  "raea-app-notes",
@@ -13748,6 +13756,7 @@ dependencies = [
  "raea-core-brief",
  "raea-core-facts",
  "raea-io-home",
+ "raea-io-media",
  "raea-io-trace",
  "raea-runtime-bundle",
  "raea-runtime-react",
@@ -13863,6 +13872,35 @@ dependencies = [
 ]
 
 [[package]]
+name = "raea-app-lightbake"
+version = "0.1.0"
+dependencies = [
+ "image",
+ "libc",
+ "raea-io-home",
+ "raea-light",
+ "raea-runtime-bundle",
+ "serde_json",
+ "sha2 0.10.9",
+]
+
+[[package]]
+name = "raea-app-make"
+version = "0.1.0"
+dependencies = [
+ "dunce",
+ "image",
+ "raea-app-judge",
+ "raea-core-ask",
+ "raea-core-brief",
+ "raea-core-facts",
+ "raea-core-review",
+ "raea-io-home",
+ "resvg 0.48.1",
+ "serde_json",
+]
+
+[[package]]
 name = "raea-app-media"
 version = "0.1.0"
 dependencies = [
@@ -13929,12 +13967,29 @@ dependencies = [
 ]
 
 [[package]]
+name = "raea-app-scene"
+version = "0.1.0"
+dependencies = [
+ "bevy",
+ "dunce",
+ "raea-core-facts",
+ "raea-core-scene",
+ "raea-runtime-bundle",
+ "raea-runtime-export",
+ "raea-sys-contact",
+ "raea-sys-light-meter",
+ "raea-sys-stage",
+ "serde_json",
+]
+
+[[package]]
 name = "raea-app-solid"
 version = "0.1.0"
 dependencies = [
  "dunce",
  "raea-app-ask",
  "raea-app-judge",
+ "raea-app-make",
  "raea-core-facts",
  "raea-core-meshcheck",
  "raea-core-shape",
@@ -14236,9 +14291,12 @@ dependencies = [
  "raea-app-game",
  "raea-app-judge",
  "raea-app-layers",
+ "raea-app-lightbake",
+ "raea-app-make",
  "raea-app-media",
  "raea-app-notes",
  "raea-app-play",
+ "raea-app-scene",
  "raea-app-solid",
  "raea-app-sound",
  "raea-app-targets",
@@ -14265,6 +14323,7 @@ dependencies = [
  "raea-runtime-react",
  "raea-runtime-sound",
  "raea-runtime-wear",
+ "raea-sys-fixes",
  "raea-sys-index",
  "regex",
  "serde",
@@ -14292,6 +14351,7 @@ version = "0.1.0"
 dependencies = [
  "serde",
  "serde_json",
+ "sha2 0.10.9",
  "ts-rs",
 ]
 
@@ -14349,6 +14409,15 @@ version = "0.1.0"
 name = "raea-core-meshcheck"
 version = "0.1.0"
 dependencies = [
+ "serde_json",
+]
+
+[[package]]
+name = "raea-core-modelbox"
+version = "0.1.0"
+dependencies = [
+ "bevy",
+ "raea-core-scene",
  "serde_json",
 ]
 
@@ -14413,6 +14482,13 @@ version = "0.1.0"
 dependencies = [
  "serde",
  "serde_json",
+]
+
+[[package]]
+name = "raea-core-zfight"
+version = "0.1.0"
+dependencies = [
+ "bevy",
 ]
 
 [[package]]
@@ -14740,6 +14816,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "raea-lightbench"
+version = "0.1.0"
+dependencies = [
+ "bevy",
+ "bytemuck",
+ "meshopt",
+ "wgpu",
+]
+
+[[package]]
 name = "raea-modules"
 version = "0.1.0"
 dependencies = [
@@ -14820,6 +14906,7 @@ dependencies = [
  "raea-io-media",
  "raea-io-net-calls",
  "raea-io-os",
+ "raea-io-trace",
  "raea-page",
  "raea-page-sound",
  "raea-page-stage",
@@ -14856,6 +14943,7 @@ dependencies = [
  "blitz-dom",
  "raea-gpu-device",
  "raea-io-home",
+ "raea-io-trace",
  "raea-runtime-bake",
  "raea-runtime-dom",
  "raea-runtime-js",
@@ -14917,11 +15005,13 @@ dependencies = [
  "raea-runtime-view",
  "raea-sys-compose",
  "raea-sys-compute",
+ "raea-sys-engine-shaders",
  "raea-sys-environment",
  "raea-sys-fog",
  "raea-sys-fog-half",
  "raea-sys-frame",
  "raea-sys-framepass",
+ "raea-sys-gi",
  "raea-sys-grass",
  "raea-sys-grid",
  "raea-sys-hold",
@@ -14958,7 +15048,11 @@ dependencies = [
  "objc2 0.6.5",
  "objc2-metal 0.3.2",
  "objc2-metal-fx",
- "raea-io-home",
+ "raea-io-trace",
+ "raea-sys-engine-shaders",
+ "raea-sys-post",
+ "raea-sys-rt",
+ "serde_json",
  "wgpu",
 ]
 
@@ -14975,6 +15069,7 @@ name = "raea-rune-bevy"
 version = "0.1.0"
 dependencies = [
  "bevy",
+ "raea-io-trace",
  "rune",
  "wgpu",
 ]
@@ -15102,6 +15197,7 @@ version = "0.1.0"
 dependencies = [
  "bevy",
  "raea-io-home",
+ "raea-io-trace",
  "raea-modules",
  "raea-runtime-bundle",
  "raea-runtime-react",
@@ -15118,6 +15214,7 @@ dependencies = [
  "raea-core-scene",
  "raea-io-home",
  "raea-io-media",
+ "raea-io-trace",
  "raea-native",
  "raea-runtime-bundle-lib",
  "raea-runtime-cssurls",
@@ -15151,6 +15248,7 @@ dependencies = [
  "raea-core-shape",
  "raea-io-media",
  "raea-io-net",
+ "raea-io-trace",
  "raea-native",
  "raea-runtime-plugins",
  "raea-runtime-wear",
@@ -15191,6 +15289,7 @@ dependencies = [
  "keyboard-types",
  "raea-core-wire",
  "raea-io-net",
+ "raea-io-trace",
  "raea-runtime-dom-media",
  "raea-runtime-js",
  "raea-runtime-twins",
@@ -15208,6 +15307,7 @@ dependencies = [
  "bevy",
  "blitz-dom",
  "raea-io-net",
+ "raea-io-trace",
  "raea-runtime-js",
  "raea-sys-image",
  "raea-sys-page",
@@ -15249,6 +15349,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "raea-runtime-endchecks"
+version = "0.1.0"
+dependencies = [
+ "raea-core-facts",
+ "raea-core-scene",
+ "raea-sys-contact",
+ "raea-sys-stage",
+ "serde_json",
+]
+
+[[package]]
 name = "raea-runtime-export"
 version = "0.1.0"
 dependencies = [
@@ -15264,10 +15375,12 @@ dependencies = [
  "raea-io-assets",
  "raea-io-media",
  "raea-io-net",
+ "raea-io-trace",
  "raea-page",
  "raea-render",
  "raea-runtime-bake",
  "raea-runtime-encode",
+ "raea-runtime-endchecks",
  "raea-runtime-page",
  "raea-runtime-pagestore",
  "raea-runtime-react",
@@ -15281,6 +15394,8 @@ dependencies = [
  "raea-sys-light-meter",
  "raea-sys-mix",
  "raea-sys-page",
+ "raea-sys-rt",
+ "raea-sys-stage",
  "serde_json",
  "wgpu",
 ]
@@ -15294,6 +15409,7 @@ dependencies = [
  "raea-core-k",
  "raea-core-program",
  "raea-gpu-device",
+ "raea-io-trace",
  "raea-runtime-view",
  "raea-sys-frame",
  "raea-sys-k",
@@ -15331,6 +15447,7 @@ dependencies = [
  "raea-io-net",
  "raea-io-net-calls",
  "raea-io-os",
+ "raea-io-trace",
  "raea-runtime-bundle",
  "raea-runtime-jsengine",
  "serde",
@@ -15345,6 +15462,7 @@ dependencies = [
  "miniz_oxide 0.8.9",
  "objc2 0.6.5",
  "raea-io-home",
+ "raea-io-trace",
  "rquickjs",
 ]
 
@@ -15432,6 +15550,7 @@ dependencies = [
  "raea-bevy-world",
  "raea-core-program",
  "raea-core-shape",
+ "raea-io-trace",
  "raea-sys-frame",
  "raea-sys-material",
  "raea-sys-shader",
@@ -15508,6 +15627,7 @@ version = "0.1.0"
 dependencies = [
  "bevy",
  "raea-core-program",
+ "raea-io-trace",
  "raea-runtime-plugins",
  "raea-sys-compute",
  "raea-sys-copies",
@@ -15520,6 +15640,7 @@ dependencies = [
  "raea-sys-post",
  "raea-sys-sampler",
  "raea-sys-shader",
+ "raea-sys-share",
  "serde_json",
 ]
 
@@ -15530,6 +15651,7 @@ dependencies = [
  "muxide",
  "raea-io-codec",
  "raea-io-media",
+ "raea-io-trace",
  "re_mp4",
 ]
 
@@ -15561,6 +15683,7 @@ version = "0.1.0"
 dependencies = [
  "bevy",
  "raea-io-assets",
+ "raea-io-trace",
  "raea-runtime-calls",
  "raea-runtime-react",
  "raea-seedling",
@@ -15614,6 +15737,7 @@ dependencies = [
  "raea-gpu-device",
  "raea-io-home",
  "raea-io-media",
+ "raea-io-trace",
  "raea-page",
  "raea-sys-frame",
  "raea-sys-k",
@@ -15668,6 +15792,7 @@ dependencies = [
  "bevy_seedling",
  "firewheel",
  "raea-io-media",
+ "raea-io-trace",
  "raea-sys-mix",
  "raea-sys-tone",
  "serde_json",
@@ -15696,6 +15821,17 @@ version = "0.1.0"
 dependencies = [
  "bevy",
  "raea-core-animate",
+]
+
+[[package]]
+name = "raea-sys-atlas"
+version = "0.1.0"
+dependencies = [
+ "parry3d",
+ "raea-core-meshcheck",
+ "raea-sys-glb",
+ "rayon",
+ "serde_json",
 ]
 
 [[package]]
@@ -15758,11 +15894,14 @@ name = "raea-sys-compose"
 version = "0.1.0"
 dependencies = [
  "bevy",
+ "bytemuck",
  "indexmap",
  "raea-core-program",
+ "raea-io-trace",
  "raea-sys-frame",
  "raea-sys-rt",
  "serde_json",
+ "wgpu",
 ]
 
 [[package]]
@@ -15784,8 +15923,11 @@ dependencies = [
  "bevy",
  "raea-core-facts",
  "raea-core-meshcheck",
+ "raea-core-modelbox",
  "raea-core-scene",
  "raea-core-shape",
+ "raea-core-zfight",
+ "raea-io-trace",
  "serde_json",
 ]
 
@@ -15806,6 +15948,17 @@ dependencies = [
  "raea-core-ease",
  "raea-sys-touch",
  "rayon",
+]
+
+[[package]]
+name = "raea-sys-engine-shaders"
+version = "0.1.0"
+dependencies = [
+ "bevy",
+ "raea-core-program",
+ "raea-io-trace",
+ "raea-sys-frame",
+ "serde_json",
 ]
 
 [[package]]
@@ -15880,14 +16033,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "raea-sys-fixes"
+version = "0.1.0"
+dependencies = [
+ "raea-io-home",
+ "rusqlite",
+]
+
+[[package]]
 name = "raea-sys-fog"
 version = "0.1.0"
 dependencies = [
  "bevy",
  "bytemuck",
  "raea-core-program",
+ "raea-io-trace",
  "raea-sys-frame",
+ "raea-sys-rt",
  "raea-sys-volume",
+ "serde_json",
 ]
 
 [[package]]
@@ -15970,6 +16134,16 @@ dependencies = [
  "raea-sys-sampler",
  "raea-sys-shader",
  "serde_json",
+]
+
+[[package]]
+name = "raea-sys-gi"
+version = "0.1.0"
+dependencies = [
+ "bevy",
+ "raea-sys-compose",
+ "raea-sys-rt",
+ "wgpu",
 ]
 
 [[package]]
@@ -16113,10 +16287,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "raea-sys-lightbake"
+version = "0.1.0"
+dependencies = [
+ "bytemuck",
+ "parry3d",
+ "pollster 0.4.0",
+ "raea-gpu-device",
+ "raea-sys-atlas",
+ "rayon",
+ "serde_json",
+ "wgpu",
+]
+
+[[package]]
 name = "raea-sys-lod"
 version = "0.1.0"
 dependencies = [
  "bevy",
+ "raea-io-trace",
+ "raea-sys-frame",
 ]
 
 [[package]]
@@ -16151,6 +16341,7 @@ dependencies = [
  "raea-core-program",
  "raea-core-shape",
  "raea-io-net",
+ "raea-io-trace",
  "raea-sys-frame",
  "raea-sys-mesh",
  "raea-sys-sampler",
@@ -16189,7 +16380,9 @@ dependencies = [
  "audioadapter-buffers",
  "cpal 0.15.3",
  "firewheel",
+ "raea-io-home",
  "raea-io-media",
+ "raea-io-trace",
  "raea-sys-mix-level",
  "raea-sys-tone",
  "serde_json",
@@ -16234,8 +16427,10 @@ dependencies = [
  "blitz-traits",
  "color",
  "parley",
+ "raea-core-facts",
  "raea-core-wire",
  "raea-gpu-device",
+ "raea-io-trace",
  "raea-sys-filters",
  "raea-sys-fonts",
  "raea-sys-image",
@@ -16395,6 +16590,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "raea-sys-share"
+version = "0.1.0"
+dependencies = [
+ "bevy",
+]
+
+[[package]]
 name = "raea-sys-shots"
 version = "0.1.0"
 dependencies = [
@@ -16411,6 +16613,7 @@ dependencies = [
  "ort",
  "raea-io-home",
  "raea-io-media",
+ "raea-io-trace",
  "raea-sys-vision",
  "serde_json",
 ]
@@ -16447,6 +16650,17 @@ dependencies = [
  "raea-sys-mesh",
  "raea-sys-sampler",
  "raea-sys-shader",
+ "serde_json",
+]
+
+[[package]]
+name = "raea-sys-stage"
+version = "0.1.0"
+dependencies = [
+ "bevy",
+ "raea-core-facts",
+ "raea-core-scene",
+ "raea-core-shape",
  "serde_json",
 ]
 
@@ -16555,6 +16769,7 @@ version = "0.1.0"
 dependencies = [
  "bevy",
  "raea-core-program",
+ "raea-io-trace",
  "raea-sys-frame",
  "serde_json",
 ]
@@ -16565,7 +16780,7 @@ version = "0.1.0"
 dependencies = [
  "image",
  "parry3d",
- "raea-core-meshcheck",
+ "raea-sys-atlas",
  "raea-sys-damage",
  "raea-sys-exposure",
  "raea-sys-glb",

@@ -21,6 +21,28 @@ drone under a long reverb is what generated music sounds like. Before any instru
 - A sustained texture (a held pad, a drone, a reverb wash) goes in only when the scene asks for one by name ("dread",
   "the ship's hum") and the direction says why in a line. Even then something over it moves.
 
+## Cast the instruments for this piece
+
+Every agent that reaches for "a piano" gets the same Salamander grand, and every "MIDI" part the same General MIDI
+bank, so every score sounds alike. Thousands of sampled instruments are free to use, and choosing them is part of
+writing the music. Shane, 2026-11-23: "when i say midi it just picks the same ones there thousands of insturments out
+there to go use".
+
+- Cast each part the way a composer books a player. Write a line per part: what it is, what it's like and how it's
+  played ("an old upright, a little out of tune, felt down, close-miked"; "one cello, dry, in a small room, played
+  low"; "a harmonium with its bellows audible"). Let the picture choose: its place, its era, what is in the room.
+- Search for that line in `motion/sources`' instrument libraries: Pianobook's thousands of community instruments,
+  Karoryfer, the SFZ index, Decent Samples, Versilian, musical-artifacts and the rest. Listen to a few candidates on
+  the part's own notes before choosing. A character instrument (a prepared piano, a music box, a bowed vibraphone, an
+  out-of-tune upright, a particular cello) does more for a piece than a clean generic one.
+- `raea sounds` (the Salamander grand, FluidR3's General MIDI set, tonejs-instruments, VCSL's single takes) is for a
+  sketch, or for a part that really is that instrument. It isn't the cast. A score made only of its packs needs a
+  reason in the direction.
+- "MIDI" means notes, not General MIDI sounds. A General MIDI bank (FluidR3, MuseScore General) plays a MIDI file
+  as it is, to check it. A score's parts are cast instruments playing those notes.
+- Write the cast in the piece's notes: each part's instrument, where it came from and its licence. When a part
+  can't be cast (no free library has it), that's when TokenSynth or a synth comes in.
+
 ## What to do
 
 - Write music and sound effects in Tone.js, as its docs write them: `import * as Tone from "raea/tone"`, then
@@ -30,12 +52,14 @@ drone under a long reverb is what generated music sounds like. Before any instru
   starts and stops on the Transport.
 - Make music from instruments playing notes, not from a generated track. Each instrument is a `Tone.Sampler` (a kit
   is `Tone.Players`); fill it one of three ways:
-  - **A sample library** for a real instrument, first: `raea sounds cello` searches the open libraries raea carries
-    (the Salamander grand piano; FluidR3's 128 General MIDI instruments, every note; tonejs-instruments' strings,
-    brass, woodwinds and guitars; the Versilian library's keyboards, harps, mallets, drums and percussion), and
-    `raea sounds get tonejs-instruments/cello` copies its notes into `media/sounds/` and prints the `Sampler` that
-    plays them. Drums and hits come as takes for `Tone.Player`s. Whole orchestras, multi-velocity kits and drummers'
-    grooves are fetched by hand (`motion/sources`).
+  - **A sampled instrument cast for the part** (above), first. Most come as SFZ or Decent Sampler presets: read the
+    preset's map (SFZ `<region>`: `sample=`, `pitch_keycenter=`, `lokey`/`hikey`, `lovel`/`hivel`; a `.dspreset`'s
+    `<sample path rootNote loNote hiNote loVel hiVel>`) into the Sampler's `urls`, one Sampler per velocity layer
+    you use. For a quick sketch, `raea sounds cello` searches the four packs raea carries (the Salamander grand;
+    FluidR3's 128 General MIDI instruments; tonejs-instruments' strings, brass, woodwinds and guitars; VCSL's
+    keyboards, harps, mallets, drums and percussion), and `raea sounds get tonejs-instruments/cello` copies its notes
+    into `media/sounds/` and prints the `Sampler` that plays them. Drums and hits come as takes for `Tone.Player`s.
+    Everything else is fetched by hand (`motion/sources`; `raea sounds get` reaching it all is docs/sound.feature SN4).
   - **TokenSynth** for a timbre no library has: `Tone.tokensynth("a bowed saw, close, eerie", ["C3", "E3", "G#3",
     "C4", "E4", "G#4", "C5"], { seconds: 2 })` renders those root notes, a major third apart, once on this computer,
     and the Sampler pitches between them. Describe
@@ -121,9 +145,8 @@ semitones) off, a piano note still at full level when its file ends, so every he
 the "vanilla and abrasive" sound. It learned from 5-second notes at four velocities, so it gives one dynamic and can
 miss the pitch asked for. So:
 
-- Reach for an open sample library first for a standard instrument (`raea sounds piano`, `sounds get
-  salamander/piano`): a recording, no gamble. Use TokenSynth for what no library has, or a timbre you can describe
-  better than find.
+- Reach for a recorded instrument first, cast for the part (above): a recording, no gamble. Use TokenSynth for what
+  no library has, or a timbre you can describe better than find.
 - Declare each instrument as a candidate, not a call: its timbre, roots every 3 to 4 semitones over the range it plays
   (a Sampler pitched further than that starts to sound fake), 3 or more seeds, and `seconds` long enough for the
   sound to die away on its own (4 for piano, 6 for sustained strings).
@@ -194,8 +217,9 @@ remote music model, is retired: an older edit keeps the take it made, and a new 
 
 Spotted as one cue over nine one-bar cards: A (bars 1 to 4) piano and a pizzicato ostinato, the flute's motif from
 bar 3; B (bars 5 to 8) the ostinato drops out, bass and kit come in, the motif climbs; the button on the end card's
-cut. The instruments came from these commands, each printing the roots it fetched (with no `--notes`, a minor third
-apart from C1 to C7, or every note the library sampled when that's sparser):
+cut. The instruments are `raea sounds` packs so the example runs anywhere with one command each; a real piece casts
+its own (above). Each command prints the roots it fetched (with no `--notes`, a minor third apart from C1 to C7, or
+every note the library sampled when that's sparser):
 
 ```sh
 raea sounds get salamander/piano

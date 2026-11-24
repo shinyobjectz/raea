@@ -9,6 +9,7 @@ publish = false
 description = "A Rune tree as a Bevy layer: drawn into a Bevy Image on Bevy's device with no copy, pointer and keys forwarded to it"
 
 [dependencies]
+raea-io-trace = { path = "../../../io/trace" }
 rune.workspace = true
 bevy = { version = "=0.20.0", default-features = false, features = ["std", "async_executor", "bevy_window", "bevy_asset", "bevy_image", "bevy_render", "bevy_core_pipeline"] }
 wgpu = "=30.0.1"

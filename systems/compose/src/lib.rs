@@ -12,3 +12,5 @@ use raea_sys_rt as rt;
 
 pub mod compose;
 pub mod passes;
+// each frame's motion vectors and depth read back for a pass after the render (RT1)
+pub mod aov;

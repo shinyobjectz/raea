@@ -1,4 +1,4 @@
-//! The render manifest's videos and text (render.json, `raea render --manifest`), as the page laid them out.
+//! The render manifest's videos, text and pictures (render.json, `raea render --manifest`), as the page laid them out.
 
 use super::*;
 
@@ -7,16 +7,18 @@ impl BlitzPage {
     /// each shown element with a `data-raea-src` (a video: its source, time and box), and each element's own words
     /// (its text children's, inline elements' words going to the nearest element up with a box) with that box, its
     /// opacity, colour, size, weight and alignment as computed. In document order, as raea-runtime-js's page gave them.
-    pub fn manifest(&mut self) -> (Vec<serde_json::Value>, Vec<serde_json::Value>) {
+    /// And the page's pictures (picture()): what fills the frame besides its words and videos.
+    pub fn manifest(&mut self) -> (Vec<serde_json::Value>, Vec<serde_json::Value>, Vec<serde_json::Value>) {
         use serde_json::json;
         use style::values::specified::text::TextAlignKeyword;
         let docs = self.app.world().non_send::<Docs>();
-        let Some(doc) = docs.0.get(&self.page) else { return (vec![], vec![]) };
+        let Some(doc) = docs.0.get(&self.page) else { return (vec![], vec![], vec![]) };
+        let least = PICTURE_LEAST * self.w as f64 * self.h as f64;
         let r = |v: f64| (v * 10.0).round() / 10.0;
         let rect = |n: blitz_dom::NodeId| doc.get_client_bounding_rect(n).filter(|b| b.width > 0.0 && b.height > 0.0);
         let alpha = |n: blitz_dom::NodeId| alpha(doc, n);
         let stamps = |n: blitz_dom::NodeId, entry: &mut serde_json::Value| stamps(doc, n, entry);
-        let (mut videos, mut text) = (Vec::new(), Vec::new());
+        let (mut videos, mut text, mut pictures) = (Vec::new(), Vec::new(), Vec::new());
         let mut owned: Vec<(blitz_dom::NodeId, Vec<String>)> = Vec::new();
         // the whole document: a composition's sequences and screens are pages of their own under the root's
         let mut stack = vec![doc.root_node().id];
@@ -28,6 +30,9 @@ impl BlitzPage {
             // an inline <svg> is drawn as one picture (usvg's): its <text>s are runs of their own, where usvg set them
             if let Some(tree) = node.element_data().and_then(|e| e.svg_data()) {
                 if let (Some(b), a) = (rect(n), alpha(n)) {
+                    if a > 0.01 && b.width * b.height >= least {
+                        pictures.push(json!({"kind": "svg", "box": [r(b.x), r(b.y), r(b.width), r(b.height)], "opacity": (a * 100.0).round() / 100.0}));
+                    }
                     let (sx, sy) = (b.width / tree.size().width().max(1e-6) as f64, b.height / tree.size().height().max(1e-6) as f64);
                     for (words, t, o) in svg_runs(tree.root(), a) {
                         let bb = [r(b.x + t.x() as f64 * sx), r(b.y + t.y() as f64 * sy), r(t.width() as f64 * sx), r(t.height() as f64 * sy)];
@@ -85,6 +90,14 @@ impl BlitzPage {
                     videos.push(v);
                 }
                 continue;
+            }
+            if let Some(kind) = picture(node) {
+                let a = alpha(n);
+                if let (Some(b), true) = (rect(n), a > 0.01) {
+                    if b.width * b.height >= least {
+                        pictures.push(json!({"kind": kind, "box": [r(b.x), r(b.y), r(b.width), r(b.height)], "opacity": (a * 100.0).round() / 100.0}));
+                    }
+                }
             }
             if !node.is_text_node() {
                 continue;
@@ -191,11 +204,40 @@ impl BlitzPage {
             if in_caption(doc, owner) {
                 t["caption"] = json!(true);
             }
+            // words meant to sit on a 3D part (raea-sys-stage's type-over-part leaves them be, SG11)
+            if up(doc, owner, |node| node.attr(LocalName::from("data-allow-overlap")).is_some()) {
+                t["allowOverlap"] = json!(true);
+            }
+            // the world point a Label's words name ("x y z"), which makes the part there the shot's subject (SG14)
+            if let Some(p) = up_attr(doc, owner, "data-points").and_then(|v| v.split_whitespace().map(|n| n.parse::<f64>().ok()).collect::<Option<Vec<f64>>>()).filter(|p| p.len() == 3 && p.iter().all(|n| n.is_finite())) {
+                t["points"] = json!(p);
+            }
             stamps(owner, &mut t);
             text.push(t);
         }
-        (videos, text)
+        (videos, text, pictures)
     }
+}
+
+/// A picture smaller than this share of the frame is left out of the manifest: an icon or a rule fills none of it
+/// that a check counts (raea-sys-stage's coverage is a grid of 3% cells), and a page can hold hundreds.
+const PICTURE_LEAST: f64 = 0.0025;
+
+/// What an element paints over the frame besides words: "img" (an <img>), "background" (a CSS background image), or
+/// "fill" (a background colour at least half opaque). None for one that paints nothing of its own.
+fn picture(node: &blitz_dom::Node) -> Option<&'static str> {
+    if !node.is_element() {
+        return None;
+    }
+    if node.element_data().is_some_and(|e| &*e.name.local == "img") {
+        return Some("img");
+    }
+    let s = node.primary_styles()?;
+    let bg = s.get_background();
+    if bg.background_image.0.iter().any(|i| !matches!(i, style::values::computed::image::Image::None)) {
+        return Some("background");
+    }
+    (bg.background_color.resolve_to_absolute(&s.clone_color()).alpha >= 0.5).then_some("fill")
 }
 
 impl BlitzPage {
@@ -312,10 +354,28 @@ fn stamps(doc: &blitz_dom::BaseDocument, n: blitz_dom::NodeId, entry: &mut serde
 
 /// Whether `n` is a caption or inside one: it or an element up from it carries data-raea-role="caption".
 fn in_caption(doc: &blitz_dom::BaseDocument, n: blitz_dom::NodeId) -> bool {
+    up(doc, n, |node| node.attr(LocalName::from("data-raea-role")) == Some("caption"))
+}
+
+/// Whether `n` or an element it's in passes `test`.
+/// The value of an attribute on n or the nearest element above it that has one.
+fn up_attr(doc: &blitz_dom::BaseDocument, n: blitz_dom::NodeId, name: &str) -> Option<String> {
+    let mut at = Some(n);
+    while let Some(x) = at {
+        let node = doc.get_node(x)?;
+        if let Some(v) = node.attr(LocalName::from(name)) {
+            return Some(v.to_string());
+        }
+        at = node.parent;
+    }
+    None
+}
+
+fn up(doc: &blitz_dom::BaseDocument, n: blitz_dom::NodeId, test: impl Fn(&blitz_dom::Node) -> bool) -> bool {
     let mut at = Some(n);
     while let Some(x) = at {
         let Some(node) = doc.get_node(x) else { break };
-        if node.attr(LocalName::from("data-raea-role")) == Some("caption") {
+        if test(node) {
             return true;
         }
         at = node.parent;

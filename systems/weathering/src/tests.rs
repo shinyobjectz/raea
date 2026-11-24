@@ -104,8 +104,8 @@ struct Baked {
 
 fn run(prims: Vec<Prim>, e: &Env) -> Baked {
     let sc = scene::read(&glb(prims), &classes()).unwrap();
-    let mesh = rays::mesh_of(&sc);
-    let at = charts::build(&sc, e, &mesh).unwrap();
+    let mesh = raea_sys_atlas::rays::mesh_of(&sc);
+    let at = charts::build(&sc, &e.ask(), &mesh).unwrap();
     let n = (at.w * at.h) as usize;
     let (mut c0, mut c2, mut c3) = (vec![[0u8; 4]; n], vec![[0u8; 4]; n], vec![[0u8; 4]; n]);
     rays::causes(&sc, &at, e, &mesh, &mut c0, &mut c2, &mut c3);
@@ -213,6 +213,7 @@ fn a_bake_is_the_same_bytes_twice_and_adds_texcoord_1() {
     }
     assert_eq!(std::fs::read(a["spots"].as_str().unwrap()).unwrap(), std::fs::read(b["spots"].as_str().unwrap()).unwrap(), "spots");
     let out = std::fs::read(a["file"].as_str().unwrap()).unwrap();
+    assert!(raea_sys_atlas::layout(&glb(front()), &req).is_ok_and(|l| l.glb == out && l.texels.len() as u64 == a["texels"]), "a layout alone is the bake's atlas");
     let sc = scene::read(&out, &Classes::default()).unwrap();
     assert_eq!(sc.prims.len(), 4);
     for m in sc.glb.json["meshes"].as_array().unwrap() {
@@ -230,8 +231,8 @@ fn each_texel_carries_its_class_and_the_gutters_a_real_one() {
     let cl = Classes::of(&json!({"ground": "ground", "slab": "iron", "*": "plaster"})).unwrap();
     let e = env(json!({"density": 4, "rays": {"sky": 8, "cavity": 4}}));
     let sc = scene::read(&glb(front()), &cl).unwrap();
-    let mesh = rays::mesh_of(&sc);
-    let at = charts::build(&sc, &e, &mesh).unwrap();
+    let mesh = raea_sys_atlas::rays::mesh_of(&sc);
+    let at = charts::build(&sc, &e.ask(), &mesh).unwrap();
     let n = (at.w * at.h) as usize;
     let (mut c0, mut c2, mut c3) = (vec![[0u8; 4]; n], vec![[0u8; 4]; n], vec![[0u8; 4]; n]);
     rays::causes(&sc, &at, &e, &mesh, &mut c0, &mut c2, &mut c3);
@@ -325,8 +326,8 @@ fn a_door_is_held_on_one_side_and_gets_its_nameplate() {
     let req = json!({"env": {"density": {"*": 4, "wood": 20}, "rays": {"sky": 8, "cavity": 4}}, "classes": {"ground": "ground", "door": "wood"}});
     let e = env(req["env"].clone());
     let sc = scene::read(&glb(prims.clone()), &classes).unwrap();
-    let mesh = rays::mesh_of(&sc);
-    let at = charts::build(&sc, &e, &mesh).unwrap();
+    let mesh = raea_sys_atlas::rays::mesh_of(&sc);
+    let at = charts::build(&sc, &e.ask(), &mesh).unwrap();
     let n = (at.w * at.h) as usize;
     let (mut c0, mut c1, mut c2) = (vec![[0u8; 4]; n], vec![[0u8; 4]; n], vec![[0u8; 4]; n]);
     let mut c3 = vec![[0u8; 4]; n];

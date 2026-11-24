@@ -52,12 +52,15 @@ use bevy::{
         Extract, ExtractSchedule, Render, RenderApp, RenderStartup, RenderSystems,
     },
     shader::ShaderDefVal,
+    solari::pathtracer::PathtracerMedia,
 };
 
 mod views;
 pub use views::*;
 mod pipelines;
 pub use pipelines::*;
+mod solari;
+pub mod tuning;
 
 /// The camera's fog as a grid: the ambient light the fog scatters (linear, times its intensity), and the grid's
 /// slices along the view, its tile in pixels and the points lit a cell.
@@ -70,6 +73,8 @@ pub struct FroxelFog {
     pub samples: u32,
     /// the volumetric spot and directional lights integrated exactly per pixel (froxel_hero.wesl), not in the grid
     pub hero: bool,
+    /// what <VolumetricFog> tunes beyond its look (tuning.rs)
+    pub tune: tuning::Tuning,
 }
 
 pub fn insert(world: &mut World, e: Entity, fog: FroxelFog) {
@@ -81,10 +86,12 @@ pub fn insert(world: &mut World, e: Entity, fog: FroxelFog) {
 }
 
 pub fn install(app: &mut App) {
+    bevy::shader::load_shader_library!(app, "froxel_volume.wesl");
     bevy::asset::embedded_asset!(app, "froxel_light.wesl");
     bevy::asset::embedded_asset!(app, "froxel_grid.wesl");
     bevy::asset::embedded_asset!(app, "froxel_hero.wesl");
     bevy::asset::embedded_asset!(app, "froxel_minmax.wgsl");
+    bevy::asset::embedded_asset!(app, "froxel_solari.wesl");
     app.add_plugins(ExtractComponentPlugin::<FroxelFog>::default());
     let Some(render_app) = app.get_sub_app_mut(RenderApp) else { return };
     render_app
@@ -92,7 +99,7 @@ pub fn install(app: &mut App) {
         .init_resource::<GridFires>()
         .add_systems(RenderStartup, init_pipelines.after(bevy::pbr::MeshPipelineSystems))
         .add_systems(ExtractSchedule, (extract_volumes, super::fire::extract_grid_fires))
-        .add_systems(Render, ((prepare_pipelines, prepare_volumes, prepare_fires, prepare_views).in_set(RenderSystems::Prepare), prepare_textures.in_set(RenderSystems::PrepareResources)))
+        .add_systems(Render, ((prepare_pipelines, prepare_volumes, prepare_fires, prepare_views).in_set(RenderSystems::Prepare), (prepare_textures, solari::prepare).in_set(RenderSystems::PrepareResources)))
         .add_systems(Core3d, draw.after(bevy::core_pipeline::core_3d::main_opaque_pass_3d).before(bevy::core_pipeline::core_3d::main_transparent_pass_3d));
 }
 
@@ -106,9 +113,34 @@ struct GpuVolume {
     scatter: Vec4,
     /// rgb: what of the ambient light it scatters per metre (fog colour x scattering x density); a: anisotropy
     ambient: Vec4,
-    /// x: falloff per metre up from the box's floor; y: the box's height in metres
+    /// x: falloff per metre up from the box's floor; y: the box's height in metres; z: the feathered share of the
+    /// half-size at each face (`soft`); w: how much narrower the floor is than the top (`taper`); froxel_volume.wesl
     shape: Vec4,
+    /// x: the extinction per metre that dims light on its way through the volume to a point of the fog
+    /// (froxel_volume.wesl volume_depth), by [`ShadowRule`]
+    shadow: Vec4,
 }
+
+/// How the fog dims light on its way to a point of it (<VolumetricFog shadow>). The froxel passes scatter light once, so
+/// dimming it by the whole extinction loses the light the medium scatters on toward the point (white fog under a
+/// uniform sky: 0.75 of the truth's); not dimming it keeps light that a grey or thick medium absorbs (grey fog: 0.60
+/// against 0.40). The path tracer is the truth they're measured against (bevy_solari pathtracer/media.wesl):
+/// absorption alone matched it (grey 0.411 against 0.398, white 1.000; the hall's air 0.955 of the truth's, Bevy's
+/// 0.939), so it's the default.
+#[derive(Clone, Copy, PartialEq, Debug)]
+pub enum ShadowRule {
+    /// Bevy's: a constant exp(-extinction x the box's half-diagonal) on every point of it, nothing else
+    Bevy,
+    /// not dimmed
+    Off,
+    /// by what the medium absorbs (density x absorption): the default
+    Absorb,
+    /// by absorption and the share of scattering that turns light aside (density x (absorption + scattering x (1 - g)))
+    Delta,
+    /// by the whole extinction (single scattering)
+    Full,
+}
+
 
 /// The frame's fog volumes, in rank order (their row ids), so the medium sums them in one order every frame.
 #[derive(Resource, Default)]
@@ -119,9 +151,11 @@ pub struct Volumes {
     buffer: StorageBuffer<Vec<GpuVolume>>,
 }
 
-fn extract_volumes(mut volumes: ResMut<Volumes>, q: Extract<Query<(&FogVolume, &GlobalTransform, Option<&FogRank>, Option<&FogThinning>)>>) {
+fn extract_volumes(mut volumes: ResMut<Volumes>, q: Extract<Query<(&FogVolume, &GlobalTransform, Option<&FogRank>, Option<&FogShape>)>>, cams: Extract<Query<&FroxelFog>>) {
+    // the volumes are written once for every view: the first fog camera's rule
+    let rule = cams.iter().next().map_or(ShadowRule::Absorb, |f| f.tune.shadow);
     let mut found: Vec<(String, GpuVolume, [Vec3; 8])> = Vec::new();
-    for (fv, t, rank, falloff) in &q {
+    for (fv, t, rank, shape) in &q {
         let affine = t.affine();
         // a hidden volume is shrunk to nothing (scene3d::fog_transform) and has no density
         if fv.density_factor <= 0.0 || affine.matrix3.determinant().abs() < 1e-9 {
@@ -133,7 +167,15 @@ fn extract_volumes(mut volumes: ResMut<Volumes>, q: Extract<Query<(&FogVolume, &
         let extinction = fv.density_factor * (fv.absorption + fv.scattering);
         let colour = fv.fog_color.to_linear().to_vec3();
         let tint = fv.light_tint.to_linear().to_vec3();
-        let light = colour * tint * fv.light_intensity * fv.scattering * fv.density_factor * (-extinction * radius).exp();
+        let bevy = if rule == ShadowRule::Bevy { (-extinction * radius).exp() } else { 1.0 };
+        let light = colour * tint * fv.light_intensity * fv.scattering * fv.density_factor * bevy;
+        let shadow = fv.density_factor
+            * match rule {
+                ShadowRule::Bevy | ShadowRule::Off => 0.0,
+                ShadowRule::Absorb => fv.absorption,
+                ShadowRule::Delta => fv.absorption + fv.scattering * (1.0 - fv.scattering_asymmetry.clamp(0.0, 1.0)),
+                ShadowRule::Full => fv.absorption + fv.scattering,
+            };
         let height = affine.transform_vector3a(Vec3A::Y).length();
         let corners = std::array::from_fn(|k| {
             let c = Vec3A::new(if k & 1 == 0 { -0.5 } else { 0.5 }, if k & 2 == 0 { -0.5 } else { 0.5 }, if k & 4 == 0 { -0.5 } else { 0.5 });
@@ -145,7 +187,8 @@ fn extract_volumes(mut volumes: ResMut<Volumes>, q: Extract<Query<(&FogVolume, &
                 local_from_world: Mat4::from(local_from_world),
                 scatter: light.extend(extinction),
                 ambient: (colour * fv.scattering * fv.density_factor).extend(fv.scattering_asymmetry),
-                shape: Vec4::new(falloff.map_or(0.0, |f| f.0), height, 0.0, 0.0),
+                shape: shape.map_or(Vec4::new(0.0, height, 0.0, 0.0), |s| Vec4::new(s.falloff, height, s.soft, s.taper)),
+                shadow: Vec4::new(shadow, 0.0, 0.0, 0.0),
             },
             corners,
         ));
@@ -155,7 +198,7 @@ fn extract_volumes(mut volumes: ResMut<Volumes>, q: Extract<Query<(&FogVolume, &
     volumes.corners = found.iter().map(|f| f.2).collect();
 }
 
-fn prepare_volumes(mut volumes: ResMut<Volumes>, device: Res<RenderDevice>, queue: Res<RenderQueue>) {
+fn prepare_volumes(mut volumes: ResMut<Volumes>, device: Res<RenderDevice>, queue: Res<RenderQueue>, media: Option<ResMut<PathtracerMedia>>, traced: Query<&raea_sys_rt::pathtracer::PathtracerSettings>) {
     // never empty: a storage buffer needs a size
     let mut list = volumes.list.clone();
     if list.is_empty() {
@@ -163,6 +206,11 @@ fn prepare_volumes(mut volumes: ResMut<Volumes>, device: Res<RenderDevice>, queu
     }
     *volumes.buffer.get_mut() = list;
     volumes.buffer.write_buffer(&device, &queue);
+    // the reference path tracer walks the same volumes (bevy_solari pathtracer/media.wesl); <Pathtracer media={false}>
+    // (or RAEA_PT_MEDIA=0) leaves them out of it, for a frame without its air
+    if let Some(mut media) = media {
+        media.0 = if raea_sys_rt::pathtracer::media(&traced) { volumes.buffer.buffer().cloned() } else { None };
+    }
 }
 
 /// A fire as the grid's light pass reads it (froxel_light.wesl's `GridFire`): it lights the fog around it, as its
@@ -191,15 +239,28 @@ fn prepare_fires(mut fires: ResMut<GridFires>, device: Res<RenderDevice>, queue:
 
 #[allow(clippy::too_many_arguments)]
 fn draw(
-    view: ViewQuery<(&ViewTarget, &ViewDepthStencilTexture, &ViewPipelines, &ViewGrid, &GridTextures, &MeshViewBindGroup, &Msaa, Option<&ViewShadowBindings>)>,
+    view: ViewQuery<(
+        &ViewTarget,
+        &ViewDepthStencilTexture,
+        &ViewPipelines,
+        &ViewGrid,
+        &GridTextures,
+        &MeshViewBindGroup,
+        &Msaa,
+        Option<&ViewShadowBindings>,
+        Option<&solari::SolariFog>,
+        Option<&bevy::render::view::ViewUniformOffset>,
+        &FroxelFog,
+    )>,
     cache: Res<PipelineCache>,
     pipelines: Option<Res<Pipelines>>,
     volumes: Res<Volumes>,
     fires: Res<GridFires>,
+    (solari_pipelines, scene, view_uniforms): (Option<Res<solari::SolariFogPipelines>>, Option<Res<bevy::solari::scene::RaytracingSceneBindings>>, Res<bevy::render::view::ViewUniforms>),
     mut ctx: RenderContext,
 ) {
     let Some(p) = pipelines else { return };
-    let (target, depth, ids, grid, tex, view_group, msaa, shadows) = view.into_inner();
+    let (target, depth, ids, grid, tex, view_group, msaa, shadows, solari_fog, view_offset, fog) = view.into_inner();
     if volumes.list.is_empty() {
         return;
     }
@@ -216,8 +277,8 @@ fn draw(
     };
     let ms = !matches!(msaa, Msaa::Off);
     let device = ctx.render_device().clone();
-    // RAEA_FOG_SKIP=pass,...: those passes not drawn (timing their cost)
-    let skip = std::env::var("RAEA_FOG_SKIP").unwrap_or_default();
+    // the channel fog_skip=pass,... (stats.on, or RAEA_FOG_SKIP): those passes not drawn (timing their cost)
+    let skip = raea_io_trace::stat_value("RAEA_FOG_SKIP").unwrap_or_default();
     let g = grid.params.grid;
     ctx.command_encoder().push_debug_group("froxel_fog");
 
@@ -237,8 +298,18 @@ fn draw(
         }
     }
 
+    // 1b. under Solari, what its emissive meshes and the sky scatter at each cell (froxel/solari.rs), which the
+    // integrate pass then adds to the atlas's light
+    let with_solari = if skip.contains("solari") {
+        None
+    } else {
+        solari::draw(&mut ctx, &cache, solari_pipelines.as_deref(), scene.as_deref(), &view_uniforms, solari_fog, view_offset, params.clone(), vols.clone(), &tex.atlas.default_view, &tex.grid)
+    };
+
     // 2. each column front to back
-    let group = device.create_bind_group("froxel_integrate", &cache.get_bind_group_layout(&p.integrate_layout), &BindGroupEntries::sequential((params.clone(), &tex.atlas.default_view, &tex.grid)));
+    let (integrate, group) = with_solari.unwrap_or_else(|| {
+        (integrate, device.create_bind_group("froxel_integrate", &cache.get_bind_group_layout(&p.integrate_layout), &BindGroupEntries::sequential((params.clone(), &tex.atlas.default_view, &tex.grid))))
+    });
     {
         let mut pass = ctx.command_encoder().begin_compute_pass(&ComputePassDescriptor { label: Some("froxel_integrate"), timestamp_writes: None });
         pass.set_pipeline(integrate);
@@ -301,7 +372,7 @@ fn draw(
         );
         let epi = [0, 1, 2, 3].map(|i| cache.get_render_pipeline(ids.epi[i]));
         match (tex.epi.as_ref(), epi) {
-            (Some(t), [Some(coarse), Some(mark), Some(fine), Some(over)]) if std::env::var_os("RAEA_FOG_HERO_EXACT").is_none() => {
+            (Some(t), [Some(coarse), Some(mark), Some(fine), Some(over)]) if !fog.tune.hero_exact => {
                 // each light's samples along its lines: their depth; the coarse ones' light; every one's, interpolated
                 // or marked; the marked integrated
                 let reads = |a: &CachedTexture| device.create_bind_group("froxel_epipolar", &cache.get_bind_group_layout(&p.epi_layout), &BindGroupEntries::single(&a.default_view));
@@ -372,10 +443,16 @@ fn draw(
     ctx.command_encoder().pop_debug_group();
 }
 
-/// How fast a fog volume thins going up, per metre from its box's floor (`falloff`; 0: even). Only the froxel grid
-/// draws it (froxel.rs); Bevy's march fills the box evenly.
-#[derive(Component, Clone, Copy)]
-pub struct FogThinning(pub f32);
+/// A fog volume's shape inside its box (froxel_volume.wesl): how fast it thins going up, per metre from the box's
+/// floor (`falloff`; 0: even); the share of the box's half-size over which its density ramps in from every face
+/// (`soft`, 0 to 1; 0: a hard box); how much narrower its floor is than its top (`taper`, 0 to 1; a plume). Only the
+/// froxel grid draws it (froxel.rs); Bevy's march fills the box evenly.
+#[derive(Component, Clone, Copy, Default)]
+pub struct FogShape {
+    pub falloff: f32,
+    pub soft: f32,
+    pub taper: f32,
+}
 
 /// Where a fog volume comes in the order Bevy composites them (its row's id). Overlapping volumes blend in the order
 /// Bevy's render world iterates them, which is the order their render entities first got a FogVolume: a render of

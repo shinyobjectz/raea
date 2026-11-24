@@ -82,3 +82,85 @@ pub fn said() -> Option<String> {
     let list: String = all.iter().take(20).map(|w| format!("\n  {w}")).collect();
     (n > 0).then(|| format!("NOTE  the page didn't apply {n} thing{}, and is drawn without {}:{list}{more}", if n == 1 { "" } else { "s" }, if n == 1 { "it" } else { "them" }))
 }
+
+// ---- fonts (#174) ----------------------------------------------------------------------------------------------------
+// A font-family list whose first family isn't installed or loaded draws in the next family that is (the browser's
+// serif, Times, when none is), and nothing said so: a web font that didn't load turned a whole video into Times. The
+// first named family of each list a text layout uses is asked about as the style is made (`ask_family`) and checked
+// against the fonts once that layout is built (`check_families`: the layout's builder holds the font context until
+// then). Each miss is kept once as `font "X" not found: drawn in Y` for the render to say as a warning
+// (`fonts_missing`). A family that turns up later (a web font still loading at the first layout) takes its line back.
+// The platform names for the system face that CSS writes first for other browsers (-apple-system and
+// BlinkMacSystemFont off Apple, ui-sans-serif and the other ui- names) aren't checked, and neither is a list bevy_text
+// made (it ends in "raea-bevy fallback", and falls to the collection's fallbacks by design).
+
+enum Asked {
+    Named(String),
+    Generic(parley::GenericFamily),
+}
+
+thread_local! {
+    /// the lists asked about on this thread since its last layout was built, one a first family
+    static ASKED: std::cell::RefCell<Vec<Vec<Asked>>> = const { std::cell::RefCell::new(Vec::new()) };
+    /// first families found already: never asked about again
+    static FOUND: std::cell::RefCell<std::collections::HashSet<String>> = std::cell::RefCell::new(std::collections::HashSet::new());
+}
+
+static FONTS: Mutex<Vec<String>> = Mutex::new(Vec::new());
+
+/// A name CSS writes for the system face that this platform's fonts don't carry (the face is the next in the list).
+fn platform_name(name: &str) -> bool {
+    let n = name.to_ascii_lowercase();
+    n.starts_with("ui-") || n == "-apple-system" || n == "blinkmacsystemfont"
+}
+
+/// A text style's family list (stylo_to_parley's), its first family asked about when it's named.
+pub(crate) fn ask_family(families: &[parley::FontFamilyName<'_>]) {
+    let Some(parley::FontFamilyName::Named(first)) = families.first() else { return };
+    if platform_name(first) || families.iter().any(|f| matches!(f, parley::FontFamilyName::Named(n) if n.as_ref() == "raea-bevy fallback")) {
+        return;
+    }
+    if FOUND.with(|f| f.borrow().contains(first.as_ref())) {
+        return;
+    }
+    ASKED.with(|a| {
+        let mut a = a.borrow_mut();
+        if a.len() < 64 && !a.iter().any(|l| matches!(l.first(), Some(Asked::Named(n)) if n.as_str() == first.as_ref())) {
+            a.push(families.iter().map(|f| match f {
+                parley::FontFamilyName::Named(n) => Asked::Named(n.to_string()),
+                parley::FontFamilyName::Generic(g) => Asked::Generic(*g),
+            }).collect());
+        }
+    });
+}
+
+/// The lists asked about on this thread, checked against `fcx`'s fonts (after a layout is built).
+pub(crate) fn check_families(fcx: &mut parley::FontContext) {
+    let asked = ASKED.with(|a| std::mem::take(&mut *a.borrow_mut()));
+    for list in asked {
+        let Some(Asked::Named(first)) = list.first() else { continue };
+        let missing = format!("font \"{first}\" not found");
+        if fcx.collection.family_by_name(first).is_some() {
+            FOUND.with(|f| f.borrow_mut().insert(first.clone()));
+            FONTS.lock().unwrap_or_else(|e| e.into_inner()).retain(|l| !l.starts_with(&missing));
+            continue;
+        }
+        let drawn = list[1..].iter().find_map(|f| match f {
+            Asked::Named(n) => fcx.collection.family_by_name(n).map(|i| i.name().to_string()),
+            Asked::Generic(g) => {
+                let id = fcx.collection.generic_families(*g).next()?;
+                fcx.collection.family_name(id).map(str::to_string)
+            }
+        });
+        let line = format!("{missing}: drawn in {}", drawn.as_deref().unwrap_or("the platform's fallback"));
+        let mut fonts = FONTS.lock().unwrap_or_else(|e| e.into_inner());
+        if !fonts.contains(&line) {
+            fonts.push(line);
+        }
+    }
+}
+
+/// The fonts a page asked for and didn't have, taken: `font "X" not found: drawn in Y`, in the order first met.
+pub fn fonts_missing() -> Vec<String> {
+    std::mem::take(&mut *FONTS.lock().unwrap_or_else(|e| e.into_inner()))
+}

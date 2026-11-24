@@ -31,6 +31,10 @@ Put these beside the camera, once each:
   0.966 / 52.7 dB at 7.7 ms (the march 0.751 / 28.8 dB at 3.4). `hero={false}` drops the exact shafts for the grid's
   softer ones (Mean Streets 2.8 ms a frame): use it when no shaft has a hard edge in shot. `slices` (128), `tile`
   (8 px) and `samples` (2 a cell) set the grid: more slices for a deep shot with fog close to the camera and far off.
+  The rest is tuning, each prop's default the measured best: `shadow` (what dims light passing through a volume,
+  "absorb"), `epipolar` (how densely the shafts are sampled), `heroExact` (every pixel integrated, the slow
+  reference), `tricubic`, and under <SolariLighting> `solari` (`false`, or its candidates, history frames, sky rays,
+  what lights it, filter and guide).
 - `<VolumetricFog mode="march" steps dither resolution />`: Bevy's ray march through each volume instead, as raea
   drew fog before the grid. Only for matching an older piece: it grains or steps where the grid doesn't, composites
   overlapping volumes in row order, and lights a volume's whole box with `ambient`. `steps` (64) is how finely each
@@ -151,7 +155,7 @@ of Bloom and Grade that skips something. A scene with no pass pays nothing.
 
 - `<MotionBlur shutterAngle={0.5} samples={4} />`: fast moves smear (0.5 is a film camera's 180-degree shutter; 1 a
   whole frame). It animates per frame, and a frame without the element has none, so `{fast ? <MotionBlur /> : null}`
-  blurs only the whip.
+  blurs only the whip. `kind="bevy"` swaps raea's shutter for Bevy's own blur, to compare the two.
 - It blurs inside moving parts and whole-frame camera moves; a part's silhouette over a still background, and toon ink
   lines, stay sharp (Bevy's method).
 - With it, each frame is drawn after the one before it, so a frame's blur is the same in a render, a seek and play.

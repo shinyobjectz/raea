@@ -302,7 +302,7 @@ pub fn analyse(x: &[f32], spect: &[[f32; MELS]], beats: &[f64], downs: &[f64], m
         }
     }
     builds.sort_by_key(|b| b.0);
-    if std::env::var_os("RAEA_SONG_DEBUG").is_some() {
+    if raea_io_trace::stat("RAEA_SONG_DEBUG") {
         for &(p, base, jump, impact) in &drop_base {
             eprintln!("drop? {:7.2} base {base:.2} jump {jump:.2} impact {impact:.2} nov {:.2}", beats[p], nov[p] / nmax);
         }
@@ -441,7 +441,7 @@ pub fn analyse(x: &[f32], spect: &[[f32; MELS]], beats: &[f64], downs: &[f64], m
         }
         let _ = std::fs::write(p, csv);
     }
-    if std::env::var_os("RAEA_SONG_DEBUG").is_some() {
+    if raea_io_trace::stat("RAEA_SONG_DEBUG") {
         for (j, bar) in bars.iter().enumerate() {
             let (s, e) = (bar.0, bar.1);
             eprintln!("bar {j:3} {:7.2}s  E {:.2} raw {:.2} loud {:.2} low {:.2} on {:.2} br {:.2} hi {:.2} nov {:.2}  rate {}", beats[s],

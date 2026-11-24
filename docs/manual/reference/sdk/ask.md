@@ -95,7 +95,7 @@ One file and what to ask of it: a line of `raea ask --batch`.
 | --- | --- | --- |
 | `file` (required) | `string` | the video, sound or picture asked about |
 | `questions` | `(string \| Question)[]` | questions in your own words (yes or no) or written out |
-| `set` | `string \| string[]` | standard sets by name: rubric, av, defects, platform, decide |
+| `set` | `string \| string[]` | standard sets by name: rubric, av, defects, platform, decide, make |
 | `std` | `string[]` | standard questions by id (`raea ask list` lists them) |
 | `window` | `Window` | the seconds to look at, for every question here (else each question's own, else the whole file) |
 | `with` | `string[]` | files set beside it: to pick between, or a before and after |

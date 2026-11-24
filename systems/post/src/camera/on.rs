@@ -161,6 +161,12 @@ pub fn aa(world: &mut World, e: Entity, vals: &Vals) {
             ..default()
         });
     }
+    // raea's temporal filter (steady.rs): <AntiAliasing mode="steady">, or on every 3D camera with RAEA_STEADY (LT1's
+    // scenes measured with it). Its depth and motion prepasses are read single-sampled (PrepassRead keeps MSAA off).
+    let steady = matches!(vals.get("aa"), Some(V::S(m)) if m == "steady") || std::env::var_os("RAEA_STEADY").is_some();
+    if steady && !preview() && world.get::<Camera3d>(e).is_some() {
+        world.entity_mut(e).insert((crate::steady::Steady::of(vals), raea_sys_compose::passes::PrepassRead, Msaa::Off));
+    }
     match vals.get("aa") {
         Some(V::S(m)) if m == "smaa" && !preview() => {
             world.entity_mut(e).insert(bevy::anti_alias::smaa::Smaa { preset: bevy::anti_alias::smaa::SmaaPreset::High });

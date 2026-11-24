@@ -19,10 +19,10 @@ const Shot = () => <Camera3d transform={Transform.fromXyz(-2, 2.5, 5).lookingAt(
 <!-- generated:begin by tools/manual-ref/sdk.ts from the SDK's exports and doc comments; edit outside this block -->
 
 ```ts
-import { Camera3d, Canvas3D, checkMatchmove, Hdr } from "raea/camera"
+import { Camera3d, cameraPath, Canvas3D, checkMatchmove } from "raea/camera"
 ```
 
-`raea/camera` exports 5 components, 1 hook, 3 functions, 9 types. Bevy's counterpart: `bevy_camera`. Source: [sdk/raea/src/camera.ts](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/src/camera.ts).
+`raea/camera` exports 6 components, 1 hook, 9 functions, 4 values, 19 types. Bevy's counterpart: `bevy_camera`. Source: [sdk/raea/src/camera.ts](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/src/camera.ts).
 
 ## Components
 
@@ -66,6 +66,26 @@ Bevy: `bevy_camera::components::Hdr`.
 
 Used in: [3d/rotate_environment_map](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/3d/rotate_environment_map.tsx).
 
+### `Label`
+
+Page type that names a 3D part: drawn over the frame where the part's point lands through the shot's camera, at a
+size in pixels of the frame, inside title-safe, with a line to the point. Hidden while the point is behind the camera
+or out of frame. Put it beside the 3D, in the page, and give it the props the shot's Camera3d gets:
+
+`<Label at={[0, 1.2, 0]} camera={path.camera(frame)}>Reviews</Label>`
+
+| Prop | Type | What it does |
+| --- | --- | --- |
+| `at` (required) | `Vec3` | the point it names, in metres in the world: give the part's top, so the words stand clear above it |
+| `camera` (required) | `LabelCamera` | the shot's camera: the props its Camera3d is given (`path.camera(frame)`), so the label follows it exactly |
+| `children` (required) | `ReactNode` | its words |
+| `size` | `number` | capital height in px at 1080 lines, scaled to the frame (32; at least 22, so it reads) |
+| `side` | `"above" \| "below"` | which way the words stand from the point ("above") |
+| `gap` | `number` | the words' distance from the point, in px at 1080 lines (40) |
+| `leader` | `boolean` | a line from the words to a dot on the point (true) |
+| `color` | `string` | the words' and the line's colour (white) |
+| `style` | `CSSProperties` | more style for the words: font, weight, a background, padding |
+
 ### `Matchmove`
 
 Footage with real 3D standing in it: the clip behind, its camera solved and followed, the subject in front. Fills
@@ -83,7 +103,7 @@ Bevy: `bevy_render::TextureView`.
 | --- | --- | --- |
 | `texture` (required) | `number` | the id a system lists the Image under in the App's PageTextures |
 
-Also takes the props of `ImgHTMLAttributes` (`height`, `alt`, `crossOrigin`, `decoding`, `fetchPriority`, `loading`, `referrerPolicy`, `sizes`, `srcSet`, `useMap`, `width`); `HTMLAttributes` (`slot`, `style`, `title`, `hidden`, `color`, `content`, `part`, `className`, `id`, `defaultChecked`, `defaultValue`, `suppressContentEditableWarning`, `suppressHydrationWarning`, `accessKey`, `autoCapitalize`, `autoFocus`, `contentEditable`, `contextMenu`, `dir`, `draggable`, `enterKeyHint`, `lang`, `nonce`, `spellCheck`, `tabIndex`, `translate`, `radioGroup`, `role`, `about`, `datatype`, `inlist`, `prefix`, `property`, `rel`, `resource`, `rev`, `typeof`, `vocab`, `autoCorrect`, `autoSave`, `itemProp`, `itemScope`, `itemType`, `itemID`, `itemRef`, `results`, `security`, `unselectable`, `popover`, `popoverTargetAction`, `popoverTarget`, `inert`, `inputMode`, `is`, `exportparts`); `DOMAttributes` (`children`, `dangerouslySetInnerHTML`, `onCopy`, `onCopyCapture`, `onCut`, `onCutCapture`, `onPaste`, `onPasteCapture`, `onCompositionEnd`, `onCompositionEndCapture`, `onCompositionStart`, `onCompositionStartCapture`, `onCompositionUpdate`, `onCompositionUpdateCapture`, `onFocus`, `onFocusCapture`, `onBlur`, `onBlurCapture`, `onChange`, `onChangeCapture`, `onBeforeInput`, `onBeforeInputCapture`, `onInput`, `onInputCapture`, `onReset`, `onResetCapture`, `onSubmit`, `onSubmitCapture`, `onInvalid`, `onInvalidCapture`, `onLoad`, `onLoadCapture`, `onError`, `onErrorCapture`, `onKeyDown`, `onKeyDownCapture`, `onKeyPress`, `onKeyPressCapture`, `onKeyUp`, `onKeyUpCapture`, `onAbort`, `onAbortCapture`, `onCanPlay`, `onCanPlayCapture`, `onCanPlayThrough`, `onCanPlayThroughCapture`, `onDurationChange`, `onDurationChangeCapture`, `onEmptied`, `onEmptiedCapture`, `onEncrypted`, `onEncryptedCapture`, `onEnded`, `onEndedCapture`, `onLoadedData`, `onLoadedDataCapture`, `onLoadedMetadata`, `onLoadedMetadataCapture`, `onLoadStart`, `onLoadStartCapture`, `onPause`, `onPauseCapture`, `onPlay`, `onPlayCapture`, `onPlaying`, `onPlayingCapture`, `onProgress`, `onProgressCapture`, `onRateChange`, `onRateChangeCapture`, `onSeeked`, `onSeekedCapture`, `onSeeking`, `onSeekingCapture`, `onStalled`, `onStalledCapture`, `onSuspend`, `onSuspendCapture`, `onTimeUpdate`, `onTimeUpdateCapture`, `onVolumeChange`, `onVolumeChangeCapture`, `onWaiting`, `onWaitingCapture`, `onAuxClick`, `onAuxClickCapture`, `onClick`, `onClickCapture`, `onContextMenu`, `onContextMenuCapture`, `onDoubleClick`, `onDoubleClickCapture`, `onDrag`, `onDragCapture`, `onDragEnd`, `onDragEndCapture`, `onDragEnter`, `onDragEnterCapture`, `onDragExit`, `onDragExitCapture`, `onDragLeave`, `onDragLeaveCapture`, `onDragOver`, `onDragOverCapture`, `onDragStart`, `onDragStartCapture`, `onDrop`, `onDropCapture`, `onMouseDown`, `onMouseDownCapture`, `onMouseEnter`, `onMouseLeave`, `onMouseMove`, `onMouseMoveCapture`, `onMouseOut`, `onMouseOutCapture`, `onMouseOver`, `onMouseOverCapture`, `onMouseUp`, `onMouseUpCapture`, `onSelect`, `onSelectCapture`, `onTouchCancel`, `onTouchCancelCapture`, `onTouchEnd`, `onTouchEndCapture`, `onTouchMove`, `onTouchMoveCapture`, `onTouchStart`, `onTouchStartCapture`, `onPointerDown`, `onPointerDownCapture`, `onPointerMove`, `onPointerMoveCapture`, `onPointerUp`, `onPointerUpCapture`, `onPointerCancel`, `onPointerCancelCapture`, `onPointerEnter`, `onPointerLeave`, `onPointerOver`, `onPointerOverCapture`, `onPointerOut`, `onPointerOutCapture`, `onGotPointerCapture`, `onGotPointerCaptureCapture`, `onLostPointerCapture`, `onLostPointerCaptureCapture`, `onScroll`, `onScrollCapture`, `onScrollEnd`, `onScrollEndCapture`, `onWheel`, `onWheelCapture`, `onAnimationStart`, `onAnimationStartCapture`, `onAnimationEnd`, `onAnimationEndCapture`, `onAnimationIteration`, `onAnimationIterationCapture`, `onToggle`, `onBeforeToggle`, `onTransitionCancel`, `onTransitionCancelCapture`, `onTransitionEnd`, `onTransitionEndCapture`, `onTransitionRun`, `onTransitionRunCapture`, `onTransitionStart`, `onTransitionStartCapture`); `AriaAttributes` (`aria-activedescendant`, `aria-atomic`, `aria-autocomplete`, `aria-braillelabel`, `aria-brailleroledescription`, `aria-busy`, `aria-checked`, `aria-colcount`, `aria-colindex`, `aria-colindextext`, `aria-colspan`, `aria-controls`, `aria-current`, `aria-describedby`, `aria-description`, `aria-details`, `aria-disabled`, `aria-dropeffect`, `aria-errormessage`, `aria-expanded`, `aria-flowto`, `aria-grabbed`, `aria-haspopup`, `aria-hidden`, `aria-invalid`, `aria-keyshortcuts`, `aria-label`, `aria-labelledby`, `aria-level`, `aria-live`, `aria-modal`, `aria-multiline`, `aria-multiselectable`, `aria-orientation`, `aria-owns`, `aria-placeholder`, `aria-posinset`, `aria-pressed`, `aria-readonly`, `aria-relevant`, `aria-required`, `aria-roledescription`, `aria-rowcount`, `aria-rowindex`, `aria-rowindextext`, `aria-rowspan`, `aria-selected`, `aria-setsize`, `aria-sort`, `aria-valuemax`, `aria-valuemin`, `aria-valuenow`, `aria-valuetext`).
+Also takes the props of `ImgHTMLAttributes` (`height`, `alt`, `crossOrigin`, `decoding`, `fetchPriority`, `loading`, `referrerPolicy`, `sizes`, `srcSet`, `useMap`, `width`); `HTMLAttributes` (`slot`, `style`, `title`, `hidden`, `color`, `content`, `part`, `className`, `defaultChecked`, `defaultValue`, `suppressContentEditableWarning`, `suppressHydrationWarning`, `accessKey`, `autoCapitalize`, `autoFocus`, `contentEditable`, `contextMenu`, `dir`, `draggable`, `enterKeyHint`, `id`, `lang`, `nonce`, `spellCheck`, `tabIndex`, `translate`, `radioGroup`, `role`, `about`, `datatype`, `inlist`, `prefix`, `property`, `rel`, `resource`, `rev`, `typeof`, `vocab`, `autoCorrect`, `autoSave`, `itemProp`, `itemScope`, `itemType`, `itemID`, `itemRef`, `results`, `security`, `unselectable`, `popover`, `popoverTargetAction`, `popoverTarget`, `inert`, `inputMode`, `is`, `exportparts`); `DOMAttributes` (`children`, `dangerouslySetInnerHTML`, `onCopy`, `onCopyCapture`, `onCut`, `onCutCapture`, `onPaste`, `onPasteCapture`, `onCompositionEnd`, `onCompositionEndCapture`, `onCompositionStart`, `onCompositionStartCapture`, `onCompositionUpdate`, `onCompositionUpdateCapture`, `onFocus`, `onFocusCapture`, `onBlur`, `onBlurCapture`, `onChange`, `onChangeCapture`, `onBeforeInput`, `onBeforeInputCapture`, `onInput`, `onInputCapture`, `onReset`, `onResetCapture`, `onSubmit`, `onSubmitCapture`, `onInvalid`, `onInvalidCapture`, `onLoad`, `onLoadCapture`, `onError`, `onErrorCapture`, `onKeyDown`, `onKeyDownCapture`, `onKeyPress`, `onKeyPressCapture`, `onKeyUp`, `onKeyUpCapture`, `onAbort`, `onAbortCapture`, `onCanPlay`, `onCanPlayCapture`, `onCanPlayThrough`, `onCanPlayThroughCapture`, `onDurationChange`, `onDurationChangeCapture`, `onEmptied`, `onEmptiedCapture`, `onEncrypted`, `onEncryptedCapture`, `onEnded`, `onEndedCapture`, `onLoadedData`, `onLoadedDataCapture`, `onLoadedMetadata`, `onLoadedMetadataCapture`, `onLoadStart`, `onLoadStartCapture`, `onPause`, `onPauseCapture`, `onPlay`, `onPlayCapture`, `onPlaying`, `onPlayingCapture`, `onProgress`, `onProgressCapture`, `onRateChange`, `onRateChangeCapture`, `onSeeked`, `onSeekedCapture`, `onSeeking`, `onSeekingCapture`, `onStalled`, `onStalledCapture`, `onSuspend`, `onSuspendCapture`, `onTimeUpdate`, `onTimeUpdateCapture`, `onVolumeChange`, `onVolumeChangeCapture`, `onWaiting`, `onWaitingCapture`, `onAuxClick`, `onAuxClickCapture`, `onClick`, `onClickCapture`, `onContextMenu`, `onContextMenuCapture`, `onDoubleClick`, `onDoubleClickCapture`, `onDrag`, `onDragCapture`, `onDragEnd`, `onDragEndCapture`, `onDragEnter`, `onDragEnterCapture`, `onDragExit`, `onDragExitCapture`, `onDragLeave`, `onDragLeaveCapture`, `onDragOver`, `onDragOverCapture`, `onDragStart`, `onDragStartCapture`, `onDrop`, `onDropCapture`, `onMouseDown`, `onMouseDownCapture`, `onMouseEnter`, `onMouseLeave`, `onMouseMove`, `onMouseMoveCapture`, `onMouseOut`, `onMouseOutCapture`, `onMouseOver`, `onMouseOverCapture`, `onMouseUp`, `onMouseUpCapture`, `onSelect`, `onSelectCapture`, `onTouchCancel`, `onTouchCancelCapture`, `onTouchEnd`, `onTouchEndCapture`, `onTouchMove`, `onTouchMoveCapture`, `onTouchStart`, `onTouchStartCapture`, `onPointerDown`, `onPointerDownCapture`, `onPointerMove`, `onPointerMoveCapture`, `onPointerUp`, `onPointerUpCapture`, `onPointerCancel`, `onPointerCancelCapture`, `onPointerEnter`, `onPointerLeave`, `onPointerOver`, `onPointerOverCapture`, `onPointerOut`, `onPointerOutCapture`, `onGotPointerCapture`, `onGotPointerCaptureCapture`, `onLostPointerCapture`, `onLostPointerCaptureCapture`, `onScroll`, `onScrollCapture`, `onScrollEnd`, `onScrollEndCapture`, `onWheel`, `onWheelCapture`, `onAnimationStart`, `onAnimationStartCapture`, `onAnimationEnd`, `onAnimationEndCapture`, `onAnimationIteration`, `onAnimationIterationCapture`, `onToggle`, `onBeforeToggle`, `onTransitionCancel`, `onTransitionCancelCapture`, `onTransitionEnd`, `onTransitionEndCapture`, `onTransitionRun`, `onTransitionRunCapture`, `onTransitionStart`, `onTransitionStartCapture`); `AriaAttributes` (`aria-activedescendant`, `aria-atomic`, `aria-autocomplete`, `aria-braillelabel`, `aria-brailleroledescription`, `aria-busy`, `aria-checked`, `aria-colcount`, `aria-colindex`, `aria-colindextext`, `aria-colspan`, `aria-controls`, `aria-current`, `aria-describedby`, `aria-description`, `aria-details`, `aria-disabled`, `aria-dropeffect`, `aria-errormessage`, `aria-expanded`, `aria-flowto`, `aria-grabbed`, `aria-haspopup`, `aria-hidden`, `aria-invalid`, `aria-keyshortcuts`, `aria-label`, `aria-labelledby`, `aria-level`, `aria-live`, `aria-modal`, `aria-multiline`, `aria-multiselectable`, `aria-orientation`, `aria-owns`, `aria-placeholder`, `aria-posinset`, `aria-pressed`, `aria-readonly`, `aria-relevant`, `aria-required`, `aria-roledescription`, `aria-rowcount`, `aria-rowindex`, `aria-rowindextext`, `aria-rowspan`, `aria-selected`, `aria-setsize`, `aria-sort`, `aria-valuemax`, `aria-valuemin`, `aria-valuenow`, `aria-valuetext`).
 
 ## Hooks
 
@@ -97,12 +117,60 @@ function useMatchmove(): MatchmoveState
 
 ## Functions
 
+### `cameraPath`
+
+A camera path through keys timed in frames, paced by time so the camera's speed carries smoothly across every key.
+It eases at the first key and the last, stops at a key with `hold`, and never overshoots a key and comes back.
+
+```tsx
+const path = cameraPath([
+  { at: 0, pos: [0, 2, 9], look: [0, 1, 0] },
+  { at: 60, pos: [3, 2, 6], look: [0, 1, 0], hold: 30 },
+  { at: 150, pos: [1, 1.5, 3], look: [0, 1.2, 0], fov: 30 },
+]);
+<Camera3d {...path.camera(useCurrentFrame())} />
+```
+
+```ts
+function cameraPath(keys: readonly CameraKey[]): CameraPath
+```
+
 ### `checkMatchmove`
 
 Checks a Matchmove's props; throws a TypeError or RangeError naming the prop.
 
 ```ts
 function checkMatchmove(p: MatchmoveProps): void
+```
+
+### `focusAt`
+
+The focal distance (metres from the camera) at a frame: a DepthOfField's focal_distance.
+
+```ts
+function focusAt(f: Focus, path: CameraPath, frame: number): number
+```
+
+### `handheld`
+
+A walking operator's motion on a path: the camera bobs with each step (1.8 Hz) and sways with each stride (0.9 Hz),
+rolls a little with the sway, reframes slowly, and its aim follows the path's on a spring, so it lags a turn and
+settles after it. Deterministic: the same path, fps and seed give the same frames. Nothing moves faster than 1.9 Hz.
+
+```tsx
+const walk = handheld(shotMove({ kind: "dolly", from: [0, 1.6, 6], look: [0, 1.5, 0], by: 4, frames: 300 }), { fps: 30 });
+```
+
+```ts
+function handheld(path: CameraPath, o?: { profile?: HandheldProfile; fps?: number; seed?: number; amount?: number; }): CameraPath
+```
+
+### `lens`
+
+The vertical field of view (degrees) of a focal length on a full-frame (36 x 24 mm) sensor.
+
+```ts
+function lens(mm: number): number
 ```
 
 ### `matchmoveIndex`
@@ -122,11 +190,83 @@ zoom) and the frame's window in it, in frame pixels.
 function matchmoveView(footage: { width: number; height: number; }, frame: { width: number; height: number; }, crop?: number | [number, number], zoom?: number): { width: number; height: number; x: number; y: number; }
 ```
 
+### `shotMove`
+
+A crew's move as a camera path. Each eases out of its start and into its end, and never lurches.
+
+```tsx
+const push = shotMove({ kind: "dolly", from: [0, 1.6, 4], look: [0, 1.2, 0], by: 1.5, frames: 120, fov: lens(35) });
+<Camera3d {...push.camera(useCurrentFrame())} />
+```
+
+```ts
+function shotMove(m: ShotMove): CameraPath
+```
+
+### `walkPath`
+
+A path drawn on the floor plan (`raea make plan`'s floor-plan.png: x right, z away from the entrance, metres) as a
+camera walking it: at eye height, at an even walking pace (0.4-0.6 m/s reads as a person; 0.5 by default), easing
+only where it starts and stops, its corners rounded (`turn` metres either side) so it turns as a walker does rather
+than stopping; looking `ahead` metres along the way, or at `look` throughout. Give it to `handheld` for the step.
+
+```ts
+function walkPath(points: readonly [number, number][], o?: { speed?: number; eye?: number; fps?: number; ahead?: number; look?: CameraVec3; start?: number; fov?: number; turn?: number; }): CameraPath
+```
+
+## Values
+
+### `LABEL_MIN`
+
+The least capital height a Label takes, in px at 1080 lines (SG10's floor for words that read).
+
+### `LENSES`
+
+The focal lengths a lens chart shows.
+
+### `STEP_HZ`
+
+A walker's steps, and the sway at half of it (one foot then the other). Every motion here is at or under STEP.
+
+### `WALK`
+
+A walkthrough's pace and eye height, as AnyShot's shot language keeps them: a person walking a set slowly.
+
 ## Types
 
 ### `Camera3dProps`
 
 The props of [`Camera3d`](#camera3d), tabled there.
+
+### `CameraKey`
+
+A key of a camera path: where the camera is at a frame, and what it looks at.
+
+```ts
+type CameraKey = { /** The frame the camera reaches this key, in the frames of the Sequence it plays in (useCurrentFrame). */ at: number; /** Where the camera is. */ pos: CameraVec3; /** The point it looks at. */ look: CameraVec3; /** Its vertical field of view in degrees. Left out, the key before's (38 at the fi…
+```
+
+### `CameraPath`
+
+A camera path built by cameraPath.
+
+```ts
+type CameraPath = { /** The camera at a frame (a fraction is fine): the first key's before it, the last key's after it. */ at(frame: number): CameraPose; /** Camera3d's props at a frame: its transform, looking at the look point, and its projection (fov in radians, as *  Bevy's is; the keys' are degrees). `<Camera3…
+```
+
+### `CameraPose`
+
+Where the camera is at a frame, what it looks at and its vertical field of view in degrees.
+
+```ts
+type CameraPose = { pos: CameraVec3; look: CameraVec3; fov: number }
+```
+
+### `CameraVec3`
+
+```ts
+type CameraVec3 = [number, number, number]
+```
 
 ### `CameraViewport`
 
@@ -154,6 +294,35 @@ Bevy: `bevy_camera::clear_color::ClearColorConfig`.
 ```ts
 type ClearColorConfig = "Default" | "None" | { Custom: Srgba | LinearRgba }
 ```
+
+### `Focus`
+
+Where the lens is focused.
+
+```ts
+type Focus = | { kind: "point"; at: CameraVec3 } | { kind: "track"; target: (frame: number) => CameraVec3 } /** from one subject to the other over `over` frames starting at `at`, held on each before and after */ | { kind: "rack"; from: CameraVec3; to: CameraVec3; at: number; over: number }
+```
+
+### `HandheldProfile`
+
+```ts
+type HandheldProfile = "walk" | "subtle"
+```
+
+### `LabelCamera`
+
+The camera a Label projects through: the props its Camera3d is given.
+
+| Field | Type | What it is |
+| --- | --- | --- |
+| `transform` | `TransformValue` | where the camera stands and faces, as its Camera3d has it |
+| `projection` | `Projection` | its perspective (fov in radians, Bevy's default π/4) or orthographic view, as its Camera3d has it |
+
+### `LabelProps`
+
+Label's props: page type that points at a 3D part.
+
+The props of [`Label`](#label), tabled there.
 
 ### `MatchmoveCamera`
 
@@ -219,12 +388,26 @@ Each frame's state under a <Matchmove>, for the 3D inside it.
 | `camera` (required) | `MatchmoveCamera` | the solve's camera for this frame |
 | `project` (required) | `(p: Vec3) => [number, number, number]` | where a point of the solved world lands in the composition, in pixels ([x, y], and its distance in front of the camera; behind it when that's 0 or less) |
 
+### `MoveKind`
+
+```ts
+type MoveKind = "static" | "dolly" | "truck" | "pedestal" | "crane" | "pan" | "tilt" | "orbit" | "dollyZoom" | "path"
+```
+
 ### `Projection`
 
 Bevy's Projection enum, as it reflects: fov in radians (Bevy's default PI/4).
 
 ```ts
 type Projection = | { Perspective: { fov?: number; near?: number; far?: number } } | { Orthographic: { near?: number; far?: number; scaling_mode?: { FixedVertical: { viewport_height: number } } } }
+```
+
+### `ShotMove`
+
+A move: where the camera starts, what it looks at, and how it moves over `frames` from frame `at`.
+
+```ts
+type ShotMove = { kind: MoveKind; /** The camera's start. */ from: CameraVec3; /** What it looks at (the subject). */ look: CameraVec3; /** The frame it starts moving (0 if left out). */ at?: number; /** How many frames it moves for. */ frames: number; /** Metres: dolly in (negative: out), truck right (negative:…
 ```
 
 <!-- generated:end -->

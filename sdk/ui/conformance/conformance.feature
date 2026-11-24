@@ -55,7 +55,7 @@ Feature: the UI conformance suite: the bar the interface is held to
         expectation (predicates on node fields), and a budget in frames (default 2 at 60 Hz for pointer and text, 1 for
         a live update, 3 for a resize or a panel reflow)
       And a case runs the feed (apps/app) on raea-page-host at its `route` (default /feed/f-ides-all) and names the
-        feed's own data-testids (feed, card-*, search, feed-f-*, menu-*, detail-*); a node's aria-current is its
+        feed's own data-testids (feed, card-*, search, project-*, menu-*, detail-*); a node's aria-current is its
         `current` field, and a boolean data-* flag (data-selected) a state token of its name
       And sdk/ui/conformance/fake-cases/ holds the legacy app's cases, whose tree the runner's fake serves: they test
         the runner, not an app

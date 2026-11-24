@@ -6,6 +6,14 @@ use super::*;
 /// TypeScript-only editing, phase 5: raea-render's IR is the contract; rrl the language, which this once went through, is
 /// retired). A column that changes frame by frame is keyed (linear) and its row holds the first frame's value.
 pub(crate) fn program(frames: &[(i64, Frame)], w: u32, h: u32, fps: f64) -> raea_core_program::ir::Program {
+    let has3d = frames.iter().any(|(_, f)| !f.scene.is_empty());
+    program_of(frames, w, h, fps, has3d)
+}
+
+/// program, its 3D's rows made only when `has3d`: false for a step that reads only its sound (the sound lint at a
+/// live render's end). That render drew its 3D as the frames came; building the 3D's rows again from every
+/// frame's kept scene asked for 28 GB at the end of a 13,175-frame film and got it killed (stage-guards SG4a).
+pub(crate) fn program_of(frames: &[(i64, Frame)], w: u32, h: u32, fps: f64, has3d: bool) -> raea_core_program::ir::Program {
     use raea_core_program::ir::V;
     let mut p = raea_core_program::ir::Program { fps, width: w, height: h, frames: frames.len() as i64, ..Default::default() };
     let row = |id: &str, cols: Vec<(&str, V)>| -> BTreeMap<String, V> {
@@ -14,7 +22,6 @@ pub(crate) fn program(frames: &[(i64, Frame)], w: u32, h: u32, fps: f64) -> raea
         r
     };
     // --alpha: nothing under the pages, so what the composition leaves empty stays transparent
-    let has3d = frames.iter().any(|(_, f)| !f.scene.is_empty());
     // with no holder background: black under 2D pages, and for 3D no `bg`, so the camera clears to Bevy's ClearColor
     // resource (srgb 43, 44, 47 unless a <BevyResource type="bevy_camera::clear_color::ClearColor"> sets it), as a Bevy
     // scene does (docs/control conventions C17)

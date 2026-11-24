@@ -1,0 +1,13 @@
+{
+  "about": "the bake's test set (docs/bake.feature BK0), for `raea bake light --compare DIR`: each set's Cycles still (blender/look.py, given the composition's own sky, tone and lens) and Cycles bake (blender/lightbake.py), and raea's frames beside them",
+  "sets": [
+    { "name": "table", "dir": "bench/bake", "file": "table.tsx", "composition": "table", "cycles": ["table-cycles.tsx", "table-cycles"], "bar": true, "texels": 128,
+      "look": ["--hdri", "media/kloofendal_48d_partly_cloudy_puresky_1k.hdr", "--strength", "0.25", "--rotation", "0.6", "--tone", "agx", "--exposure", "-0.8", "--focus", "2.5", "--fstop", "2.8", "--size", "1280x720"] },
+    { "name": "cornell", "dir": "bench/bake", "file": "cornell.tsx", "composition": "cornell", "cycles": ["cornell-cycles.tsx", "cornell-cycles"], "texels": 128,
+      "look": ["--tone", "agx", "--exposure", "0", "--size", "1280x720"] },
+    { "name": "window", "dir": "bench/bake", "file": "window.tsx", "composition": "window", "cycles": ["window-cycles.tsx", "window-cycles"], "texels": 64,
+      "look": ["--hdri", "media/kloofendal_48d_partly_cloudy_puresky_1k.hdr", "--strength", "0.25", "--rotation", "0.6", "--tone", "agx", "--exposure", "1.5", "--size", "1280x720"] },
+    { "name": "atelier", "dir": "~/Studio/raea/projects/atelier", "file": "compositions/atelier.tsx", "composition": "set", "texels": 64, "reference": false,
+      "why": "a test agent's project, still being built; its Manifold solids stop `raea blender open` (filed with raea bug), so its Blender bake runs through its own tools/bake.sh. It joins at BK5, with that bake as the comparison" }
+  ]
+}

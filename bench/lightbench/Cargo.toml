@@ -1,0 +1,20 @@
+[package]
+name = "raea-lightbench"
+version = "0.1.0"
+edition = "2024"
+license = "FSL-1.1-ALv2"
+publish = false
+description = "LightBench: a small Rust + Bevy renderer that proves lighting and geometry techniques against its own all-lights reference before they move into raea (docs/lightbench.feature)"
+
+[[bin]]
+name = "lightbench"
+path = "src/main.rs"
+
+[dependencies]
+# bench/bevy-parity's Bevy (engine/render's features, and winit for the window), so it builds against the Bevy raea compiled
+bevy = { version = "=0.20.0", default-features = false, features = ["std", "default_app", "default_font", "system_font_discovery", "ghost_nodes", "multi_threaded", "3d_bevy_render", "ui_bevy_render", "png", "jpeg", "tonemapping_luts", "ktx2", "zstd_rust", "smaa_luts", "experimental_pbr_pcss", "area_light_luts", "dfg_lut", "bluenoise_texture", "bevy_gilrs", "bevy_winit", "bevy_scene", "bevy_camera_controller", "free_camera", "pan_camera", "pan_orbit_camera", "bevy_gizmos", "bevy_gizmos_render", "bevy_state", "picking", "mesh_picking", "sprite_picking", "ui_picking", "hdr", "exr", "webp", "bevy_dev_tools", "bevy_ui_widgets", "bevy_feathers", "bevy_audio", "vorbis", "wav", "mp3", "morph_animation", "bevy_input_focus", "custom_cursor", "serialize", "reflect_functions", "pbr_multi_layer_material_textures"] }
+bytemuck = { version = "1.25", features = ["derive"] }
+# meshoptimizer (MIT): the simplifier and clusterizer behind the LODs and the cluster hierarchy
+meshopt = "0.6.2"
+# Bevy's wgpu, for the lighting pass's timestamp queries
+wgpu = "=30.0.1"

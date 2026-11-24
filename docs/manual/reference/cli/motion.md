@@ -1,7 +1,7 @@
 ---
 title: "raea motion"
 summary: "Body motion made on this machine by Kimodo (NVIDIA), on MLX on a Mac and on PyTorch on Linux and Windows: a SOMA clip from a line of words and, with --keys, Kimodo constraints (full-body keyframes, hand or foot targets, a root path, as sdk/body/tools/between.ts writes them), as the clip sdk/body/tools/fromkimodo.ts reads."
-order: 106
+order: 107
 sources: ["engine/cli/src/cli.rs"]
 ---
 

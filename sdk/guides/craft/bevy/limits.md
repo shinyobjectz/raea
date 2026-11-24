@@ -47,6 +47,23 @@ The router's eight, plus:
 - A partly transparent page element over the 3D blends slightly differently in a render than in play; keep page
   parts over 3D opaque where it matters.
 
+## One of the engine's own shaders, changed for a project
+
+To try a change to a shader raea or Bevy draws with (the PBR lighting, Solari's, the denoiser's emission pass), put
+your copy in the project's `engine-shaders/` folder at the path the engine embeds it, `<crate>/<path under its
+src>`: `engine-shaders/bevy_pbr/render/pbr.wesl`, `engine-shaders/raea_render_raytrace/emit_taa.wgsl`. Make the
+file empty and render once: raea fills it with the shader it draws with. Change it and render again. From then on,
+every render and play of the project draws with your copy from its first frame, with no build. raea names each file it
+used and warns that each is tied to this raea's version. It calls a file that matches no engine shader stray. A shader
+that fails to compile shows Bevy's validation error, and the parts drawn with it go missing. Use this to find what to
+change. A look you keep belongs in a prop or a hook of the engine's: ask for one with `raea bug`.
+
+To change only a constant, you don't need a copy. `<ShaderConstants shader="bevy_solari/realtime/restir.wesl"
+values={{ SPATIAL_REUSE_RADIUS_PIXELS: 24 }} />` (`raea/pbr`) anywhere in the scene rewrites that `const` when the
+scene loads, and keeps its type. It draws exactly what the same edit in `engine-shaders/` draws. A constant is compiled
+in once, so set it from the first frame. A name the shader doesn't declare, an array or a vector is reported and left.
+The common ones have typed props, such as `<SolariLighting constants>`.
+
 ## Not there yet (don't reach for these; they won't render)
 
 - A lens over the page: Fisheye and LensDistortion bend the 3D only. (Ambient occlusion, anti-aliasing modes, depth of

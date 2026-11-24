@@ -27,6 +27,8 @@ pub struct Meta {
     pub render: bool,
     pub level: Level,
     pub frames: Frames,
+    /// it runs on a story with no frames (`over: "story" | "both"`): what `raea check NAME.story.ts` runs
+    pub story: bool,
 }
 
 /// The declaration of the check `file`'s default export is.
@@ -46,7 +48,12 @@ pub fn meta(file: &Path, host: &Host) -> R<Meta> {
         Some(o) => return Err(format!("{name}: a check's level is error, warn or note, not \"{o}\"")),
     };
     let frames = Frames::of(&v["frames"]).map_err(|e| format!("{name}: {e}"))?;
-    Ok(Meta { file: file.to_path_buf(), id, text: s("text").unwrap_or_default(), render, level, frames })
+    let story = match s("over").as_deref() {
+        None | Some("frames") => false,
+        Some("story" | "both") => true,
+        Some(o) => return Err(format!("{name}: a check is over \"frames\", \"story\" or \"both\", not \"{o}\"")),
+    };
+    Ok(Meta { file: file.to_path_buf(), id, text: s("text").unwrap_or_default(), render, level, frames, story })
 }
 
 /// One planned run: the check (its index in `files`), its frames, and its rule's values, level (None: the check's

@@ -170,7 +170,7 @@ pub(crate) fn blotching_from(video: &str, probe: &Probe, scores: &[Option<f64>],
         let t = k as f64 * 2.0;
         seen += 1;
         worst = worst.max(s);
-        if std::env::var_os("RAEA_CHECK_DEBUG").is_some() {
+        if raea_io_trace::stat("RAEA_CHECK_DEBUG") {
             eprintln!("blotch {t:6.1}s {s:.3}");
         }
         if s > BLOTCHY {

@@ -13,8 +13,16 @@ It's its own Cargo workspace (it doesn't link the engine). Build and test it thr
 Run it:
 
     target/release/conformance --tier quick                                  # the feed on target/release/raea-page-host
-    target/release/conformance --no-build --only 'scroll/*'                  # apps/app's blitz/out as it is
+    target/release/conformance --no-build --only 'scroll/*'                  # apps/app's last build as it is
     target/release/conformance --tier full --only 'pointer/*' --keep         # every size; keep worlds and logs
+    target/release/conformance --app ~/raea-trial/a/apps/app                 # another checkout of the app (a release's)
+
+The cases are written against the app's demo world (the Ides of March, Pong, the reel and the tutorial), which a
+build has only when asked for since 11-14 (a shipped app has none): the runner builds it with `RAEA_FIXTURES=1` into
+`blitz/out-conformance`, and `--no-build` reads that build (else an older app's `blitz/out`). raea-page-host is only
+the window: the page's `/host/*` (onboarding's state, workspaces, kept items) is the feed's host's, so each world starts
+the app's `host/node.ts` on a free port first and points the page at it (`RAEA_PAGE_HOST`), as raea.app does; without
+it the page waits on "raea is starting" and every case fails at its first step.
 
 Exit 0: every case passed or was only slow; 1: a case failed; 2: the run couldn't start.
 

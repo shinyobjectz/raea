@@ -114,7 +114,7 @@ pub fn gpu_frame_pass(world: &mut World) {
             pool.frame = Some(storage(&device, (w * h * 4) as u64));
             pool.dummy = Some(storage(&device, 24));
         }
-        let want = std::env::var_os("RAEA_GPU_TIMES").is_some();
+        let want = raea_io_trace::stat("RAEA_GPU_TIMES");
         let timing = want && device.features().contains(wgpu::Features::TIMESTAMP_QUERY | wgpu::Features::TIMESTAMP_QUERY_INSIDE_ENCODERS);
         if want && !timing && !pool.ts_unsupported_said {
             pool.ts_unsupported_said = true;

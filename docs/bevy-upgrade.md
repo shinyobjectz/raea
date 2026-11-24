@@ -51,6 +51,13 @@ goes once a release has it. It pins Firewheel, and raea-mixer has to move to the
 tap = bounce check (step 5) belongs to the same change. Firewheel 0.12 is vendored under vendor/firewheel* only for its
 Bevy 0.20 port (bevy_reflect 0.20 and a glam-33 feature); drop the copy and both [patch] blocks once a release has it.
 
+bevy_pbr is vendored (vendor/bevy_pbr, the root [patch]) for one change Bevy has no hook for: the sun's far shadow map
+(raea-sys-rt far.rs; docs/realism.feature LT21) bound at 39 and 40 of every mesh view group, a texture and its uniform
+(`RaeaFarSun` and `RAEA_FAR_SUN_BYTES` in render/mesh_view_bindings.rs, the struct and bindings in
+render/mesh_view_bindings.wesl, a stand-in and a uniform of zeros where there's none). Every change is marked `raea:`.
+Re-take the new release's crate, apply those hunks again, and check that the indices are still free; shadows.wesl is
+left as Bevy's, because raea-sys-lod swaps it at load (its hash checked) to read the map past the last cascade.
+
 ## 2. Bump every pin together
 
 All of these move in one commit. Mixed Bevy versions don't build, and mixed wgpu versions can't share a device.

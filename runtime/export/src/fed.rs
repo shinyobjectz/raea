@@ -23,22 +23,37 @@ pub(crate) struct FrameLog {
 /// Whether any of `frames` shows 3D: each rendered on its own in one runtime (frames are pure, so a frame stepped
 /// alone is the frame a whole pass would have stepped), stopping at the first that does.
 pub(crate) fn frames_hold_3d(js: &Path, dir: &Path, frames: &[i64]) -> R<bool> {
+    Ok(looked(js, dir, frames, true)?.0)
+}
+
+/// Whether stills at `frames` can make their 3D live, at each still (SG4a): one of them holds 3D, and none holds a
+/// compute that carries GPU state from frame to frame (its rows step every frame before the still instead).
+pub(crate) fn stills_live(js: &Path, dir: &Path, frames: &[i64]) -> R<bool> {
+    let (held, carries) = looked(js, dir, frames, false)?;
+    Ok(held && !carries)
+}
+
+/// Each of `frames` stepped alone: whether one holds 3D and whether one holds a compute that carries state (`first`:
+/// done at the first that holds 3D).
+fn looked(js: &Path, dir: &Path, frames: &[i64], first: bool) -> R<(bool, bool)> {
     edit_dir(dir);
     let mut app = App::new();
     app.add_plugins(MinimalPlugins).add_plugins(ReactPlugin::new(js.to_path_buf()));
     app.insert_resource(raea_runtime_react::OneBatch::default());
     settle(&mut app, Some(-1), 20.0)?.ok_or("the composition's settings didn't arrive")?;
-    let mut held = false;
+    let (mut held, mut carries) = (false, false);
     for &f in frames {
         raea_runtime_bake::step_frames(&mut app, f, f + 1, |app, _| {
-            held |= !scene_of(app.world_mut()).is_empty();
+            let scene = scene_of(app.world_mut());
+            held |= !scene.is_empty();
+            carries |= raea_runtime_scene::carries_state(&scene);
             Ok(())
         })?;
-        if held {
+        if held && first {
             break;
         }
     }
-    Ok(held)
+    Ok((held, carries))
 }
 
 /// The frames `scene_program_to` reads its rows from, with the composition's size and rate. Stepped as a bake steps
@@ -47,7 +62,7 @@ pub(crate) fn frames_hold_3d(js: &Path, dir: &Path, frames: &[i64]) -> R<bool> {
 /// since frames are pure (each runtime's first frame is its whole tree). One event a frame, each waited on the JS
 /// thread and back, took the Rome film's 8,064 frames 6 s on a quiet machine and 38 s at load 50, before its engine
 /// could open. RAEA_BAKE_WORKERS sets how many runtimes (4; one for short timelines).
-pub(crate) fn scene_frames_to(js: &Path, dir: &Path, upto: i64) -> R<Option<(Vec<(i64, Frame)>, u32, u32, f64)>> {
+pub fn scene_frames_to(js: &Path, dir: &Path, upto: i64) -> R<Option<(Vec<(i64, Frame)>, u32, u32, f64)>> {
     scene_frames(js, dir, upto, true, &[])
 }
 
@@ -161,7 +176,7 @@ pub fn live_scene(world: &mut World, ls: &mut LiveScene, engine: &mut Option<rae
             let clear = scene_clear(world);
             let (rows, gone) = ls.frame(Shot { scene: &scene, clear: clear.as_deref() });
             if !gone.is_empty() {
-                e.remove_rows(&gone);
+                e.remove_rows(&gone)?;
             }
             if !rows.is_empty() {
                 e.set_rows(&rows)?;
@@ -179,7 +194,13 @@ pub(crate) fn engine_before(app: &App, cx: &mut Ctx, f: i64) {
         return;
     }
     if let Some(e) = cx.scene3d.as_mut() {
-        e.draw(f - 1);
+        // in order, frame f - 1 is the one drawn last and its World is f - 1's already. Drawn again, it was a whole update
+        // more: every frame of a render drew twice, and every temporal pass (Solari's, MetalFX's, the split emission's)
+        // took a second frame in which nothing moved, which live play never draws (a moving orb's rim, seen still,
+        // stayed as rings at every place it had been)
+        if e.drawn() != Some(f - 1) {
+            e.draw(f - 1);
+        }
     }
     raea_runtime_react::shared::engine_flush(app.world().resource::<ReactOutbox>());
 }
@@ -199,6 +220,8 @@ pub(crate) fn render_fed(app: &mut App, js: &Path, w: u32, h: u32, fps: f64, tot
     let dir = cx.dir.to_path_buf();
     // the sound bounced as the frames come, on its own thread (it was mixed after the last frame: 3 s on the export)
     let streamer = std::cell::RefCell::new(Some(raea_sys_mix::offline::Streamer::start(fps)));
+    // a video's 3D made live is checked as its frames come, each frame's parts let go once read (SG4a)
+    let ends = std::cell::RefCell::new(LIVE_CLIPS.load(std::sync::atomic::Ordering::Relaxed).then(|| raea_runtime_endchecks::EndChecks::new(w, h, fps)));
     let t0 = std::time::Instant::now();
     let pic = raea_core_program::ir::Program { fps, width: w, height: h, frames: total, ..Default::default() };
     let frame_log = std::env::var_os("RAEA_FRAME_LOG").map(PathBuf::from);
@@ -256,8 +279,11 @@ pub(crate) fn render_fed(app: &mut App, js: &Path, w: u32, h: u32, fps: f64, tot
             fr = raea_gpu_device::check::fed_checked(f, fr, raea_sys_page::wait_drawn, raea_sys_page::redraw_full, || { cx.manifest.as_mut().map(|m| m.pop()); bevy_fed(app.world_mut(), bevy, cx, &page, fps) })?;
             // a shot starts here (an outermost Sequence, a camera cut): the video's next segment does too (RR3)
             cuts.find(f, raea_runtime_page::shot_starts(app.world_mut()), matches!(&cx.scene3d, Some(e) if raea_sys_frame::shots::Cut::at(e.world(), f)));
-            // a video's 3D made live keeps each frame's scene for the clipping check
-            if LIVE_CLIPS.load(std::sync::atomic::Ordering::Relaxed) { fr.scene = scene_of(app.world_mut()); }
+            // a video's 3D made live: this frame's parts to the end checks (`ends`), with its page (the manifest's newest)
+            if let Some(e) = ends.borrow_mut().as_mut() {
+                let page = cx.manifest.as_deref().map(|m| raea_sys_stage::pages(&m[m.len().saturating_sub(4)..], &[f], w, h).remove(0));
+                e.push(f, &raea_runtime_scene::items_of(&scene_of(app.world_mut())), page.as_ref());
+            }
             if cx.scene3d.is_none() && cx.live3d.is_none() && !cx.scene.is_empty() && BEVY_3D_PROBE.load(std::sync::atomic::Ordering::Relaxed) {
                 return Err(FED_3D.into());
             }
@@ -273,25 +299,30 @@ pub(crate) fn render_fed(app: &mut App, js: &Path, w: u32, h: u32, fps: f64, tot
             }
             notes.borrow_mut().push(tone);
             frames.borrow_mut().push((f, fr));
+            if f as usize % raea_render::engine::mark_every() == 0 {
+                raea_render::engine::mem_mark(&format!("frame {f}"));
+            }
             Ok(page.clone())
         },
         || {
-            let p = program(&frames.borrow(), w, h, fps);
+            // its sound's rows alone: the 3D was drawn as the frames came (SG4a)
+            let p = program_of(&frames.borrow(), w, h, fps, false);
             sound_lint(&p, fps);
             let st = streamer.borrow_mut().take().ok_or("the sound was asked for twice")?;
+            if frames.borrow().iter().all(|(_, f)| f.sounds.is_empty()) && notes.borrow().iter().all(|n| n.is_empty()) {
+                st.discard()?;
+                no_sound_but_declared(js)?;
+                return Ok(None);
+            }
             let t_bounce = std::time::Instant::now();
             let raw = st.finish()?;
             let bounce_ms = t_bounce.elapsed().as_secs_f64() * 1e3;
             let t_master = std::time::Instant::now();
-            if frames.borrow().iter().all(|(_, f)| f.sounds.is_empty()) && notes.borrow().iter().all(|n| n.is_empty()) {
-                no_sound_but_declared(js)?;
-                return Ok(None);
-            }
             let (master, a) = core_master_raw(&raw, frames.borrow().iter().find_map(|(_, f)| f.mix))?;
             if let Some(p) = std::env::var_os("RAEA_AUDIO_BOUNCE") {
                 raea_sys_mix::write_wav(&a, Path::new(&p))?;
             }
-            if std::env::var_os("RAEA_MASTER_TRACE").is_some() {
+            if raea_io_trace::stat("RAEA_MASTER_TRACE") {
                 eprintln!("core bounce (streamed): {:.2} s of sound, master {master:?}; the bounce finished {bounce_ms:.0} ms after the last frame, the master took {:.0} ms", a.duration(), t_master.elapsed().as_secs_f64() * 1e3);
             }
             Ok(Some(a))
@@ -307,10 +338,15 @@ pub(crate) fn render_fed(app: &mut App, js: &Path, w: u32, h: u32, fps: f64, tot
         std::fs::write(&path, out).map_err(|e| format!("{}: {e}", path.display()))?;
     }
     r?;
+    raea_render::engine::mem_mark("end: the frames, sound and video done");
     let n = frames.borrow().len();
     // 3D parts passing through each other on screen: on stderr, and in the manifest for the legacy app's checks
     let found = FED_CLIPPING.lock().unwrap().take().and_then(|t| t.join().ok());
-    let clipping = found.unwrap_or_else(|| scene::told(&frames.borrow(), w, h, fps));
+    let clipping = match (found, ends.into_inner()) {
+        (Some(found), _) => found,
+        (None, Some(e)) => scene::ended(e),
+        (None, None) => scene::told_taking(&mut frames.borrow_mut(), cx.manifest.as_deref(), w, h, fps),
+    };
     write_manifest(cx, (w, h, fps, total), clipping, |cx| heard(&frames.borrow(), &notes.borrow(), cx, fps))?;
     let ms = t0.elapsed().as_secs_f64() * 1e3 / n.max(1) as f64;
     Ok(format!("APPLIED  {n} frames rendered to {} ({ms:.1} ms a frame, pages handed to raea-render on the GPU)", out.display()))

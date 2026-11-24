@@ -224,6 +224,7 @@ type Camera = { eye: [number, number, number], look: [number, number, number], /
 | `needs` | `"render"` | "render": it reads what only a render has (Contrast, Picture, Mix, Onset, Covers); with none, it waits for one |
 | `level` | `Level` | how bad what it finds is, where a finding doesn't say (error when unset) |
 | `frames` | `Frames` | where it runs ("all" when unset) |
+| `over` | `"frames" \| "story" \| "both"` | what it reads: a composition's frames (the default), a story with no frames (`raea check NAME.story.ts` runs only these and "both", with its `after` alone), or both |
 
 ### `CheckFn`
 
@@ -242,6 +243,7 @@ type CheckFn = (world: World, frame: number, values: Values, memo: Memo) => void
 | `needs` | `"render"` | "render": it reads what only a render has (Contrast, Picture, Mix, Onset, Covers); with none, it waits for one |
 | `level` | `Level` | how bad what it finds is, where a finding doesn't say (error when unset) |
 | `frames` | `Frames` | where it runs ("all" when unset) |
+| `over` | `"frames" \| "story" \| "both"` | what it reads: a composition's frames (the default), a story with no frames (`raea check NAME.story.ts` runs only these and "both", with its `after` alone), or both |
 
 ### `Clip`
 

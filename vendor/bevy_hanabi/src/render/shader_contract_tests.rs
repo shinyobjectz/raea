@@ -191,7 +191,7 @@ fn create_sort_pipeline(
         crate::test_utils::compile_wesl(VFX_SORT_WESL.as_ref(), &["HAS_DUAL_KEY", "TEST"], &[])
             .unwrap();
     let shader = wgpu_device.create_shader_module(wgpu::ShaderModuleDescriptor {
-        label: Some("hanabi_test_vfx_sort"),
+        label: Some("hanabi_test_vfx_sort"), // raea: no colon in a label, which DXC reads as a file name (#196)
         source: wgpu::ShaderSource::Wgsl(source.into()),
     });
     let pipeline = wgpu_device.create_compute_pipeline(&wgpu::ComputePipelineDescriptor {

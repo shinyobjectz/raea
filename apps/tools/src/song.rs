@@ -56,7 +56,7 @@ pub fn song(args: &[String]) -> R<String> {
     }
     let bin = raea_io_assets::perceive_bin();
     if !bin.is_file() {
-        return Err("song: the map is made by raea-perceive, which isn't installed beside raea. Update raea (`curl -fsSL https://raea.io/install | sh`: releases ship it in ~/.raea/bin), or from a checkout `cargo build --release -p raea-perceive`, or point RAEA_PERCEIVE at one".into());
+        return Err("song: the map is made by raea-perceive, which isn't installed beside raea. Update raea (`curl -fsSL https://raea.io/install | sh`: releases ship it in ~/.raea/bin), or point RAEA_PERCEIVE at one".into());
     }
     // its beat model (Beat This!, MIT): an install keeps it in share/raea/models; raea-perceive reads it from
     // raea_io_home::models() (~/.local/share/raea-models; %LOCALAPPDATA%\raea\models on Windows)

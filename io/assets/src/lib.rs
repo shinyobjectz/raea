@@ -310,7 +310,7 @@ impl Store {
             cmd.args([format!("--{k}"), params[k].as_f64().unwrap_or(0.0).to_string()]);
         }
         if let J::Array(b) = &params["subject"] {
-            let bin = Some(perceive_bin()).filter(|b| b.exists()).ok_or("matchmove: a subject is tracked by raea-perceive (EdgeTAM), not found: build it with `cargo build --release -p raea-perceive` or set RAEA_PERCEIVE")?;
+            let bin = Some(perceive_bin()).filter(|b| b.exists()).ok_or("matchmove: a subject is tracked by raea-perceive (EdgeTAM), not found beside raea: update raea (`curl -fsSL https://raea.io/install | sh`: releases ship it in ~/.raea/bin), or set RAEA_PERCEIVE")?;
             cmd.args(["--subject", &b.iter().map(|v| v.as_f64().unwrap_or(0.0).to_string()).collect::<Vec<_>>().join(",")]).arg("--perceive").arg(bin);
         }
         // its progress on stderr: stdout is the caller's answer

@@ -9,13 +9,58 @@ use std::path::Path;
 
 use serde_json::{Map, Value, json};
 
-use crate::rubric::SCORES;
+use crate::rubric::{BAR, scores};
 
 pub const BY: [&str; 2] = ["kimi", "claude"];
 
-/// The judge prompt: the sheets by name, the brief's words, and the JSON to answer.
-pub fn prompt(dir: &Path, brief: &Value, target: Option<&Path>) -> String {
-    let words = ["look", "logline", "notDoing"].iter().filter_map(|k| brief.get(*k).map(|v| format!("{k}: {}", v.as_str().map(str::to_string).unwrap_or_else(|| v.to_string())))).collect::<Vec<_>>().join("; ");
+/// The judge prompt: the sheets by name, the brief's words, and the JSON to answer. A `raea make` job's kind asks its
+/// own categories and the bar (docs/make.feature MK5); none asks the rubric raea judge has always asked.
+pub fn prompt(kind: Option<&str>, dir: &Path, brief: &Value, target: Option<&Path>) -> String {
+    match kind {
+        None => prompt_default(dir, brief, target),
+        Some(k) => prompt_kind(k, dir, brief, target),
+    }
+}
+
+fn brief_words(brief: &Value) -> String {
+    ["look", "logline", "notDoing"].iter().filter_map(|k| brief.get(*k).map(|v| format!("{k}: {}", v.as_str().map(str::to_string).unwrap_or_else(|| v.to_string())))).collect::<Vec<_>>().join("; ")
+}
+
+fn prompt_kind(kind: &str, dir: &Path, brief: &Value, target: Option<&Path>) -> String {
+    let words = brief_words(brief);
+    let target = target.map(|t| format!(" The reference, what it must read as, is {}.", t.display())).unwrap_or_default();
+    let d = dir.display();
+    let sheets = match kind {
+        "shot" => format!("This round's sheet: {d}/framing.png. Each row is one shot: its first, middle and last frame, left to right, each stamped with its name and time. Open it."),
+        _ => format!(
+            "This round's sheets: {d}/colour.png and {d}/clay.png, each six tiles, left to right, top to bottom: hero, front, right, top, iso, low (0.3 m off the floor). Clay is every surface light grey and matte. Open both{}.",
+            if kind == "kit" { "; the scene is the kit's lineup, its props side by side with a scale bar" } else { "" }
+        ),
+    };
+    let blind = if kind == "shot" {
+        String::new()
+    } else {
+        format!("PART 1, BLIND: open {d}/hero-colour.png first, one frame. In one sentence: what is this, what era? List five objects you can name. Is it a photograph or a render, and which three tells decided it?\n\n")
+    };
+    let cats: String = scores(Some(kind)).iter().map(|(k, on, ask)| format!("- {k}{}: {}\n", if *on == "clay" { " (judged on CLAY)" } else { "" }, ask.split_once(": ").map(|(_, r)| r).unwrap_or(ask))).collect();
+    let json_scores = scores(Some(kind)).iter().map(|(k, _, _)| format!("\"{k}\": 0")).collect::<Vec<_>>().join(", ");
+    format!(
+        "You review a {kind} from images only, as the person who will use it would. You have never seen how it was built and you never will. \
+Judge what is in the pixels; do not guess at intentions. Only look at images; change no file.\n\n{blind}\
+PART 2, SCORED. The brief: \"{words}\".{target} {sheets}\n\n\
+Score each 0-10 (5 = a believable draft; 7 = a production base an artist would accept; 9 = indistinguishable from real). Halves are allowed.\n{cats}\n\
+{BAR} Each defect field is one short sentence; \"blocking\" means someone using this would notice it where it will be seen. \
+Name exactly what gives it away (not \"the phone looks fake\" but \"the handset is fused to the cradle with no gap\").\n\n\
+End your answer with only this JSON, nothing after it:\n\
+{{\"blind\": {{\"place\": \"\", \"objects\": [], \"photo\": \"yes|no\", \"tells\": []}}, \
+\"scores\": {{{json_scores}}}, \
+\"defects\": [{{\"tile\": \"\", \"where\": \"\", \"wrong\": \"\", \"real\": \"\", \"fix\": \"\", \"level\": \"blocking|detail\"}}], \
+\"show_as_is\": \"\"}}"
+    )
+}
+
+fn prompt_default(dir: &Path, brief: &Value, target: Option<&Path>) -> String {
+    let words = brief_words(brief);
     let target = target.map(|t| format!(" The target picture, what it must read as, is {}.", t.display())).unwrap_or_default();
     format!(
         "You review a 3D scene from images only, as the person who will use it would. You have never seen how it was built and you never will. \
@@ -57,13 +102,13 @@ pub fn last_verdict(text: &str) -> Option<Value> {
     None
 }
 
-/// The verdict read into the judge's own shape: scores (0-10, the seven categories), defects (present, level, named
+/// The verdict read into the judge's own shape: scores (0-10, the kind's categories), defects (present, level, named
 /// by what is wrong), the blind read's photo (1 a photo, 0 a render) and the agent's own words.
-pub fn read(v: &Value) -> (Map<String, Value>, Vec<Value>, Value) {
-    let mut scores = Map::new();
-    for (k, _, _) in SCORES {
+pub fn read(kind: Option<&str>, v: &Value) -> (Map<String, Value>, Vec<Value>, Value) {
+    let mut out = Map::new();
+    for &(k, _, _) in scores(kind) {
         if let Some(x) = v["scores"][k].as_f64().filter(|x| (0.0..=10.0).contains(x)) {
-            scores.insert(k.into(), json!(x));
+            out.insert(k.into(), json!(x));
         }
     }
     let defects = v["defects"].as_array().into_iter().flatten().filter(|d| d["wrong"].as_str().is_some_and(|w| !w.trim().is_empty())).map(|d| {
@@ -77,15 +122,15 @@ pub fn read(v: &Value) -> (Map<String, Value>, Vec<Value>, Value) {
         Some(p) if p.starts_with('n') => json!(0.0),
         _ => Value::Null,
     };
-    (scores, defects, photo)
+    (out, defects, photo)
 }
 
 /// One fresh judging session by `by` over DIR's sheets: its verdict JSON. Its steps stream (kimi's stream-json), each
 /// said on stderr as it comes, so a watcher sees it working through a judgement that can take minutes.
-pub fn ask(by: &str, dir: &Path, brief: &Value, target: Option<&Path>) -> Result<Value, String> {
+pub fn ask(kind: Option<&str>, by: &str, dir: &Path, brief: &Value, target: Option<&Path>) -> Result<Value, String> {
     use std::io::BufRead as _;
     let dir = dunce::canonicalize(&dir).map_err(|e| format!("judge: {}: {e}", dir.display()))?;
-    let p = prompt(&dir, brief, target);
+    let p = prompt(kind, &dir, brief, target);
     let mut cmd = match by {
         "kimi" => {
             let mut c = std::process::Command::new("kimi");

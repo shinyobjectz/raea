@@ -1,7 +1,7 @@
 ---
 title: "raea context"
 summary: "Print what to read before working on a project: its taste, brief and look, the floor and its modes' guides."
-order: 123
+order: 124
 sources: ["engine/cli/src/guide.rs", "apps/workspace/src/doctor.rs"]
 ---
 

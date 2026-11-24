@@ -9,6 +9,9 @@ description = "raea's one mixer core: the same Firewheel graph plays live in the
 [dependencies]
 # the mix before the master: dialogue at one level, room tone at the joins
 raea-sys-mix-level = { path = "level" }
+raea-io-trace = { path = "../../io/trace" }
+# the bounce's scratch file, as the frames come (SG4a)
+raea-io-home = { path = "../../io/home" }
 # the audio graph: sample-accurate scheduled events, custom nodes, a CPAL stream live and a processor pulled by hand
 # offline. 0.12 because bevy_seedling 0.8 pins it: one Firewheel for raea and Bevy. On Bevy 0.20 both are vendored and
 # ported (vendor/firewheel*, vendor/bevy_seedling) until their releases catch up.

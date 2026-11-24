@@ -16,7 +16,7 @@ use serde_json::{json, Value};
 
 use raea_core_scene::{Item, Part, base_ident, label, parts_of, ray_tri};
 
-use super::{solid_of, test};
+use super::solid_of;
 
 /// A gap under this (metres) is contact: a part sitting on its surface.
 const TOUCH: f32 = 0.002;
@@ -398,27 +398,80 @@ pub fn lint(now: &[Item], next: &[Item]) -> (Vec<Value>, usize) {
                 continue;
             }
             let (Some(a), Some(b)) = (&solids[i], &solids[j]) else { continue };
-            let mut best: Option<super::Hit> = None;
-            for (pa, sa) in a.iter().enumerate() {
-                for (pb, sb) in b.iter().enumerate() {
-                    if let Some(mut h) = test(sa, &items[i].world, sb, &items[j].world) {
-                        if best.as_ref().is_none_or(|b| h.depth > b.depth) {
-                            h.pieces = (pa, pb);
-                            best = Some(h);
-                        }
-                    }
-                }
-            }
-            if let Some(h) = best {
+            if let Some(h) = super::deepest(a, &items[i].world, b, &items[j].world) {
                 let (la, lb) = (label(&items[i], &a[h.pieces.0].name), label(&items[j], &b[h.pieces.1].name));
                 let (small, big) = if h.small_first { (la, lb) } else { (lb, la) };
                 errors += 1;
-                out.push(json!({"part": small, "into": big, "check": "clips", "level": "error", "depth": (h.depth * 1e4).round() / 1e4, "share": (h.share * 1e3).round() / 1e3,
-                    "says": format!("{small} passes {} into {big} ({:.0}% of it inside)", mm(h.depth), h.share * 100.0)}));
+                // out the shortest way (not down), and when that's sideways, settled onto what's under its new place
+                // in the same move (MK9): a stool pushed out from a table drops to the floor, not left at the top's height
+                let (axis, by) = super::clear_move(a, &items[i].world, b, &items[j].world, h.small_first);
+                let mover = if h.small_first { i } else { j };
+                let mut v = Vec3::ZERO;
+                v[axis] = by;
+                let axis_name = ["x", "y", "z"][axis];
+                let mut fix = json!({"part": small, "axis": axis_name, "by": (by * 1e4).round() / 1e4});
+                let mut then = String::new();
+                if axis != 1
+                    && let Some((under, node, gap)) = landing(&rest_after(&parts, &insets, mover, v))
+                    && gap.abs() > TOUCH
+                {
+                    fix["dy"] = json!((-gap * 1e4).round() / 1e4);
+                    then = format!(" and {:+.3} m along y to rest on {}", -gap, named(&parts, under, node));
+                }
+                out.push(json!({"part": small, "into": big, "check": "clips", "level": "error", "depth": (h.depth * 1e4).round() / 1e4, "share": (h.share * 1e3).round() / 1e3, "fix": fix,
+                    "says": format!("{small} passes {} into {big} ({:.0}% of it inside): move it {by:+.3} m along world {axis_name}{then}", mm(h.depth), h.share * 100.0)}));
             }
         }
     }
+    // faces in one plane over each other (MK8): between two parts an error once it's a square centimetre or more,
+    // inside one model a warning (a generated mesh's doubled faces flicker only where they show)
+    for i in 0..parts.len() {
+        if parts[i].excused || parts[i].moving {
+            continue;
+        }
+        for j in i + 1..parts.len() {
+            let near = |a: &Part, b: &Part| (a.lo - Vec3::splat(0.001)).cmple(b.hi).all() && (b.lo - Vec3::splat(0.001)).cmple(a.hi).all();
+            if parts[j].excused || parts[j].moving || !near(&parts[i], &parts[j]) {
+                continue;
+            }
+            if let Some((n, area, at)) = raea_core_zfight::overlaps(&parts[i].tris, Some(&parts[j].tris)) {
+                let level = if area >= 1e-4 { "error" } else { "warning" };
+                if level == "error" {
+                    errors += 1;
+                }
+                out.push(json!({"part": parts[i].label, "into": parts[j].label, "check": "zfight", "level": level, "faces": n, "area": (area * 1e6).round() / 1e6, "at": [at.x, at.y, at.z],
+                    "says": format!("{} and {} have faces in one plane over each other ({n} pair{}, up to {:.1} cm² at [{:.3}, {:.3}, {:.3}]): they flicker as the camera moves; lift one by a millimetre or cut the overlap", parts[i].label, parts[j].label, if n == 1 { "" } else { "s" }, area * 1e4, at.x, at.y, at.z)}));
+            }
+        }
+        if let Some((n, area, at)) = raea_core_zfight::overlaps(&parts[i].tris, None) {
+            out.push(json!({"part": parts[i].label, "check": "zfight", "level": "warning", "faces": n, "area": (area * 1e6).round() / 1e6, "at": [at.x, at.y, at.z],
+                "says": format!("{} has faces doubled in one plane inside it ({n} pair{}, up to {:.1} cm²): they flicker where they show; delete the doubles (raea gen check -o)", parts[i].label, if n == 1 { "" } else { "s" }, area * 1e4)}));
+        }
+    }
     (out, errors)
+}
+
+/// The surface a part would land on and how far it is (negative: sunk): what it rests on, or the nearest surface
+/// under it when it's in the air.
+fn landing(r: &Rest) -> Option<(usize, u32, f32)> {
+    match r {
+        Rest::On { under, node, gap, .. } => Some((*under, *node, *gap)),
+        Rest::Air { below } => *below,
+        _ => None,
+    }
+}
+
+/// What a part rests on after a move by `v` (MK9): the feet test again at its new place, against everything else.
+fn rest_after(parts: &[Part], insets: &[Option<usize>], i: usize, v: Vec3) -> Rest {
+    let mut moved: Vec<Part> = parts.to_vec();
+    let p = &mut moved[i];
+    for q in p.tris.iter_mut().flatten() {
+        *q += v;
+    }
+    p.lo += v;
+    p.hi += v;
+    let grid = Grid::new(&moved);
+    rest_of(&moved, &grid, insets, i)
 }
 
 #[cfg(test)]

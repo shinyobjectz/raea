@@ -3,3 +3,6 @@
 # (docs/public-first.feature PF5); the sha256 is of the copy tools/release.sh packs on the release Mac.
 # Beat This! small0 (MIT, github.com/CPJKU/beat_this), converted to ONNX for raea song
 beat-this/beat_this_small0.onnx	https://github.com/shinyobjectz/raea/releases/download/models-1/beat_this_small0.onnx	3f650a9f36d708d575808220a2874b0b84cf402db645b7eac2d9069a53642d4b
+# raea fix's library (systems/fixes): ~46,500 problem -> fix entries from MIT, Apache-2.0, BSD, CC0 and ClawHub (MIT-0)
+# skills and docs, built by skillbase's troubles.sh release; its sources and licences are in its meta 'notice' (raea fix --notice)
+fixes/fixes-library.db	https://github.com/shinyobjectz/raea/releases/download/models-1/fixes-library-202b3fec.db	202b3feca549731844ccfd2486d39068488cd8481944931873ebf645229ec751

@@ -127,6 +127,8 @@ view holds still. For stills to check a look against, not for motion. Same GPU n
 | Prop | Type | What it does |
 | --- | --- | --- |
 | `reset` | `boolean` | start the accumulation again |
+| `samples` | `number` | how many times a render draws each frame, each draw one more sample a pixel, the last kept (1 by default): 256 or more converges a reference still. Its accumulation starts afresh each frame, so a moved part isn't smeared |
+| `media` | `boolean` | whether its rays walk the fog volumes, scattering in the air (true by default); false for a frame without the air |
 
 ### `PointLight`
 
@@ -193,14 +195,32 @@ Used in: [3d/rotate_environment_map](https://github.com/shinyobjectz/raea/blob/m
 Ray-traced direct and indirect light for the <Camera3d> it's inside (Bevy's SolariLighting): shadows, bounce
 light and reflections traced against the scene, in place of shadow maps. Needs a GPU with ray queries (Apple
 silicon on Metal, RTX on Vulkan); elsewhere the scene draws raster-lit and raea says so. On the Mac MetalFX's
-temporal denoiser cleans it up (RT4; RAEA_SOLARI_DENOISE=0 shows the raw noise). A <Character> (skinned, morphed) stays raster-lit: Bevy 0.20's
-Solari can't trace it.
+temporal denoiser cleans it up (RT4; denoise={false} shows the raw noise). A <Character> (skinned, morphed) stays
+raster-lit: Bevy 0.20's Solari can't trace it, unless `dynamic` gives a skinned one a traced twin.
 
 | Prop | Type | What it does |
 | --- | --- | --- |
 | `restir` | `boolean` | ReSTIR: reuse light samples between pixels and frames (finer shadows, steadier in hard light; slower). Off by default, as Bevy has it |
 | `bounces` | `number` | how many times light bounces (Bevy's default when left out) |
 | `reset` | `boolean` | start the lighting's history again (a cut) |
+| `confidenceCap` | `number` | with ReSTIR, the most frames a pixel's reused samples may count for: higher is steadier and slower to follow a change in the light (Bevy's 8) |
+| `primarySamples` | `number` | direct light samples at the camera's first hit, a pixel a frame (Bevy's 8). After MetalFX's denoiser 4 bought the window scene nothing over 8 and saved 1.5 ms at 1080p's pixels |
+| `secondarySamples` | `number` | direct light samples at each bounce (Bevy's 4) |
+| `firstBounce` | `number` | the chance a pixel traces its first bounce this frame, its light divided by it (Russian roulette): 0.5 halves the bounce's tracing, most of a dense forest's (1, every pixel every frame) |
+| `cache` | `{ /** frames a cell's light is gathered over: steadier and slower to follow a change (B…` | Solari's world cache, the bounce light it keeps in cells across the scene |
+| `scale` | `number` | draw the view at this fraction of its size a side (a third to 1) and let MetalFX's temporal scaler bring it up to the full size, so a game traces fewer pixels: 0.67 traces 45% of them. On the Mac; elsewhere it draws at the full size and raea says so. 1 (or left out): the full size; RAEA_SOLARI_SCALE overrides it |
+| `denoise` | `boolean` | MetalFX's temporal denoiser on the lighting. false shows Solari's raw noise. Default true; RAEA_SOLARI_DENOISE=0 overrides it |
+| `guides` | `boolean` | the denoiser guided by Solari's own guides, where a mirror's pixel takes what it reflects; false guides it by the G-buffer. Default true; RAEA_SOLARI_PSR=0 overrides it |
+| `reflectionDepth` | `boolean` | a glossy surface's pixel as far off as what it reflects in the denoiser's depth, so a reflection doesn't trail what it shows. Default true; RAEA_SOLARI_PSR_DEPTH=0 overrides it |
+| `emissive` | `"taa" \| "split" \| "mask"` | an emissive surface's own light: "taa" taken out before the denoiser and gathered over frames (RT11, RT32), "split" each frame's alone, "mask" left in for the denoiser. Default "taa"; RAEA_SOLARI_EMISSIVE overrides it |
+| `upscale` | `"one" \| "two"` | a view drawn small (scale below 1): denoised and brought up in "one" pass, or denoised small and scaled in "two". Default "one"; RAEA_SOLARI_UPSCALE overrides it |
+| `preexposure` | `number` | what MetalFX divides the light by before it denoises and multiplies it by after. Higher keeps more of a rare bright sample (a lamp found by one path in many) and lets more fireflies through: 1 kept 0.74 of the desk's light, 16 0.86, 64 0.91. Default 16; RAEA_METALFX_PREEXPOSURE overrides it |
+| `aa` | `boolean` | jitter a full-size view too, so the denoiser anti-aliases its edges as it gathers frames. Default true; RAEA_SOLARI_AA=0 overrides it |
+| `jitter` | `"denoiser" \| "scaler" \| "both" \| "flip" \| "none"` | which of MetalFX's passes is told the camera's jitter: "denoiser", "scaler", "both", "flip" (the denoiser, negated), "none" (and the view isn't jittered). For A/Bs of RT9; default "denoiser"; RAEA_SOLARI_JITTER ("" the denoiser, "0" none) overrides it |
+| `emissiveSharpness` | `number` | how fast a sample's weight falls with its distance from a pixel's centre in the emission's history, exp(-k d²) in output pixels: lower is softer. Default 6; RAEA_EMIT_TAA_SHARP overrides it |
+| `jitterFrames` | `number` | the jitter's cycle at the full size, in frames: a view drawn at s of its size a side cycles through jitterFrames / s² offsets, and an emissive twig glimpsed through it may stay away that long. Default 8 (DLSS's) |
+| `dynamic` | `boolean` | the traced scene follows what moves (a trial, false by default): a skinned character's traced twin is posed each frame, so it casts traced shadows and bounces light. Decided as each mesh is first traced, so set it from the first frame. (A hidden part, or one a frame leaves out, leaves the traced scene with or without it.) |
+| `constants` | `{ /** how far ReSTIR looks for a neighbour's light samples, pixels (30): smaller keeps …` | constants in Solari's and the denoiser's shaders, compiled in when the scene loads (a value changed later in the composition isn't drawn); each left out keeps the shader's own, given in brackets. <ShaderConstants> reaches the rest |
 
 ### `SpotLight`
 
@@ -392,6 +412,7 @@ The props of [`DirectionalLight`](#directionallight), tabled there.
 | `rotation` | `number` | a turn about the vertical axis, in radians, for both the light and the sky: puts the sun where the shot wants it |
 | `background` | `boolean` | draw the panorama as the sky behind everything (off by default: light only) |
 | `backgroundIntensity` | `number` | the sky's brightness, when it should differ from the light's (`intensity` by default) |
+| `portals` | `[number, number, number][][]` | the openings the sky lights a room through (a skylight, a window), each its four corners in order round it, in metres (a rectangle or any parallelogram). Traced lighting (Solari, the path tracer) samples the sky through each as it samples a lamp, so a room lit through a small opening gets that light smooth and whole, where rays bounced at random find it too rarely for the denoiser to keep (photo 5's hall: half its floor's sky light). Light passes both ways; up to 8; the first frame's hold. Raster lighting doesn't read them |
 
 ### `PathtracerProps`
 

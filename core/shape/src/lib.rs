@@ -200,17 +200,58 @@ pub fn tris(m: &Manifold) -> Tris {
     Tris { positions, normals }
 }
 
+/// A shape made faster than this isn't kept on disk: a box is made in microseconds, and a part whose size changed each
+/// frame wrote a file a frame (2.4 million in 12 hours of long renders, 11-21); the disk is for the cuts that cost
+const KEEP_MS: f64 = 2.0;
+/// The bytes of triangles one generation of held shapes takes: past it, the generation before is let go and this one
+/// takes its place. A shape asked for again moves to the newest, so what a scene keeps asking for stays, and two
+/// generations at most are held. A long render's shapes that change each frame (a bar that grows, 3D words that count)
+/// are let go as it goes: held to 1 GB at once, a one-scene control grew by 100 MB in 4,000 frames (SG4a). Anything
+/// let go is made again, or read from disk when it took KEEP_MS to make: a part asks for its shape when it's spawned,
+/// and the end checks once more.
+const GEN_BYTES: usize = 16 << 20;
+
+/// The shapes held, the newest generation and the one before, and the newest's bytes.
+#[derive(Default)]
+struct Held {
+    now: HashMap<String, std::sync::Arc<Tris>>,
+    old: HashMap<String, std::sync::Arc<Tris>>,
+    bytes: usize,
+}
+
+impl Held {
+    fn get(&mut self, expr: &str) -> Option<std::sync::Arc<Tris>> {
+        if let Some(t) = self.now.get(expr) {
+            return Some(t.clone());
+        }
+        let t = self.old.remove(expr)?;
+        self.hold(expr, &t);
+        Some(t)
+    }
+
+    /// `t` held for `expr` in the newest generation, which becomes the one before when it would pass GEN_BYTES.
+    fn hold(&mut self, expr: &str, t: &std::sync::Arc<Tris>) {
+        let bytes = (t.positions.len() + t.normals.len()) * 12 + expr.len();
+        if self.bytes + bytes > GEN_BYTES && !self.now.is_empty() {
+            self.old = std::mem::take(&mut self.now);
+            self.bytes = 0;
+        }
+        self.bytes += bytes;
+        self.now.insert(expr.to_string(), t.clone());
+    }
+}
+
 /// The mesh for an expression, built once per expression (a re-cut or a key that doesn't change the shape costs nothing).
 pub fn cached(expr: &str) -> Result<std::sync::Arc<Tris>, String> {
-    static CACHE: OnceLock<Mutex<HashMap<String, std::sync::Arc<Tris>>>> = OnceLock::new();
+    static CACHE: OnceLock<Mutex<Held>> = OnceLock::new();
     let cache = CACHE.get_or_init(Default::default);
     if let Some(t) = cache.lock().unwrap().get(expr) {
-        return Ok(t.clone());
+        return Ok(t);
     }
     // a buffer mesh's own triangles (buffer.rs): data already, so nothing is kept on disk for it
     if let Some(b) = expr.strip_prefix("buffer:") {
         let t = std::sync::Arc::new(buffer_tris(b)?.0);
-        cache.lock().unwrap().insert(expr.to_string(), t.clone());
+        cache.lock().unwrap().hold(expr, &t);
         return Ok(t);
     }
     // made by this build before, on disk (kept.rs): read back as it was written
@@ -218,20 +259,35 @@ pub fn cached(expr: &str) -> Result<std::sync::Arc<Tris>, String> {
     let t = match kept.as_deref().and_then(kept::read) {
         Some(t) => std::sync::Arc::new(t),
         None => {
+            let made = std::time::Instant::now();
             let t = std::sync::Arc::new(tris(&solid(expr)?));
-            if let Some(p) = &kept {
+            if let Some(p) = kept.as_ref().filter(|_| made.elapsed().as_secs_f64() * 1e3 >= KEEP_MS) {
                 kept::write(p, &t);
             }
             t
         }
     };
-    cache.lock().unwrap().insert(expr.to_string(), t.clone());
+    cache.lock().unwrap().hold(expr, &t);
     Ok(t)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn held_shapes_go_a_generation_at_a_time_and_what_is_asked_again_stays() {
+        let mut h = Held::default();
+        // a shape of a quarter of a generation
+        let t = std::sync::Arc::new(Tris { positions: vec![[0.0; 3]; GEN_BYTES / 96], normals: vec![[0.0; 3]; GEN_BYTES / 96] });
+        h.hold("kept", &t);
+        for i in 0..12 {
+            h.hold(&format!("bar {i}"), &t);
+            assert!(h.get("kept").is_some(), "asked each time, it stays (after bar {i})");
+        }
+        assert!(h.get("bar 0").is_none(), "made once and never asked again, it went");
+        assert!(h.now.len() + h.old.len() <= 8, "two generations at most: {} + {}", h.now.len(), h.old.len());
+    }
 
     #[test]
     fn a_kept_mesh_reads_back_as_it_was_written() {

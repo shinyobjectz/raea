@@ -21,7 +21,7 @@ struct Hook {
 fn hooks(agent: &str) -> R<Vec<Hook>> {
     let h = |event, matcher, secs| Hook { event, matcher, secs };
     Ok(match agent {
-        "claude" => vec![h("PreToolUse", "Bash", 30), h("PostToolUse", "*", 60), h("Stop", "", 10)],
+        "claude" => vec![h("PreToolUse", "Bash", 30), h("PostToolUse", "*", 60), h("Stop", "", 30)],
         "codex" => vec![h("PreToolUse", "^(Bash|shell|shell_command|exec_command)$", 30), h("PostToolUse", "^(apply_patch|Edit|Write)$", 60)],
         "gemini" => vec![h("BeforeTool", "run_shell_command", 30), h("AfterTool", "write_file|replace", 60)],
         "kimi" => vec![h("PreToolUse", "Bash|Shell", 30), h("PostToolUse", "Write|Edit|WriteFile|StrReplaceFile", 60)],

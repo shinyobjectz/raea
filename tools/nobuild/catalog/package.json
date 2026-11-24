@@ -1,0 +1,8 @@
+{
+  "name": "raea-nobuild-catalog",
+  "private": true,
+  "description": "docs/nobuild.feature NB4a: a project choosing two plugins from the catalog the release raea has compiled in",
+  "raea": {
+    "plugins": ["avian", "hanabi"]
+  }
+}

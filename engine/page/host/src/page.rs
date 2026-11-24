@@ -134,7 +134,7 @@ pub fn input(world: &mut World, mut at: Local<WindowInput>) {
             continue;
         }
         let Some(ui) = at.event(ev) else { continue };
-        if std::env::var_os("RAEA_PAGE_EVENTS").is_some() {
+        if raea_io_trace::stat("RAEA_PAGE_EVENTS") {
             eprintln!("raea-page-host: frame {} {ui:?}", world.resource::<Frame>().0);
         }
         if matches!(ui, blitz_traits::events::UiEvent::PointerDown(_)) {

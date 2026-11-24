@@ -1,0 +1,274 @@
+#![doc = include_str!("../README.md")]
+#![allow(clippy::type_complexity)]
+#![allow(clippy::too_many_arguments)]
+#![allow(clippy::collapsible_if)]
+mod atlas;
+mod color_table;
+mod emoji;
+mod export;
+mod fetch;
+mod layers;
+mod line;
+mod loading;
+mod mesh_util;
+mod misc;
+mod parse;
+mod parse_util;
+mod prepare;
+mod render;
+mod styling;
+mod tess;
+mod text3d;
+
+pub use prepare::{DrawStyle, FontSystemGuard, TextProgressReportCallback, TextRenderer};
+
+pub use atlas::{TextAtlas, TextAtlasHandle};
+#[cfg(feature = "reflect")]
+use bevy::prelude::{Reflect, ReflectDefault, ReflectResource};
+use bevy::{
+    app::{App, First, Plugin, PostUpdate},
+    asset::{AssetApp, AssetId, Assets},
+    ecs::{
+        query::With,
+        resource::Resource,
+        schedule::{IntoScheduleConfigs, SystemSet, common_conditions::resource_exists},
+        system::{Query, ResMut},
+        world::Ref,
+    },
+    image::Image,
+    math::FloatOrd,
+    transform::TransformSystems,
+    window::{PrimaryWindow, Window},
+};
+
+pub use export::{GlyphMeta, MeshExport, MeshExportEntry};
+pub use fetch::{FetchedCondition, FetchedText, SharedSegment};
+use loading::{LoadCosmicFonts, load_cosmic_fonts_system};
+pub use misc::*;
+pub use parse_util::{ConditionOutput, ParseBuilder, ParseError};
+pub use styling::{SegmentSize, SegmentStyle, Text3dStyle};
+#[allow(deprecated)]
+pub type Text3dStyling = Text3dStyle;
+#[allow(deprecated)]
+pub type SharedTextSegment = SharedSegment;
+#[allow(deprecated)]
+pub type FetchedTextSegment = FetchedText;
+pub use text3d::{Text3d, Text3dImage, Text3dSegment};
+
+fn synchronize_scale_factor(
+    mut settings: ResMut<Text3dPlugin>,
+    main_window: Query<Ref<Window>, With<PrimaryWindow>>,
+    mut atlases: ResMut<Assets<TextAtlas>>,
+    mut images: ResMut<Assets<Image>>,
+) {
+    if settings.sync_scale_factor_with_main_window {
+        if let Ok(window) = main_window.single() {
+            if window.scale_factor() != settings.scale_factor {
+                settings.scale_factor = window.scale_factor();
+                for (_, atlas) in atlases.iter_mut() {
+                    atlas.clear(&mut images);
+                }
+            }
+        }
+    }
+}
+
+/// Text3d Plugin.
+#[derive(Debug, Resource, Clone)]
+#[cfg_attr(feature = "reflect", derive(Reflect))]
+#[cfg_attr(feature = "reflect", reflect(Resource, Default))]
+pub struct Text3dPlugin {
+    /// Size of the default font atlas, by default `(512, 512)`, we only extend the atlas by doubling in size vertically.
+    ///
+    /// Ideally this should be able to contain all glyphs to avoid inefficiencies.
+    ///
+    /// Trying to cache a glyph bigger than this size will cause a panic.
+    pub default_atlas_dimension: (usize, usize),
+    /// This should be the primary window's `scale_factor`. For example if this value is 2, a 32 x 32 glyph will
+    /// take up 64 x 64 pixels.
+    pub scale_factor: f32,
+    /// Currently the [`Window`]'s scale factor is not correct at app startup,
+    /// if true synchronizes scale factor with the [`PrimaryWindow`]'s scale factor.
+    ///
+    /// # Note
+    ///
+    /// If the window's scale factor changes, ALL text will be redrawn.
+    pub sync_scale_factor_with_main_window: bool,
+    /// If size is less than or equal to this value, double the scale factor used.
+    ///
+    /// This can produce better results for smaller text since we cannot perform hinting unlike `bevy_ui`.
+    ///
+    /// For more complex behaviors, use `world_scale`.
+    pub double_scale_factor_threshold: f32,
+    /// System locale, like `en-US`.
+    pub locale: Option<String>,
+    /// If true, load system fonts,
+    pub load_system_fonts: bool,
+    /// If false, loading system fonts might increase startup time.
+    ///
+    /// If true, load fonts in a separate thread, will panic on platforms like
+    /// wasm where threads are not supported.
+    pub asynchronous_load: bool,
+    /// Family name for placeholder glyphs used for placing emojis.
+    pub placeholder_family: String,
+    /// Pre-defines all glyph widths used by emojis, this generates a placeholder font containing glyphs with various sizes.
+    ///
+    /// Value represents `value * em`, so `1.0` represents a square.
+    ///
+    /// Emoji rendered will choose the placeholder glyph closest in width.
+    pub placeholder_glyph_widths: Vec<f32>,
+    /// The first character used in placeholder glyphs, usually '!'.
+    pub placeholder_glyph_origin: char,
+    /// Placeholder glyphs, does not need to be specified by the user.
+    pub placeholder_glyphs_generated: Vec<(f32, String)>,
+    /// If not empty, set the default serif font.
+    pub serif_family: String,
+    /// If not empty, set the default sans serif font.
+    pub sans_serif_family: String,
+    /// If not empty, set the default cursive font.
+    pub cursive_family: String,
+    /// If not empty, set the default monospace font.
+    pub monospace_family: String,
+    /// If not empty, set the default fantasy font.
+    pub fantasy_family: String,
+}
+
+impl Text3dPlugin {
+    pub fn get_placeholder_glyph(&self, size: f32) -> &str {
+        let Some((_, s)) = self
+            .placeholder_glyphs_generated
+            .iter()
+            .min_by_key(|(s, _)| FloatOrd((size - *s).abs()))
+        else {
+            return " ";
+        };
+        s
+    }
+}
+
+/// A [`Resource`] that contains paths of fonts to be loaded.
+///
+/// This can be modified before startup in other plugins.
+#[derive(Debug, Resource, Default, Clone)]
+pub struct LoadFonts {
+    /// Path of fonts to be loaded.
+    pub font_paths: Vec<String>,
+    /// Path of font directories to be loaded.
+    pub font_directories: Vec<String>,
+    /// Fonts embedded in the executable.
+    pub font_embedded: Vec<&'static [u8]>,
+}
+
+impl Default for Text3dPlugin {
+    fn default() -> Self {
+        Self {
+            default_atlas_dimension: (1024, 1024),
+            scale_factor: 1.0,
+            double_scale_factor_threshold: f32::NEG_INFINITY,
+            sync_scale_factor_with_main_window: true,
+            load_system_fonts: false,
+            asynchronous_load: false,
+            locale: None,
+            serif_family: String::new(),
+            sans_serif_family: String::new(),
+            cursive_family: String::new(),
+            monospace_family: String::new(),
+            fantasy_family: String::new(),
+            placeholder_family: "_Placeholder".into(),
+            placeholder_glyph_widths: vec![
+                0.1,
+                0.2,
+                0.25,
+                1.0 / 3.0,
+                0.4,
+                0.5,
+                2.0 / 3.0,
+                0.75,
+                std::f32::consts::GOLDEN_RATIO / 2.,
+                1.0,
+                std::f32::consts::SQRT_2,
+                1.5,
+                std::f32::consts::GOLDEN_RATIO,
+                2.0,
+                2.5,
+                3.0,
+                3.5,
+                4.0,
+                5.0,
+                6.0,
+            ],
+            placeholder_glyph_origin: '!',
+            placeholder_glyphs_generated: Vec::new(),
+        }
+    }
+}
+
+/// [`SystemSet`] of text3d rendering in [`PostUpdate`] before transforms.
+///
+/// Manually order this before other transform related systems if applicable.
+#[derive(Debug, PartialEq, Eq, Clone, Copy, Hash, SystemSet)]
+pub struct Text3dSet;
+
+impl Plugin for Text3dPlugin {
+    fn build(&self, app: &mut App) {
+        app.init_asset::<TextAtlas>();
+        app.init_resource::<LoadFonts>();
+        let mut res = self.clone();
+        res.placeholder_glyphs_generated = self
+            .placeholder_glyph_widths
+            .iter()
+            .copied()
+            .enumerate()
+            .map(|(i, x)| {
+                (
+                    x,
+                    char::from_u32(self.placeholder_glyph_origin as u32 + i as u32)
+                        .unwrap_or(' ')
+                        .to_string(),
+                )
+            })
+            .collect();
+        app.insert_resource::<Text3dPlugin>(res);
+        let (x, y) = self.default_atlas_dimension;
+        let _ = app
+            .world_mut()
+            .resource_mut::<Assets<Image>>()
+            .insert(&TextAtlas::DEFAULT_IMAGE, TextAtlas::empty_image(x, y));
+        let _ = app
+            .world_mut()
+            .resource_mut::<Assets<TextAtlas>>()
+            .insert(AssetId::default(), TextAtlas::new(TextAtlas::DEFAULT_IMAGE));
+        app.add_systems(First, synchronize_scale_factor);
+        app.add_systems(
+            First,
+            load_cosmic_fonts_system.run_if(resource_exists::<LoadCosmicFonts>),
+        );
+        app.add_systems(
+            PostUpdate,
+            render::text_render
+                .run_if(resource_exists::<TextRenderer>)
+                .in_set(Text3dSet),
+        );
+        app.configure_sets(PostUpdate, Text3dSet.before(TransformSystems::Propagate));
+
+        #[cfg(feature = "reflect")]
+        app.register_type::<Text3d>()
+            .register_type::<Text3dStyle>()
+            .register_type::<Text3dSegment>()
+            .register_type::<SharedSegment>()
+            .register_type::<FetchedText>()
+            .register_type::<Text3dPlugin>();
+    }
+
+    fn cleanup(&self, app: &mut App) {
+        let fonts = app
+            .world_mut()
+            .remove_resource::<LoadFonts>()
+            .unwrap_or_default();
+        if self.asynchronous_load {
+            app.insert_resource(self.load_fonts_concurrent(fonts));
+        } else {
+            app.insert_resource(self.load_fonts_blocking(fonts));
+        }
+    }
+}

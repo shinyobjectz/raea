@@ -2,7 +2,8 @@ import bevy_pbr::deferred::types::unpack_24bit_normal;
 import bevy_pbr::render::rgb9e5::rgb9e5_to_vec3_;
 import bevy_render::utils::octahedral_decode;
 import bevy_render::view::{View, depth_ndc_to_view_z};
-import package::scene::bindings::ResolvedMaterial;
+import package::scene::bindings::{facing_normal, ResolvedMaterial};
+import package::realtime::bindings::view;
 
 struct ResolvedGPixel {
     world_position: vec3<f32>,
@@ -12,7 +13,16 @@ struct ResolvedGPixel {
 
 fn gpixel_resolve(gpixel: vec4<u32>, depth: f32, pixel_id: vec2<u32>, view_size: vec2<f32>, world_from_clip: mat4x4<f32>) -> ResolvedGPixel {
     let world_position = reconstruct_world_position(pixel_id, depth, view_size, world_from_clip);
-    let world_normal = octahedral_decode(unpack_24bit_normal(gpixel.a));
+    var world_normal = octahedral_decode(unpack_24bit_normal(gpixel.a));
+    // raea: a smooth surface's interpolated normal past its silhouette (a dune's crest against the ground beyond) faces
+    // away from the eye, and the BRDF gives nothing there: black lines along every crest. Bent back to face the eye a
+    // little, as the path tracer does a hit's (bindings.wesl facing_normal). The eye from the inverse projection: Bevy's
+    // perspective is infinite reverse-z, so clip (0, 0, 1, 0) is the eye; an orthographic view has none and is left be
+    let eye = world_from_clip * vec4(0.0, 0.0, 1.0, 0.0);
+    if abs(eye.w) > 1e-20 {
+        let wo = normalize(eye.xyz / eye.w - world_position);
+        world_normal = facing_normal(world_normal, wo, wo);
+    }
 
     let base_rough = unpack4x8unorm(gpixel.r);
     let base_color = pow(base_rough.rgb, vec3(2.2));
@@ -21,8 +31,11 @@ fn gpixel_resolve(gpixel: vec4<u32>, depth: f32, pixel_id: vec2<u32>, view_size:
     let props = unpack4x8unorm(gpixel.b);
     let reflectance = props.r;
     let metallic = props.g;
-    let emissive = rgb9e5_to_vec3_(gpixel.g);
-    let material = ResolvedMaterial(base_color, emissive, reflectance, perceptual_roughness, roughness, metallic);
+    // raea: Bevy's G-buffer holds it pre-exposed (bevy_pbr deferred/functions.wesl), so a bright lamp doesn't clip
+    let emissive = rgb9e5_to_vec3_(gpixel.g) / view.exposure;
+    // raea: the diffuse transmission, in the flags' top five bits (bevy_pbr deferred/functions.wesl)
+    let diffuse_transmission = f32((gpixel.a >> 27u) & 31u) / 31.0;
+    let material = ResolvedMaterial(base_color, emissive, reflectance, perceptual_roughness, roughness, metallic, diffuse_transmission);
 
     return ResolvedGPixel(world_position, world_normal, material);
 }

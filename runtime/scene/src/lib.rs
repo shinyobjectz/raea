@@ -20,8 +20,8 @@ use parts::*;
 mod models;
 use models::*;
 mod live;
-pub use live::{LIVE_GROUPS, LiveScene, Shot, cam_keyed, live_dynamic};
-use live::*;
+pub use live::{LiveScene, Shot};
+pub use raea_core_scene::{LIVE_GROUPS, cam_keyed, live_dynamic};
 mod fast;
 
 /// Gaussian splats' rows (<Splat>).
@@ -286,20 +286,21 @@ impl Tracks {
     fn of(all: &[Vec<Item>]) -> Tracks {
         Tracks {
             lights: tracks_of(all, &["directional", "point", "spot", "rect"]),
-            meshes: tracks_of(all, &["mesh"]),
-            models: tracks_of(all, &["model"]),
-            panels: tracks_of(all, &["panel"]),
-            decals: tracks_of(all, &["decal"]),
-            fogs: tracks_of(all, &["fogvolume"]),
-            fires: tracks_of(all, &["fire"]),
-            grasses: tracks_of(all, &["grass"]),
-            splats: tracks_of(all, &["splat"]),
+            // cut where a part's shape, words, file or size change (SG1): a row keeps its first frame's
+            meshes: split_kept(tracks_of(all, &["mesh"])),
+            models: split_kept(tracks_of(all, &["model"])),
+            panels: split_kept(tracks_of(all, &["panel"])),
+            decals: split_kept(tracks_of(all, &["decal"])),
+            fogs: split_kept(tracks_of(all, &["fogvolume"])),
+            fires: split_kept(tracks_of(all, &["fire"])),
+            grasses: split_kept(tracks_of(all, &["grass"])),
+            splats: split_kept(tracks_of(all, &["splat"])),
             sprites: tracks_of(all, &["sprite"]),
             shapes2d: tracks_of(all, &["shape2d"]),
-            plates: tracks_of(all, &["plate"]),
-            meshseqs: tracks_of(all, &["meshseq"]),
+            plates: split_kept(tracks_of(all, &["plate"])),
+            meshseqs: split_kept(tracks_of(all, &["meshseq"])),
             entities: tracks_of(all, &["entity"]),
-            texts: tracks_of(all, &["text"]),
+            texts: split_kept(tracks_of(all, &["text"])),
         }
     }
 }

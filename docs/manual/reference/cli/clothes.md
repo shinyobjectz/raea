@@ -1,7 +1,7 @@
 ---
 title: "raea clothes"
 summary: "Clothes for SOMA's body from words: make sews a garment from a sewing pattern (GarmentCode, MIT), cut to SOMA's measurements and draped by raea's own cloth, as assets/clothes/NAME.json and its .glb; cover lays one on the skin by procedure; wear puts garments on a body."
-order: 105
+order: 106
 sources: ["engine/cli/src/cli.rs"]
 ---
 

@@ -44,7 +44,7 @@ Feature: raea cloud: raea and an ACP agent on a server of your own (sdk/cloud)
     Scenario: CL6. raea runs without an agent
       Then POST /v1/run {args, cwd} runs `raea ARGS` in the workspace, streaming {out}, {err} and last {exit} lines
       And the token and the state keys are never in its environment, and a dropped request stops the run
-    Scenario: CL6b. A shell for an agent the server doesn't run (raea-bot, 11-17)
+    Scenario: CL6b. A shell for an agent the server doesn't run (raea cloud, 11-17)
       Then POST /v1/shell {command, cwd, timeout_ms} runs a bash command line in the workspace, streaming the same
         {out}, {err} and last {exit} lines
       And past its timeout (10 minutes unless given, an hour at most), or when the request drops, its whole process

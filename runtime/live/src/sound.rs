@@ -171,7 +171,7 @@ impl Live {
         if let Some(rx) = &self.master {
             match rx.try_recv() {
                 Ok(Ok(wav)) => {
-                    if std::env::var_os("RAEA_LIVE_TRACE").is_some() {
+                    if raea_io_trace::stat("RAEA_LIVE_TRACE") {
                         eprintln!("raea live: the mastered sound is in at frame {f}");
                     }
                     self.master_wav = wav;
@@ -207,7 +207,7 @@ impl Live {
         }
         // the edit's Tone (raea/tone)
         let tone = if self.baked.as_ref().is_some_and(|b| f >= b.frames) { raea_sys_mix::ToneCue::default() } else { raea_runtime_sound::tone_at(self.app.world_mut(), f, self.fps, &self.dir, raea_runtime_react::scene::media_path, false) };
-        if std::env::var_os("RAEA_SOUND_TRACE").is_some() && f % 30 == 0 {
+        if raea_io_trace::stat("RAEA_SOUND_TRACE") && f % 30 == 0 {
             eprintln!("raea live: frame {f} sounds {:?}", sounds.iter().map(|s| (s.key.clone(), s.file.file_name().map(|n| n.to_string_lossy().into_owned()), (s.at * 100.0).round() / 100.0, s.volume)).collect::<Vec<_>>());
         }
         if sounds.is_empty() && tone.is_empty() && self.mixer.is_none() {
@@ -231,7 +231,7 @@ impl Live {
         if let Some(rx) = &self.game_master {
             match rx.try_recv() {
                 Ok(Ok(g)) => {
-                    if std::env::var_os("RAEA_LIVE_TRACE").is_some() {
+                    if raea_io_trace::stat("RAEA_LIVE_TRACE") {
                         eprintln!("raea live: the game's master is in at frame {f}: {g:?}");
                     }
                     self.game_gain = g;

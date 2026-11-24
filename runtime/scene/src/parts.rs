@@ -278,7 +278,7 @@ pub(crate) fn meshes_rows(tr: &Tracks, names: &[String], p: &mut Program) {
         components(p, &id, &its);
         material_fields(p, &id, &its);
         three_uniforms(p, &id, &its);
-        own_uniforms(p, &id, &its, |it| it.material.as_ref()?.props.get("shader"));
+        own_uniforms(p, &id, &its, true, |it| it.material.as_ref()?.props.get("shader"));
     }
 }
 

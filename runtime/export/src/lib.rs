@@ -44,9 +44,9 @@ pub use render::*;
 mod review;
 mod run;
 pub use run::*;
-pub use raea_sys_page::not_applied;
+pub use raea_sys_page::{not_applied, render_said};
 mod scene;
-pub use scene::{USAGE as SCENE_USAGE, cli as scene_cli};
+pub use scene::{all_items, frame_of, items};
 
 /// One <Audio> (or sounding <Video>) on a frame.
 #[derive(Clone, Debug)]
@@ -73,7 +73,12 @@ static MANIFEST: std::sync::Mutex<Option<PathBuf>> = std::sync::Mutex::new(None)
 fn write_manifest(cx: &mut Ctx, (w, h, fps, length): (u32, u32, f64, i64), found: Vec<raea_core_facts::Finding>, heard: impl FnOnce(&Ctx) -> Value) -> R<()> {
     let (Some(path), Some(frames)) = (MANIFEST.lock().unwrap().clone(), cx.manifest.take()) else { return Ok(()) };
     path.parent().map_or(Ok(()), std::fs::create_dir_all).map_err(|e| format!("{}: {e}", path.display()))?;
-    std::fs::write(&path, json!({"width": w, "height": h, "fps": fps, "length": length, "frames": frames, "findings": raea_core_facts::finding::ranked(found), "sounds": heard(cx), "not_applied": not_applied::seen(), "layers": raea_sys_layers::finish(fps), "has3d": cx.scene3d.is_some() || cx.live3d.is_some()}).to_string()).map_err(|e| format!("{}: {e}", path.display()))
+    let mut v = json!({"width": w, "height": h, "fps": fps, "length": length, "frames": frames, "findings": raea_core_facts::finding::ranked(found), "sounds": heard(cx), "not_applied": not_applied::seen(), "layers": raea_sys_layers::finish(fps), "has3d": cx.scene3d.is_some() || cx.live3d.is_some()});
+    // the parts SG9 needs (scene.rs's SEEN): stills' parts on screen, a longer render's remounts
+    if let (Some(m), Some(Value::Object(seen))) = (v.as_object_mut(), scene::SEEN.lock().unwrap().take()) {
+        m.extend(seen);
+    }
+    std::fs::write(&path, v.to_string()).map_err(|e| format!("{}: {e}", path.display()))
 }
 
 /// `render --stage WxH`: a responsive composition (one that lays out from useVideoConfig) laid out at a stage's size, as

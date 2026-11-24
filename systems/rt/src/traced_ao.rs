@@ -22,14 +22,9 @@ use bevy::{
     },
 };
 
-/// The reach RAEA_TRACED_AO asks for, in metres, if any.
-pub fn wanted() -> Option<f32> {
-    let v = std::env::var("RAEA_TRACED_AO").ok()?;
-    Some(v.parse::<f32>().ok().filter(|r| *r > 0.0).unwrap_or(0.5))
-}
-
 pub fn install(app: &mut App) {
-    let Some(reach) = wanted() else { return };
+    // the reach RAEA_TRACED_AO asks for, in metres, if any
+    let Some(reach) = crate::reach("RAEA_TRACED_AO", 0.0, 0.5) else { return };
     bevy::asset::embedded_asset!(app, "traced_ao.wesl");
     crate::install(app);
     let Some(render) = app.get_sub_app_mut(RenderApp) else { return };

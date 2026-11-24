@@ -14,12 +14,9 @@
 //! triangle's material class as `Class::code`); causes3 = (winter sun, drift, litter, crack: 1 - the distance to the
 //! nearest crack from an opening's corner over raea-sys-damage's REACH).
 
-mod charts;
 mod flow;
 mod maps;
-mod merge;
 mod rays;
-mod scene;
 mod touch;
 #[cfg(test)]
 mod tests;
@@ -31,7 +28,8 @@ use parry3d::glamx::Vec3;
 use serde_json::{Map, Value, json};
 use sha2::{Digest, Sha256};
 
-pub use scene::{Class, Classes};
+pub use raea_sys_atlas::{Ask, Class, Classes};
+pub(crate) use raea_sys_atlas::{charts, scene};
 
 type R<T> = Result<T, String>;
 
@@ -80,16 +78,8 @@ impl Env {
     /// spread} (a storm's driven snow; the way it travels), walk: [class...] | {y}, density (or {"*": d, CLASS: d}),
     /// max_side, rays: {sky, cavity}}
     pub fn of(v: &Value) -> R<Env> {
-        let v3 = |k: &str, d: Vec3| -> R<Vec3> {
-            match v.pointer(k) {
-                None => Ok(d),
-                Some(a) => {
-                    let a = a.as_array().filter(|a| a.len() == 3).ok_or_else(|| format!("env{k}: three numbers"))?;
-                    let f = |i: usize| a[i].as_f64().map(|x| x as f32).ok_or_else(|| format!("env{k}: numbers"));
-                    Vec3::new(f(0)?, f(1)?, f(2)?).try_normalize().ok_or_else(|| format!("env{k}: not a direction"))
-                }
-            }
-        };
+        let ask = Ask::of(v)?;
+        let v3 = |k: &str, d: Vec3| raea_sys_atlas::dir(v, k, d);
         let num = |k: &str, d: f64| v.pointer(k).and_then(Value::as_f64).unwrap_or(d) as f32;
         let walk = match v.get("walk") {
             None => Walk::Classes(vec![Class::Ground]),
@@ -101,41 +91,26 @@ impl Env {
             Some(w) => Walk::Level(w.get("y").and_then(Value::as_f64).ok_or("env.walk: [class...] or {y}")? as f32),
         };
         let env = Env {
-            up: v3("/up", Vec3::Y)?,
-            north: v3("/north", Vec3::NEG_Z)?,
+            up: ask.up,
+            north: ask.north,
             rain: v3("/rain/dir", Vec3::NEG_Y)?,
             spread: num("/rain/spread", 30.0).clamp(0.0, 80.0).to_radians(),
             lat: num("/sun/lat", 52.5).clamp(-89.0, 89.0),
-            snow: v3("/snow/dir", storm(v3("/up", Vec3::Y)?, v3("/north", Vec3::NEG_Z)?))?,
+            snow: v3("/snow/dir", storm(ask.up, ask.north))?,
             snow_spread: num("/snow/spread", 25.0).clamp(0.0, 80.0).to_radians(),
             walk,
-            density: match v.get("density") { Some(Value::Object(o)) => o.get("*").and_then(Value::as_f64).unwrap_or(8.0) as f32, _ => num("/density", 8.0) },
-            densities: match v.get("density") {
-                Some(Value::Object(o)) => o
-                    .iter()
-                    .filter(|(k, _)| k.as_str() != "*")
-                    .map(|(k, d)| Ok((Class::of(k).ok_or_else(|| format!("env.density.{k}: a class name"))?, d.as_f64().ok_or_else(|| format!("env.density.{k}: a number"))? as f32)))
-                    .collect::<R<_>>()?,
-                _ => Vec::new(),
-            },
-            max_side: num("/max_side", 4096.0) as u32,
+            density: ask.density,
+            densities: ask.densities,
+            max_side: ask.max_side,
             sky_rays: num("/rays/sky", 32.0).clamp(4.0, 512.0) as u32,
             cavity_rays: num("/rays/cavity", 8.0).clamp(2.0, 128.0) as u32,
         };
-        for d in std::iter::once(env.density).chain(env.densities.iter().map(|(_, d)| *d)) {
-            if !(0.25..=256.0).contains(&d) {
-                return Err(format!("env.density: 0.25-256 texels a metre, got {d}"));
-            }
-        }
-        if !(64..=16384).contains(&env.max_side) {
-            return Err(format!("env.max_side: 64-16384, got {}", env.max_side));
-        }
         Ok(env)
     }
 
-    /// Texels a metre for a surface of this class.
-    pub fn density_of(&self, c: Class) -> f32 {
-        self.densities.iter().find(|(k, _)| *k == c).map(|(_, d)| *d).unwrap_or(self.density)
+    /// What the atlas is laid out for (raea_sys_atlas::Ask): the same fields, so `layout` with this request agrees.
+    pub fn ask(&self) -> Ask {
+        Ask { up: self.up, north: self.north, density: self.density, densities: self.densities.clone(), max_side: self.max_side }
     }
 }
 
@@ -158,13 +133,8 @@ pub fn bake(store: &Path, src: &Path, req: &Value) -> R<Value> {
             return Ok(v);
         }
     }
-    let env = Env::of(req.get("env").unwrap_or(&Value::Null))?;
-    let classes = Classes::of(req.get("classes").unwrap_or(&Value::Null))?;
     let t0 = Instant::now();
-    let sc = scene::read(&bytes, &classes).map_err(|e| format!("{}: {e}", src.display()))?;
-    let mesh = rays::mesh_of(&sc);
-    let t1 = Instant::now();
-    let at = charts::build(&sc, &env, &mesh)?;
+    let (env, sc, mesh, at, t1) = lay(&bytes, req).map_err(|e| format!("{}: {e}", src.display()))?;
     let t2 = Instant::now();
     let n = (at.w * at.h) as usize;
     let (mut c0, mut c1, mut c2, mut c3) = (vec![[0u8; 4]; n], vec![[0u8; 4]; n], vec![[0u8; 4]; n], vec![[0u8; 4]; n]);
@@ -206,6 +176,13 @@ pub fn bake(store: &Path, src: &Path, req: &Value) -> R<Value> {
     });
     std::fs::write(&meta, out.to_string()).map_err(|e| format!("{}: {e}", meta.display()))?;
     Ok(out)
+}
+
+/// The request's world, and its model laid out as raea_sys_atlas::layout lays it (the same atlas, by construction).
+fn lay(bytes: &[u8], req: &Value) -> R<(Env, scene::Scene, parry3d::shape::TriMesh, charts::Atlas, Instant)> {
+    let env = Env::of(req.get("env").unwrap_or(&Value::Null))?;
+    let (sc, mesh, at, t) = raea_sys_atlas::lay(bytes, req)?;
+    Ok((env, sc, mesh, at, t))
 }
 
 fn strip_src(v: &Value) -> Value {

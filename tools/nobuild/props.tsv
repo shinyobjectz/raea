@@ -1,0 +1,20 @@
+# Each knob's prop against the variable it replaced (tools/nobuild.sh props, docs/nobuild.feature NB1a): the scene, the
+# composition that sets the prop, the composition rendered with the variables instead, the variables, the light path
+# (raster; solari, RAEA_LIGHT=solari; traced, the scene's own Solari or path tracer) and the frame compared. Raster
+# frames are compared exactly; traced ones against two runs' noise.
+# scene	composition	against	variables	light	frame
+fog.tsx	shadow	base	RAEA_FOG_SHADOW=off	raster	1
+fog.tsx	exact	base	RAEA_FOG_HERO_EXACT=1	raster	1
+fog.tsx	tricubic	base	RAEA_FOG_TRICUBIC_T=1	raster	1
+fog.tsx	epi	base	RAEA_FOG_EPI=16,6,4	raster	1
+fog.tsx	grid	base	RAEA_FOG_GRID=8,96,1	raster	1
+fog.tsx	nohero	base	RAEA_FOG_HERO=0	raster	1
+fog.tsx	march	base	RAEA_FOG_MODE=march	raster	1
+fog.tsx	solari	base	RAEA_FOG_SOLARI_CANDIDATES=1 RAEA_FOG_SOLARI_FRAMES=1 RAEA_FOG_SOLARI_SKY=2 RAEA_FOG_SOLARI_PARTS=lamps RAEA_FOG_SOLARI_FILTER=0 RAEA_FOG_SOLARI_GUIDE=1	solari	23
+fog.tsx	solarioff	base	RAEA_FOG_SOLARI=0	solari	23
+steady.tsx	steady	plain	RAEA_STEADY=1	raster	11
+steady.tsx	rates	steady	RAEA_STEADY_STILL=8 RAEA_STEADY_MOVING=2 RAEA_STEADY_PX=1	raster	11
+blur.tsx	bevy	shutter	RAEA_MOTION_BLUR=bevy	raster	6
+traced.tsx	spp	trace	RAEA_LIGHT_SPP=4	traced	2
+traced.tsx	nomedia	trace	RAEA_PT_MEDIA=0	traced	2
+traced.tsx	dynamic	solari	RAEA_SOLARI_DYNAMIC=1	traced	11

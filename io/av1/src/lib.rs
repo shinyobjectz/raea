@@ -203,7 +203,8 @@ struct Encoder {
     ctx: rav1e::Context<u8>,
     opts: EncodeOpts,
     out: PathBuf,
-    packets: Vec<(u64, Vec<u8>, bool)>,
+    /// each frame's packet on disk as it comes, not in memory (SG4a)
+    packets: raea_io_codec::samples::Samples,
     pushed: usize,
 }
 
@@ -211,11 +212,11 @@ impl Encoder {
     fn drain(&mut self) -> R<()> {
         loop {
             match self.ctx.receive_packet() {
-                Ok(p) => self.packets.push((
-                    p.input_frameno,
-                    p.data,
+                Ok(p) => self.packets.put(
+                    p.input_frameno as usize,
+                    &p.data,
                     p.frame_type == rav1e::prelude::FrameType::KEY,
-                )),
+                )?,
                 Err(rav1e::EncoderStatus::Encoded) => continue,
                 Err(rav1e::EncoderStatus::NeedMoreData)
                 | Err(rav1e::EncoderStatus::LimitReached) => return Ok(()),
@@ -238,7 +239,6 @@ impl VideoEncoder for Encoder {
     fn finish(mut self: Box<Self>, audio: Option<&Audio>) -> R<EncodeStats> {
         self.ctx.flush();
         self.drain()?;
-        self.packets.sort_by_key(|p| p.0);
         let file = std::fs::File::create(&self.out).map_err(|e| e.to_string())?;
         let mut b = muxide::api::MuxerBuilder::new(std::io::BufWriter::new(file))
             .video(
@@ -261,8 +261,12 @@ impl VideoEncoder for Encoder {
         }
         let mut m = b.build().map_err(|e| format!("muxide: {e}"))?;
         let mut ai = 0;
-        for (n, data, key) in &self.packets {
-            let pts = *n as f64 / self.opts.fps;
+        let n = self.packets.len();
+        let mut read = self.packets.reader()?;
+        let mut data = Vec::new();
+        for k in 0..n {
+            let key = read(k, &mut data)?;
+            let pts = k as f64 / self.opts.fps;
             if let Some(p) = &packets {
                 while ai < p.len() && p[ai].0 < pts {
                     m.write_audio(p[ai].0, &p[ai].1)
@@ -270,7 +274,7 @@ impl VideoEncoder for Encoder {
                     ai += 1;
                 }
             }
-            m.write_video(pts, data, *key)
+            m.write_video(pts, &data, key)
                 .map_err(|e| format!("muxide video: {e}"))?;
         }
         let end = self.pushed as f64 / self.opts.fps;
@@ -362,7 +366,7 @@ impl Backend for Av1 {
             ctx,
             opts: o.clone(),
             out: out.to_path_buf(),
-            packets: Vec::new(),
+            packets: raea_io_codec::samples::Samples::new()?,
             pushed: 0,
         }))
     }

@@ -10,15 +10,26 @@ use std::path::PathBuf;
 
 use serde_json::{Map, Value, json};
 
-use crate::rubric::{SCORES, pass};
+use crate::rubric::{pass_for, scores};
 
 fn home() -> PathBuf {
     raea_io_home::env_path("RAEA_JUDGE_DIR", ".raea/judge")
 }
 
-/// The calibration in force, if one was made.
-pub fn calibration() -> Option<Value> {
-    serde_json::from_str(&std::fs::read_to_string(home().join("calibration.json")).ok()?).ok()
+/// A kind's calibration file: calibration.json for the default rubric, calibration.KIND.json for a `raea make` kind's
+/// (docs/make.feature MK6), each fitted on that kind's rounds alone.
+fn file_of(kind: Option<&str>) -> PathBuf {
+    home().join(kind.map_or_else(|| "calibration.json".to_string(), |k| format!("calibration.{k}.json")))
+}
+
+/// The calibration in force for a kind, if one was made.
+pub fn calibration(kind: Option<&str>) -> Option<Value> {
+    serde_json::from_str(&std::fs::read_to_string(file_of(kind)).ok()?).ok()
+}
+
+/// A row's or a verdict's kind: none for the default rubric.
+fn kind_in(v: &Value) -> Option<&str> {
+    v["kind"].as_str()
 }
 
 /// The judge's scores mapped through the calibration's lines, kept to 0-10.
@@ -33,15 +44,17 @@ pub fn apply(c: &Value, scores: &mut Map<String, Value>) {
 pub fn record(args: &[String]) -> Result<String, String> {
     let dir = args.get(2).map(PathBuf::from).ok_or("raea judge eye DIR CATEGORY=SCORE... [--pass yes|no]")?;
     let verdict: Value = serde_json::from_str(&std::fs::read_to_string(dir.join("judge.json")).map_err(|_| format!("judge eye: no {}: judge the round first (raea judge {})", dir.join("judge.json").display(), dir.display()))?).map_err(|e| e.to_string())?;
+    let kind = kind_in(&verdict);
+    let cats = scores(kind);
     // an agent's reading as the eye (`--by kimi`): a fresh session's scores, and its pass by the same rule in code
     if let Some(by) = args.iter().position(|a| a == "--by").and_then(|i| args.get(i + 1)) {
-        let v = crate::agent::ask(by, &dir, &json!({}), None)?;
-        let (eye, defects, _) = crate::agent::read(&v);
-        if eye.len() < SCORES.len() {
-            return Err(format!("judge eye: {by} scored only {} of {} categories", eye.len(), SCORES.len()));
+        let v = crate::agent::ask(kind, by, &dir, &json!({}), None)?;
+        let (eye, defects, _) = crate::agent::read(kind, &v);
+        if eye.len() < cats.len() {
+            return Err(format!("judge eye: {by} scored only {} of {} categories", eye.len(), cats.len()));
         }
-        let eye_pass = pass(&eye, &defects).0;
-        let row = json!({"dir": verdict["dir"], "by": by, "judge": verdict["raw"], "judge_pass": verdict["pass"], "defects": verdict["defects"], "eye": eye, "eye_pass": eye_pass, "eye_defects": defects});
+        let eye_pass = pass_for(kind, &eye, &defects).0;
+        let row = json!({"dir": verdict["dir"], "kind": kind, "by": by, "judge": verdict["raw"], "judge_pass": verdict["pass"], "defects": verdict["defects"], "eye": eye, "eye_pass": eye_pass, "eye_defects": defects});
         append(&row)?;
         let shown: Vec<String> = eye.iter().map(|(k, v)| format!("{k} {v}")).collect();
         return Ok(format!("APPLIED  {by}'s eye on {} recorded ({}): {}; raea judge calibrate fits clef to it", dir.display(), if eye_pass { "a pass" } else { "not yet" }, shown.join(", ")));
@@ -56,8 +69,8 @@ pub fn record(args: &[String]) -> Result<String, String> {
             continue;
         }
         let (k, v) = args[i].split_once('=').ok_or_else(|| format!("judge eye: {:?} isn't CATEGORY=SCORE", args[i]))?;
-        if !SCORES.iter().any(|s| s.0 == k) {
-            return Err(format!("judge eye: no category {k}: {}", SCORES.iter().map(|s| s.0).collect::<Vec<_>>().join(", ")));
+        if !cats.iter().any(|s| s.0 == k) {
+            return Err(format!("judge eye: no category {k}: {}", cats.iter().map(|s| s.0).collect::<Vec<_>>().join(", ")));
         }
         let x: f64 = v.parse().ok().filter(|x| (0.0..=10.0).contains(x)).ok_or_else(|| format!("judge eye: {k} is a score 0-10, got {v:?}"))?;
         eye.insert(k.into(), json!(x));
@@ -67,8 +80,8 @@ pub fn record(args: &[String]) -> Result<String, String> {
         return Err("judge eye: give your scores, e.g. composition=6 form=5 assembly=7 materials=4 light=6 detail=5 world=6".into());
     }
     // his pass: as he says it, else the same rule on his scores with the judge's defects
-    let eye_pass = said_pass.unwrap_or_else(|| pass(&eye, verdict["defects"].as_array().map(Vec::as_slice).unwrap_or(&[])).0);
-    let row = json!({"dir": verdict["dir"], "by": "shane", "judge": verdict["raw"], "judge_pass": verdict["pass"], "defects": verdict["defects"], "eye": eye, "eye_pass": eye_pass});
+    let eye_pass = said_pass.unwrap_or_else(|| pass_for(kind, &eye, verdict["defects"].as_array().map(Vec::as_slice).unwrap_or(&[])).0);
+    let row = json!({"dir": verdict["dir"], "kind": kind, "by": "shane", "judge": verdict["raw"], "judge_pass": verdict["pass"], "defects": verdict["defects"], "eye": eye, "eye_pass": eye_pass});
     append(&row)?;
     Ok(format!("APPLIED  your eye on {} recorded ({}): raea judge calibrate fits the judge to it", dir.display(), if eye_pass { "a pass" } else { "not yet" }))
 }
@@ -94,10 +107,11 @@ fn fit(xy: &[(f64, f64)]) -> (f64, f64) {
     (a, my - a * mx)
 }
 
-/// The fit over rows of {judge, eye, defects, eye_pass}: per-category maps and errors, and the pass agreement.
-pub fn fit_rows(rows: &[Value]) -> Value {
+/// The fit over a kind's rows of {judge, eye, defects, eye_pass} (none: the default rubric's): per-category maps and
+/// errors, and the pass agreement.
+pub fn fit_rows_for(kind: Option<&str>, rows: &[Value]) -> Value {
     let mut maps = Map::new();
-    for (k, _, _) in SCORES {
+    for &(k, _, _) in scores(kind) {
         let xy: Vec<(f64, f64)> = rows.iter().filter_map(|r| Some((r["judge"][k].as_f64()?, r["eye"][k].as_f64()?))).collect();
         if xy.len() < 2 {
             continue;
@@ -112,7 +126,7 @@ pub fn fit_rows(rows: &[Value]) -> Value {
     for r in rows {
         let mut s = r["judge"].as_object().cloned().unwrap_or_default();
         apply(&cal, &mut s);
-        let p = pass(&s, r["defects"].as_array().map(Vec::as_slice).unwrap_or(&[])).0;
+        let p = pass_for(kind, &s, r["defects"].as_array().map(Vec::as_slice).unwrap_or(&[])).0;
         if Value::Bool(p) == r["eye_pass"] {
             agree += 1;
         }
@@ -126,16 +140,20 @@ pub fn fit_rows(rows: &[Value]) -> Value {
 }
 
 pub fn calibrate(args: &[String]) -> Result<String, String> {
-    let rows: Vec<Value> = std::fs::read_to_string(home().join("eye.jsonl")).unwrap_or_default().lines().filter_map(|l| serde_json::from_str(l).ok()).collect();
+    let kind = crate::kind_of(args)?;
+    let kind = kind.as_deref();
+    let rows: Vec<Value> = std::fs::read_to_string(home().join("eye.jsonl")).unwrap_or_default().lines().filter_map(|l| serde_json::from_str(l).ok()).filter(|r: &Value| kind_in(r) == kind).collect();
     if rows.is_empty() {
-        return Err("judge calibrate: no rounds with your eye yet (raea judge eye DIR form=5 ...)".into());
+        let k = kind.map(|k| format!(" of a {k}")).unwrap_or_default();
+        return Err(format!("judge calibrate: no rounds{k} with your eye yet (raea judge eye DIR form=5 ...)"));
     }
-    let mut cal = fit_rows(&rows);
+    let mut cal = fit_rows_for(kind, &rows);
+    cal["kind"] = json!(kind);
     let mut eyes: Vec<String> = rows.iter().map(whose).map(str::to_string).collect();
     eyes.sort();
     eyes.dedup();
     cal["eyes"] = json!(eyes);
-    std::fs::write(home().join("calibration.json"), serde_json::to_string_pretty(&cal).unwrap_or_default()).map_err(|e| e.to_string())?;
+    std::fs::write(file_of(kind), serde_json::to_string_pretty(&cal).unwrap_or_default()).map_err(|e| e.to_string())?;
     if args.iter().any(|a| a == "--json") {
         return Ok(serde_json::to_string_pretty(&cal).unwrap_or_default());
     }

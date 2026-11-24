@@ -15,8 +15,8 @@
 #   made once. A link is never made through a linked folder, so nothing is written into ~/raea.
 # - Before building, it sweeps ~/raea's stale debug caches if disk is short, and refuses under 8 GB.
 #
-# Output: one line per step ("L2 <step>: ..."), then "L2 <sha>: P26 a/b, ui-parity c/d, conformance e/f" and
-# $OUT/summary.json. Run it under antsy with a stall of 20 minutes or more (a heavy composition prints after
+# Output: one line per step ("L2 <step>: ..."), then "L2 <sha>: P26 a/b, ui-parity c/d, conformance e/f, ..., bench
+# checks g/h" (bench/l2-checks.txt) and $OUT/summary.json. Run it under antsy with a stall of 20 minutes or more (a heavy composition prints after
 # rendering all its frames).
 set -uo pipefail
 ROOT=$HOME/raea
@@ -30,7 +30,9 @@ free() { df -g / | awk 'NR==2{print $4}'; }
 say() { echo "L2 $*"; }
 
 # the commit, and the app: in its tree since 11-16 (a clone of the old raea-feed app left in the checkout goes first);
-# before, the raea-feed commit at that commit's pointer, in a clone of its own
+# before, the raea-feed commit at that commit's pointer, in a clone of its own; a commit of the public repo records
+# neither (the app is raea-feed's, outside the export), so raea-feed's main, as L1 reads it (tools/agents/check),
+# fetched into the checkout's own clone, never into ~/raea's
 intree=; [ "$(git -C "$T" cat-file -t "$SHA:apps/app" 2>/dev/null)" = tree ] && intree=1
 [ -n "$intree" ] && [ -d "$T/apps/app/.git" ] && rm -rf "${T:?}/apps/app"
 git -C "$T" checkout -q -f "$SHA" || exit 2
@@ -38,7 +40,13 @@ git -C "$T" checkout -q -f "$SHA" || exit 2
 app=$(git -C "$T" ls-tree HEAD apps/app | awk '{print $3}')
 if [ -z "$intree" ]; then
   [ -d "$T/apps/app/.git" ] || { rmdir "$T/apps/app" 2>/dev/null; git clone -q "$ROOT/apps/app" "$T/apps/app" || exit 2; }
-  git -C "$T/apps/app" fetch -q "$ROOT/apps/app" && git -C "$T/apps/app" checkout -q -f "$app" || exit 2
+  if [ -n "$app" ]; then
+    git -C "$T/apps/app" fetch -q "$ROOT/apps/app" || exit 2
+  else
+    git -C "$T/apps/app" fetch -q "$(git -C "$ROOT/apps/app" remote get-url origin)" main || exit 2
+    app=$(git -C "$T/apps/app" rev-parse FETCH_HEAD) || exit 2
+  fi
+  git -C "$T/apps/app" checkout -q -f "$app" || exit 2
 fi
 say "commit: $(git -C "$T" log --oneline -1 | cut -c1-90) | app ${app:0:8}"
 
@@ -55,6 +63,9 @@ while IFS= read -r -d '' p; do
 done < <(git -C "$ROOT" status --porcelain=v1 -z --ignored -- content sdk bench engine 2>/dev/null | tr '\0' '\n' | sed -n 's/^!! //p' | tr '\n' '\0')
 # the app's packages (apps/app is a submodule: its own ignored files aren't in ~/raea's status)
 [ -e "$T/apps/app/node_modules" ] || ln -s "$ROOT/apps/app/node_modules" "$T/apps/app/node_modules"
+# the app's host reads the private site's code (host/library/local.ts imports apps/site/api's fuse.ts); a public commit
+# has no apps/site, so conformance's app build would fail: linked from ~/raea's, as a release builds the app there
+[ -e "$T/apps/site" ] || [ ! -d "$ROOT/apps/site" ] || ln -s "$ROOT/apps/site" "$T/apps/site"
 # a tracked relative link that climbs out of ~/raea (media/assets/residential -> ../../../../../Assets) resolves
 # from the checkout's parent: give that parent the same folders
 for d in Assets; do [ -e "$(dirname "$T")/$d" ] || [ ! -e "$HOME/$d" ] || ln -s "$HOME/$d" "$(dirname "$T")/$d"; done
@@ -74,16 +85,25 @@ build() {
       awk -v n="$n" '/^ *Compiling / && ++c % 25 == 0 { print "L2 " n ": " c " crates compiled"; fflush() }'
     grep -q '^ *Finished' "$OUT/$n.log" && { say "$n: $(grep '^ *Finished' "$OUT/$n.log" | sed 's/^ *//' | cut -c1-90)"; return 0; }
     grep -qE '^error(\[|:)' "$OUT/$n.log" && { say "$n: FAILED $(grep -m1 -E '^error' "$OUT/$n.log" | cut -c1-120)"; return 1; }
+    # lane refuses a build under its disk floor at once: that is no hold, and a retry is refused the same way (11-22:
+    # eight retries in a second, each reported as "lane hold ended")
+    grep -q '^lane build: refused' "$OUT/$n.log" && { say "$n: REFUSED $(grep -m1 '^lane build: refused' "$OUT/$n.log" | cut -c13-170)"; return 1; }
     say "$n: lane hold ended, resuming"
   done
   return 1
 }
-build build-raea -p raea-cli || exit 1
-cp "$T/target/release/raea" "$T/target/release/libraea_bundle.dylib" "$OUT/bin/" || exit 1
-build build-host -p raea-page-host || exit 1
-build build-conformance --manifest-path sdk/ui/conformance/Cargo.toml --target-dir target || exit 1
-build build-parity --manifest-path sdk/ui/parity/Cargo.toml --target-dir target || exit 1
-for b in raea-page-host conformance ui-parity; do cp "$T/target/release/$b" "$OUT/bin/" || exit 1; done
+# a resumed run whose binaries were made for this commit already uses them: the build is about 30 GB and half an hour
+# again, and 11-22 the disk was emptied between the two
+if [ -x "$OUT/bin/raea" ] && [ -x "$OUT/bin/raea-page-host" ] && [ -x "$OUT/bin/conformance" ] && [ -x "$OUT/bin/ui-parity" ]; then
+  say "builds: this commit's binaries are made already ($OUT/bin)"
+else
+  build build-raea -p raea-cli || exit 1
+  cp "$T/target/release/raea" "$T/target/release/libraea_bundle.dylib" "$OUT/bin/" || exit 1
+  build build-host -p raea-page-host || exit 1
+  build build-conformance --manifest-path sdk/ui/conformance/Cargo.toml --target-dir target || exit 1
+  build build-parity --manifest-path sdk/ui/parity/Cargo.toml --target-dir target || exit 1
+  for b in raea-page-host conformance ui-parity; do cp "$T/target/release/$b" "$OUT/bin/" || exit 1; done
+fi
 # P26, one composition at a time, skipping those already compared for this commit
 cd "$T" || exit 2
 # the plugin build's rows go last, after their binary is built, so a long plugin build doesn't hold up the rest
@@ -101,23 +121,6 @@ while IFS= read -r c; do
 done < "$1"
 }
 p26_rows "$OUT/p26/all"
-cd "$ROOT" || exit 2
-# the plugin rows' binary, as tools/bevy-plugins.sh builds it for bench/bevy-plugins (motion.sh)
-feats=$(cd "$T" && bash tools/bevy-plugins.sh features sdk/raea/bench/bevy-plugins) || { say "plugin features: failed"; exit 1; }
-build build-plugins -p raea-cli --bin raea-bevy-sdk --features "$feats" || exit 1
-cp "$T/target/release/raea-bevy-sdk" "$OUT/bin/" || exit 1
-printf '#!/bin/sh\nexec %s motion "$@"\n' "$OUT/bin/raea-bevy-sdk" > "$OUT/bin/plugin.sh" && chmod +x "$OUT/bin/plugin.sh"
-cd "$T" || exit 2
-# the generated plugin bindings (sdk/plugins/src) against this commit's registry, read from the plugin build just made
-# (about 50 s): a landing that registers a reflected type (a material's MeshMaterial3d<..>, say) changes them, and only
-# this build can read the registry, which L1 doesn't make; four such landings went unnoticed 10-31 to 11-08 (d708518be)
-if bash tools/bevy-plugins.sh check sdk/raea/bench/bevy-plugins > "$OUT/bindings.log" 2>&1; then bindings=ok; else bindings=drift; fi
-say "plugin bindings: $bindings$([ $bindings = ok ] || echo " (tools/bevy-plugins.sh build sdk/raea/bench/bevy-plugins, then land sdk/plugins/src; $OUT/bindings.log)")"
-p26_rows "$OUT/p26/plugin"
-# a composition ONLY matched by substring also ran its longer-named neighbours: keep one row per frame
-cat "$OUT"/p26/*/results.jsonl | jq -s 'unique_by(.composition, .frame)' > "$OUT/p26.json"
-p26=$(jq -r '"\(map(select(.pass)) | length)/\(length)"' "$OUT/p26.json")
-jq -r 'map(select(.pass | not)) | .[] | "L2 p26 miss: \(.composition) @\(.frame) \(.ssim)"' "$OUT/p26.json"
 
 # ui-parity full (calib's off-* cases fail by design) and conformance full, on the page host
 RAEA_TS_NATIVE_RESULTS="$OUT/ui-parity/latest.json" "$OUT/bin/ui-parity" run --tier full --jobs 2 --bevy "$OUT/bin/raea-page-host" --out "$OUT/ui-parity" </dev/null > "$OUT/ui-parity.log" 2>&1
@@ -127,5 +130,42 @@ RAEA_FEED_AGENT=echo "$OUT/bin/conformance" --bin "$OUT/bin/raea-page-host" --su
 conf=$(jq -r '"\(.pass)/\(.cases)"' "$OUT/conformance/summary.json" 2>/dev/null || echo "no results")
 say "conformance: $conf"
 
-jq -n --arg sha "$SHA" --arg p26 "$p26" --arg parity "$parity" --arg conf "$conf" --arg bindings "$bindings" '{sha: $sha, p26: $p26, ui_parity: $parity, conformance: $conf, plugin_bindings: $bindings}' > "$OUT/summary.json"
-echo "L2 $SHA: P26 $p26, ui-parity $parity, conformance $conf, plugin bindings $bindings"
+# the bench checks in bench/l2-checks.txt, each run with this commit's raea: they test what is right (a frame drawn alone
+# or out of order agrees with the render), where P26 only compares with its baseline, which can carry the same fault
+ok=0; total=0
+while read -r c; do
+  case $c in '' | '#'*) continue ;; esac
+  total=$((total + 1)); log="$OUT/bench-$(echo "$c" | tr / -).log"
+  if RAEA_BIN="$OUT/bin/raea" bash "$c" </dev/null > "$log" 2>&1; then ok=$((ok + 1)); else say "bench miss: $c ($(tail -1 "$log" | cut -c1-140))"; fi
+done < bench/l2-checks.txt
+benches="$ok/$total"
+say "bench checks: $benches"
+
+# the plugin build and its P26 rows go last: a long or refused plugin build holds up none of the suites above
+bindings="not built"
+cd "$ROOT" || exit 2
+# the plugin rows' binary, as tools/bevy-plugins.sh builds it for bench/bevy-plugins (motion.sh)
+# it compiles every crate again with the plugins' features: 11-22 it filled a disk that had 8 GB free at its start
+if [ "$(free)" -lt 45 ]; then
+  say "plugin build: not made, $(free) GB free (it needs about 40), so its $(wc -l < "$OUT/p26/plugin" | tr -d ' ') P26 compositions weren't compared"
+elif feats=$(cd "$T" && bash tools/bevy-plugins.sh features sdk/raea/bench/bevy-plugins) && build build-plugins -p raea-cli --bin raea-bevy-sdk --features "$feats" && cp "$T/target/release/raea-bevy-sdk" "$OUT/bin/"; then
+  printf '#!/bin/sh\nexec %s motion "$@"\n' "$OUT/bin/raea-bevy-sdk" > "$OUT/bin/plugin.sh" && chmod +x "$OUT/bin/plugin.sh"
+  cd "$T" || exit 2
+  # the generated plugin bindings (sdk/plugins/src) against this commit's registry, read from the plugin build just
+  # made (about 50 s): a landing that registers a reflected type (a material's MeshMaterial3d<..>, say) changes them,
+  # and only this build can read the registry, which L1 doesn't make; four such landings went unnoticed 10-31 to 11-08
+  # (d708518be)
+  if bash tools/bevy-plugins.sh check sdk/raea/bench/bevy-plugins > "$OUT/bindings.log" 2>&1; then bindings=ok; else bindings=drift; fi
+  say "plugin bindings: $bindings$([ $bindings = ok ] || echo " (tools/bevy-plugins.sh build sdk/raea/bench/bevy-plugins, then land sdk/plugins/src; $OUT/bindings.log)")"
+  p26_rows "$OUT/p26/plugin"
+else
+  cd "$T" || exit 2
+  say "plugin build: not made, so its $(wc -l < "$OUT/p26/plugin" | tr -d ' ') P26 compositions weren't compared (see above)"
+fi
+# a composition ONLY matched by substring also ran its longer-named neighbours: keep one row per frame
+cat "$OUT"/p26/*/results.jsonl | jq -s 'unique_by(.composition, .frame)' > "$OUT/p26.json"
+p26=$(jq -r '"\(map(select(.pass)) | length)/\(length)"' "$OUT/p26.json")
+jq -r 'map(select(.pass | not)) | .[] | "L2 p26 miss: \(.composition) @\(.frame) \(.ssim)"' "$OUT/p26.json"
+
+jq -n --arg sha "$SHA" --arg p26 "$p26" --arg parity "$parity" --arg conf "$conf" --arg bindings "$bindings" --arg benches "$benches" '{sha: $sha, p26: $p26, ui_parity: $parity, conformance: $conf, plugin_bindings: $bindings, bench_checks: $benches}' > "$OUT/summary.json"
+echo "L2 $SHA: P26 $p26, ui-parity $parity, conformance $conf, plugin bindings $bindings, bench checks $benches"

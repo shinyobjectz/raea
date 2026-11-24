@@ -208,7 +208,7 @@ fn main() {
         std::process::exit(raea_cli::cli(&args[1..]));
     }
     #[cfg(feature = "bevy-plugins")]
-    let (compiled, default_prefixes) = (raea_bevy_plugins::compiled(), raea_bevy_plugins::prefixes());
+    let (compiled, default_prefixes) = { raea_runtime_plugins::choose_every(true); (raea_bevy_plugins::compiled(), raea_bevy_plugins::prefixes()) }; // the generator walks every compiled plugin's types, chosen or not
     #[cfg(not(feature = "bevy-plugins"))]
     let (compiled, default_prefixes): (Vec<&str>, Vec<&str>) = (Vec::new(), Vec::new());
     let mut prefixes = flag_all(&args, "--prefix");

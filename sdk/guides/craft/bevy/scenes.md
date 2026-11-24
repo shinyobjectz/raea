@@ -7,7 +7,24 @@ hayashimon, KOBATAKA), each step on a raea verb.
 
 ## What to do
 
-The brief template, the builder prompt and the judge prompt to paste are in `bevy/prompts`.
+The brief template, the builder prompt and the judge prompt to paste are in `bevy/prompts`. A kit of props is
+`bevy/kits`; shooting a finished set is `bevy/shots`.
+
+### 0. The job: `make` on brief.ts, held by `raea make status`
+
+- Put the job on the brief: `make: scene({ references, style, dials, objects })` from `raea/brief`. Each object has
+  one size (`h`, `dims` or `max`), a `route`, `source: "reference" | "invented"` and, in a scene, `at` and `rot`
+  (metres from the floor's front-left corner; rot 0 faces the entrance). Dials you don't set are read from the
+  reference, so set only the ones the person asked for (`source: "customer"`).
+- `raea make status` decides in code whether you're done: the deliverables on disk, every gate, the judge's rounds.
+  The Stop hook asks it at the end of every turn, and you can't stop while it says "not done" (the loop gives way at
+  the 8-round cap, on a stall, or when the same thing is missing three turns running). `--plan` writes the gates as
+  check lines under the job's task in plan.org.
+- `raea make plan` is the stop before anything costs money: `review/plan/floor-plan.png` (every footprint, invented
+  ones dashed), a grey-box blockout seen from the entrance with its review sheets, and `comparison.png` beside the
+  reference. Show it, fix positions and sizes, and only then generate.
+- NOTES.md beside the brief ends with `## What the skill got wrong`: what the guides or tools led you into. Status
+  checks it's there once the work is.
 
 ### 1. The brief: a picture, a size, and what not to add
 
@@ -89,7 +106,10 @@ check names a script (`bevy/blender`). It never places, lights, frames, material
    tops, grime at the floor line (`ProceduralExtension`'s `dust`, `dirt` and `edges`, or `WearExtension` on paint; see `bevy/materials`). Leave nothing a
    flat default colour. Lay out printed matter as a 2D composition, render it to a PNG, use the PNG as the map, then
    age it.
-6. **Motion, last and small.** Then `raea render EDIT.tsx -o out/scene.mp4` and `raea check out/scene.mp4`.
+6. **Motion, last and small.** First `raea scene stage EDIT.tsx`: it steps every frame without drawing and holds it
+   to the checks the render fails on (3D words too small or turned too far to read, a part that snaps, a camera that
+   lurches or goes in and back out, frames with almost nothing on screen). A sign nobody is meant to read takes
+   `read={false}`. Then `raea render EDIT.tsx -o out/scene.mp4` and `raea check out/scene.mp4`.
    - Once things move, check how they move. Render with `--layers`, and render `--aov -o out/scene.aov` beside it for
      depth. Then run `raea fingerprint things out/scene.mp4 --json > things.json` and
      `raea check out/scene.mp4 --things things.json`. It finds a thing floating or passing through another, the
@@ -110,26 +130,38 @@ check names a script (`bevy/blender`). It never places, lights, frames, material
   you checked.
 - Change one thing per material per round. Re-run the stage's checks after every fix.
 
-### The judge
+### The judge, and the gates
 
-- `raea judge review/rN --brief brief.ts --target media/ref/target.png --json` sends the sheets to clef-omni with a
-  frozen rubric, and only the sheets and the brief's words: never the code or your log.
-- It returns 0-10 scores for composition, form, assembly, materials, light, detail and world, plus every defect as
-  `{tile, where, wrong, real, fix, level}`.
-- Code decides the pass. The thresholds are not in the prompt, and you do not tune toward them.
-- In Claude Code you can also judge with a fresh subagent every round, given only the sheets, the brief and the
-  previous verdict.
-- The judge doesn't gate until it has been calibrated against Shane's eye (`raea judge eye` and
-  `raea judge calibrate`). Until then its scores are advice.
+Three tiers, each gating once it has earned it (`raea make status` lists them):
+
+1. **Measured checks always gate:** `raea scene lint` (floats and sinks at the feet, clips with the move that clears
+   them, faces z-fighting in one plane), `raea gen check` on every generated model, `raea scene stage --clearance 0.45` on
+   a moving camera, and the deliverables' counts.
+2. **`raea ask` questions gate one at a time, once calibrated.** The make set (`raea ask SHEET --set make`, or the
+   command status prints) asks yes/no about one sheet: floating, intersecting, blobby, a stand-in, flat colour,
+   plastic, opaque glass, garbled hero text, a real brand, too dark or bright; on a reference sheet, an outlier, two
+   objects, a brand; on a framing sheet, a camera through a wall or a subject lost. Every answer lands in the ask
+   ledger, matched to the sheet's bytes, so a re-rendered sheet needs asking again. A question gates once
+   `raea ask calibrate` passes it (16 problem and 16 clean labels, held-out AUC 0.8); until then it's advice in the
+   status.
+3. **A fresh critic for the fixes.** `raea judge review/rN --kind scene --by claude --brief brief.ts --target
+   media/ref/target.png --json` (or clef, kimi) scores the kind's rubric (scene: layout, props, signage, materials,
+   light, atmosphere, plausibility, composition; layout and props judged on clay), on a production bar: don't
+   nitpick, at most five fixes. It sees the sheets and the brief's words only, never the code or your log. Code
+   decides the pass; the thresholds aren't in the prompt. A round judged on another kind's rubric doesn't count.
+   Fix every blocking defect it names, or answer it in NOTES.md (its words, then what you checked). Its score gates
+   once `raea judge calibrate --kind scene` agrees with Shane's eye (`raea judge eye`).
 
 ### Stopping
 
-- **Done:** two fresh judges in a row pass the scene.
-- **Stall:** the score hasn't risen a full point in 2 rounds, or the same defect has been named twice. Stop tweaking
-  and change the approach for that part: another route (solid, field, Tripo HD, Tripo Smart Mesh), a rebuilt light
-  plan, or a moved camera. A defect that comes back after two fixes belongs to the method, not the dose.
-- **Stalled:** the big change didn't move it. Show the latest sheet and the open defects.
-- **Cap:** 8 judge rounds a scene, 3 per object system. At the cap, deliver and list what is still wrong.
+`raea make status` says it; you don't decide it.
+
+- **Done:** every deliverable on disk, every gate clear, and two fresh critic passes in a row on the latest renders.
+- **Stall:** three rounds without beating the best score, or the same defect named twice. Stop tweaking and change
+  the approach for that part: another route (solid, field, Tripo HD, Meshy), a rebuilt light plan, or a moved camera.
+  A defect that comes back after two fixes belongs to the method, not the dose.
+- **Cap:** 8 critic rounds a job. At the cap or a stall the job is delivered short: status lists what's still
+  missing, and the Stop hook lets you end with it said.
 
 ## Why
 

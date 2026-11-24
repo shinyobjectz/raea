@@ -7,7 +7,7 @@ use raea_core_meshcheck::blender;
 use raea_core_scene::{Item, src_path};
 use serde_json::{Value, json};
 
-use super::model::file_tris;
+use raea_core_modelbox::file_tris;
 use super::seen::camera;
 
 /// The frame's models measured against the camera: (findings, the error count).

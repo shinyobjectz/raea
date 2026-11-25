@@ -1,6 +1,6 @@
 # Parts: a talking take, dressed by name
 
-The reel's parts are designed parts for a talking take. They're an example the project owns: `raea component add reel`
+The reel is a component set (`raea guide components` says how components fit together): designed parts for a talking take. They're an example the project owns: `raea component add reel`
 copies them into components/reel/, yours to change, and you import them from "./components/reel". You place each one
 with one line, and each one lands on the words that say it. You don't lay out boxes or count frames. You choose which
 part goes on which beat, and what it says.

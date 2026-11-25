@@ -98,7 +98,7 @@ exit = "parley carrying the fix"
 path = "vendor/stylo"
 upstream = "crates.io:0.22.0"
 kind = "patch"
-reason = "line-clamp, text-wrap-style (with Chrome's pretty) and pointer-events' SVG keywords (all, visible, painted...) for Servo too, Gecko-only upstream; url() filters; ::-webkit-slider-thumb and ::-moz-range-thumb as the slider thumb; unknown vendor-prefixed properties reported like any other, so a page can be told what it lost (raea #34); background-clip's text value for Servo too (#37); text-autospace for Servo too, initial no-autospace as Chrome's (#44); vector-effect for Servo too (#45)"
+reason = "line-clamp, text-wrap-style (with Chrome's pretty) and pointer-events' SVG keywords (all, visible, painted...) for Servo too, Gecko-only upstream; url() filters; ::-webkit-slider-thumb and ::-moz-range-thumb as the slider thumb; unknown vendor-prefixed properties reported like any other, so a page can be told what it lost (raea #34); background-clip's text value for Servo too (#37); text-autospace for Servo too, initial no-autospace as Chrome's (#44); vector-effect for Servo too (#45); a stylesheet's invalidation doesn't ask a state-only snapshot for its class or id (it panicked)"
 exit = "Servo's stylo enabling them"
 
 [anyrender]

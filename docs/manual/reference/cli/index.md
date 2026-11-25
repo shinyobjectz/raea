@@ -69,8 +69,9 @@ What's wrong before anyone watches it.
 | [`raea fingerprint`](fingerprint.md) | A person's sense of good work, learned on this Mac: axes with small heads over on-device encoders that score a render moment by moment and say what they can't judge yet. |
 | [`raea videoform`](videoform.md) | A kind of video you make again and again, read once from its references: files on your drive or links, keeping only what was measured, never the video. |
 | [`raea findings`](findings.md) | What each render and check found, read back from the project's record: fixed, new and carried since the one before. |
-| [`raea scene`](scene.md) | Find floating, sunk and clipping 3D parts, say what each part rests on, meter a shot's light, and hold every frame to the stage checks a render runs. |
+| [`raea scene`](scene.md) | Find floating, sunk and clipping 3D parts, say what each part rests on, meter a shot's light, hold every frame to the stage checks a render runs, and list each part's planned detail beside how large the frames show it. |
 | [`raea light`](light.md) | Measure a scene's light on each light path against its path-traced reference: distance in stops, the worst tile, flicker and cost. |
+| [`raea bench`](bench.md) | Each case on each denoiser against its converged truth: FLIP, RMSE, bias, flicker, blotches, lag after a disocclusion or a light going out, a frame's cost, and how many of MetalFX's numbers each meets. |
 | [`raea world`](world.md) | A frame as one world: its layers, text, 3D parts, camera, shots, clips, cues and lines as entities, queried across media. |
 | [`raea solid`](solid.md) | Measure, view and export a solid: parts built from code with exact volumes, joints and parameters. |
 | [`raea next`](next.md) | The two or three most useful next steps for a project, read from its brief, compositions, renders and checks. |
@@ -103,6 +104,7 @@ Music read, foley and instruments made on this machine.
 | [`raea sao`](sao.md) | Make a sound effect from a description with Stable Audio Open, on this machine. |
 | [`raea tokensynth`](tokensynth.md) | Make an instrument's notes from a description of its timbre with TokenSynth, on this machine. |
 | [`raea setup-audio`](setup-audio.md) | Install or check the local audio models: Stable Audio Open for foley and TokenSynth for instruments. |
+| [`raea voice`](voice.md) | Speech in and out on this computer, as lines of JSON on stdin and stdout: what raea.app's Ideate hears and speaks with. While it speaks it doesn't listen, unless --duplex (headphones: it listens all the time) or --over (speakers: its own voice is taken out of the microphone's sound, new and not yet tried across real rooms). |
 
 ## Generate and 3D tools
 

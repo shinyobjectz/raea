@@ -2,7 +2,7 @@
 import * as wire from "../wire";
 import { canvasClass } from "../canvas";
 import { outline, pointAtLength, totalLength } from "./svg-length";
-import { DocumentFragment_, Element_, Event_, HTMLAnchorElement_, HTMLButtonElement_, HTMLDivElement_, HTMLElement_, HTMLFormElement_, HTMLInputElement_, HTMLLIElement_, HTMLLabelElement_, HTMLOptionElement_, HTMLSelectElement_, HTMLSpanElement_, HTMLTextAreaElement_, HTMLUListElement_, MediaNews, Node_, S, SVG_NS, SVG_TAGS, Text_, byWid, dispatchDirect, focusTo, g, pageUrl, transition } from "./all";
+import { DocumentFragment_, Element_, Event_, HTMLAnchorElement_, HTMLButtonElement_, HTMLDivElement_, HTMLElement_, HTMLFormElement_, HTMLInputElement_, HTMLLIElement_, HTMLLabelElement_, HTMLOptionElement_, HTMLSelectElement_, HTMLSpanElement_, HTMLTextAreaElement_, HTMLUListElement_, MediaNews, Node_, S, SVG_NS, SVG_TAGS, Text_, byWid, dispatchDirect, focusTo, g, pageUrl, transition, dispatch, focusable, query } from "./all";
 
 export class HTMLImageElement_ extends HTMLElement_ {
   _media?: MediaNews;
@@ -75,8 +75,14 @@ export class HTMLMediaElement_ extends HTMLElement_ {
   get loop() {
     return this._props.loop === true || this.hasAttribute("loop");
   }
+  set loop(v: boolean) {
+    this.toggleAttribute("loop", !!v);
+  }
   get autoplay() {
     return this._props.autoPlay === true || this._props.autoplay === true || this.hasAttribute("autoplay");
+  }
+  set autoplay(v: boolean) {
+    this.toggleAttribute("autoplay", !!v);
   }
   play() {
     if (!this._playing) {
@@ -218,7 +224,57 @@ export class HTMLIFrameElement_ extends HTMLElement_ {
   }
 }
 
-export class HTMLDialogElement_ extends HTMLElement_ {}
+/** The modal dialogs open, the topmost last: Escape asks the topmost to close (its cancel event). */
+export const modals: Element_[] = [];
+
+/** <dialog>, as Chrome's: open is its attribute; show and showModal open it (showModal focuses what's in it: its
+ *  autofocus, else its first focusable); close shuts it, keeps returnValue, and fires close after; Escape on a modal one
+ *  fires cancel, and shuts it unless that's prevented. raea cloud's sheets (sheet.js) are one opened with showModal:
+ *  without it the rail's + and every sheet threw in raea.app (11-23). Blitz never matches :modal, so a modal one is
+ *  placed by the page's CSS (the sheet's is fixed) and not raised to a top layer. */
+export class HTMLDialogElement_ extends HTMLElement_ {
+  _returnValue = "";
+  get open() {
+    return this.hasAttribute("open");
+  }
+  set open(v: boolean) {
+    this.toggleAttribute("open", !!v);
+  }
+  get returnValue() {
+    return this._returnValue;
+  }
+  set returnValue(v: string) {
+    this._returnValue = String(v);
+  }
+  show() {
+    if (!this.open) this.setAttribute("open", "");
+  }
+  showModal() {
+    if (this.open) {
+      if (modals.includes(this)) return;
+      throw new DOMException("The dialog is already open as a non-modal dialog.", "InvalidStateError");
+    }
+    if (!this.isConnected) throw new DOMException("The dialog is not connected.", "InvalidStateError");
+    this.setAttribute("open", "");
+    modals.push(this);
+    const all = query(this, "*", false) as Element_[];
+    const first = all.find((e) => e.hasAttribute("autofocus") && focusable(e)) ?? all.find((e) => focusable(e));
+    if (first) focusTo(first, true);
+  }
+  close(returnValue?: string) {
+    if (!this.open) return;
+    if (returnValue !== undefined) this._returnValue = String(returnValue);
+    this.removeAttribute("open");
+    const i = modals.indexOf(this);
+    if (i >= 0) modals.splice(i, 1);
+    // after, as a task (Chrome queues it): what closed it has finished first
+    setTimeout(() => dispatch(this, new Event_("close"), true), 0);
+  }
+  requestClose(returnValue?: string) {
+    if (!this.open) return;
+    if (dispatch(this, new Event_("cancel", { cancelable: true }), true)) this.close(returnValue);
+  }
+}
 
 /** canvas: getContext("2d") draws on the host (src/canvas.ts) */
 export const HTMLCanvasElement_ = canvasClass(HTMLElement_);

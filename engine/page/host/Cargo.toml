@@ -18,7 +18,7 @@ path = "src/main.rs"
 # the page on QuickJS (raea-runtime-js's portable engine) in place of JavaScriptCore
 portable = ["raea-runtime-js/portable"]
 # raea's window on screen (--window: the desktop app, docs/app.feature AP5/AP6); the benches and tests stay headless
-window = ["bevy/bevy_winit", "dep:raea-runtime-plugins", "raea-page-window/window"]
+window = ["bevy/bevy_winit", "dep:raea-runtime-plugins", "raea-page-window/window", "raea-page-ax/window"]
 
 [dependencies]
 raea-io-trace = { path = "../../../io/trace" }
@@ -26,8 +26,8 @@ raea-io-trace = { path = "../../../io/trace" }
 # page decodes (raea-page's IMAGE_DECODER decodes through bevy_image): the legacy app's list, which the benches ran on
 bevy = { version = "=0.20.0", default-features = false, features = ["std", "default_app", "default_font", "multi_threaded", "3d_bevy_render", "ui_bevy_render", "png", "tonemapping_luts", "ktx2", "zstd_rust", "bevy_picking", "ui_picking", "bevy_ui_widgets", "bevy_input_focus", "jpeg", "bevy_remote", "tga", "qoi", "tiff", "pnm", "ff", "dds", "exr", "hdr", "webp", "gif", "bmp", "ico"] }
 raea-runtime-js = { path = "../../../runtime/js" }
-# the page's accessibility records
-raea-sys-a11y = { path = "../../../systems/a11y" }
+# the page's accessibility: the `a11y` method's records, and the window's tree
+raea-page-ax = { path = "../ax" }
 raea-page = { path = ".." }
 # the desktop window: --chrome and the native calls (clipboard, links, notifications, the dock badge, raea:// links)
 raea-page-window = { path = "../window" }
@@ -44,7 +44,6 @@ raea-runtime-input = { path = "../../../runtime/input" }
 raea-io-media = { path = "../../../io/media", default-features = false, features = ["apple"] }
 blitz-traits = "=0.3.0-beta.4"
 blitz-dom = { version = "=0.3.0-beta.4", default-features = false }
-stylo = "=0.22.0"
 image = { version = "0.25", default-features = false, features = ["png"] }
 serde_json = "1"
 # the live stage: <img data-raea-stage> (raea-page-stage)

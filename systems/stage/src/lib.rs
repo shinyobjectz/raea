@@ -21,7 +21,8 @@ mod view;
 pub use framing::{model_box, on_screen, own_box};
 pub use manifest::{Mounts, pages, seen};
 pub use page::{Page, Words};
-pub use view::View;
+pub use cover::{crossing, see_through};
+pub use view::{View, corners};
 
 /// Who says these findings, in a render.
 pub const BY: &str = "raea render";

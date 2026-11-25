@@ -53,6 +53,8 @@ export {
   getCompositions,
   registerRoot,
   useControl,
+  getInputProps,
+  type CalculateMetadata,
   type CompositionProps,
   type Edit,
   type RegisteredComposition,

@@ -150,6 +150,10 @@ pub struct Object {
     pub at: Option<[f64; 3]>,
     pub rot: Option<f64>,
     pub hero: Option<bool>,
+    /// how large it is planned to be seen, which is how much of it gets built: 0 the hero (half the frame or more),
+    /// 1 featured (under 50%), 2 dressing (under 20%), 3 background (under 8%: a grey box reads), 4 far (under 2%: a
+    /// silhouette). A render that shows it finer than this says so (`lod-closer`; `raea scene lod` lists every part)
+    pub lod: Option<u8>,
     pub pick: Option<Pick>,
     /// what was fixed by script ("glass made transmissive, label kept opaque")
     #[serde(default)]
@@ -239,6 +243,9 @@ pub fn doctor(m: &Make) -> Vec<String> {
         }
         if o.h.is_none() && o.dims.is_none() && o.max.is_none() {
             out.push(format!("object `{}` has no size: give `h` (metres), `dims` for boxy things or `max` for flat ones", o.id));
+        }
+        if o.lod.is_some_and(|l| l > 4) {
+            out.push(format!("object `{}` has lod {}: 0 (the hero, half the frame or more) to 4 (far, under 2% of it)", o.id, o.lod.unwrap_or(0)));
         }
         if o.route.is_none() && m.kind == Kind::Scene {
             out.push(format!("object `{}` has no route: solid, rule, gen, library or picture", o.id));

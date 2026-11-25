@@ -1,0 +1,15 @@
+[package]
+name = "raea-denoise-bench"
+version = "0.1.0"
+edition = "2024"
+license = "FSL-1.1-ALv2"
+publish = false
+description = "raea bench denoise: each case on each denoiser against its converged truth: FLIP, RMSE, bias, flicker, blotches, lag and a frame's cost (docs/denoise.feature DN0)"
+
+[dependencies]
+image = { version = "0.25", default-features = false, features = ["png"] }
+serde_json = "1"
+# the CLI's flag reader and result type
+raea-runtime-bundle = { path = "../../../../runtime/bundle" }
+# raea light check's runner (a scene's frames under switches, its path-traced truth kept between runs) and its stops
+raea-light = { path = "../../../light" }

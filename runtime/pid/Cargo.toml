@@ -1,0 +1,12 @@
+[package]
+name = "raea-runtime-pid"
+version = "0.1.0"
+edition = "2024"
+description = "Whether a process still runs, asked of the system itself (a bundle's work folder is swept once its render is gone)"
+license = "FSL-1.1-ALv2"
+
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_System_Threading"] }

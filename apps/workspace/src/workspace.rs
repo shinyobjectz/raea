@@ -5,7 +5,7 @@
 use super::*;
 use std::process::Command;
 
-const USAGE: &str = "usage: raea workspace [--json] | raea workspace init [NAME] [--layout monorepo|submodules] | raea workspace adopt DIR [--name NAME] [--layout monorepo|submodules]\n       raea project [--json] | raea project new NAME [--storage inline|submodule] | raea project split NAME [--remote URL] | raea project join NAME | raea project scan [DIR] [--json]";
+const USAGE: &str = "usage: raea workspace [--json] | raea workspace init [NAME] [--layout monorepo|submodules] | raea workspace adopt DIR [--name NAME] [--layout monorepo|submodules]\n       raea project [--json] | raea project new NAME [--storage inline|submodule] [--client NAME] | raea project tag [NAME] [--client NAME | --no-client] [--json] | raea project split NAME [--remote URL] | raea project join NAME | raea project scan [DIR] [--json]";
 
 /// git for raea's own commits. A new Mac has no user.email and a hostname git can't make one from, so every commit
 /// failed with "Author identity unknown" and the person's first project was never made. git reads $EMAIL only when
@@ -95,7 +95,7 @@ pub(crate) fn flag<'a>(args: &'a [String], name: &str) -> Option<&'a str> {
 
 /// The words of a command that aren't flags or a flag's value.
 fn words(args: &[String]) -> Vec<&str> {
-    raea_app_check::words(args, &["--layout", "--storage", "--name", "--remote"])
+    raea_app_check::words(args, &["--layout", "--storage", "--name", "--remote", "--client"])
 }
 
 // a name as a folder (slug), and the nearest folder holding a marker (up): the registry's, which reads projects with
@@ -344,12 +344,17 @@ fn show_workspace(json_out: bool) -> R<String> {
     let file = ws.join(".raea/workspace");
     let ps = projects(&ws);
     if json_out {
-        let projects: Vec<_> = ps.iter().map(|(n, p, s)| json!({"name": n, "path": p, "storage": s, "id": get(&file, &format!("project.{n}.id"))})).collect();
-        return Ok(json!({"path": ws, "id": get(&file, "workspace.id"), "name": get(&file, "workspace.name"), "layout": get(&file, "workspace.layout"), "projects": projects}).to_string());
+        let projects: Vec<_> = ps.iter().map(|(n, p, s)| json!({"name": n, "path": p, "storage": s, "id": get(&file, &format!("project.{n}.id")), "client": client_of(&ws, n)})).collect();
+        // the clients its projects name, so a new one joins an existing client rather than a near-twin of it
+        let mut clients: Vec<String> = ps.iter().filter_map(|(n, _, _)| client_of(&ws, n)).collect();
+        clients.sort_by_key(|c| c.to_lowercase());
+        clients.dedup_by(|a, b| a.eq_ignore_ascii_case(b));
+        return Ok(json!({"path": ws, "id": get(&file, "workspace.id"), "name": get(&file, "workspace.name"), "layout": get(&file, "workspace.layout"), "clients": clients, "projects": projects}).to_string());
     }
     let mut out = format!("{} ({}, {})\n{}\n", get(&file, "workspace.name").unwrap_or_default(), get(&file, "workspace.id").unwrap_or_default(), get(&file, "workspace.layout").unwrap_or_default(), ws.display());
     for (n, p, s) in &ps {
-        out.push_str(&format!("  {n}  {p}  {s}\n"));
+        let c = client_of(&ws, n).map(|c| format!("  client {c}")).unwrap_or_default();
+        out.push_str(&format!("  {n}  {p}  {s}{c}\n"));
     }
     Ok(out.trim_end().to_string())
 }
@@ -359,7 +364,15 @@ pub fn project(args: &[String]) -> R<String> {
     let w = words(args);
     match w.first().copied() {
         None => show_project(args.iter().any(|a| a == "--json")),
-        Some("new") => new_project(w.get(1).ok_or(USAGE)?, flag(args, "--storage")),
+        Some("new") => {
+            let name = *w.get(1).ok_or(USAGE)?;
+            let said = new_project(name, flag(args, "--storage"))?;
+            match flag(args, "--client") {
+                Some(c) => Ok(format!("{said}\n{}", tag(Some(name), Some(c), false, false)?)),
+                None => Ok(said),
+            }
+        }
+        Some("tag") => tag(w.get(1).copied(), flag(args, "--client"), args.iter().any(|a| a == "--no-client"), args.iter().any(|a| a == "--json")),
         Some("split") => storage::split(w.get(1).ok_or(USAGE)?, flag(args, "--remote")),
         Some("join") => storage::join(w.get(1).ok_or(USAGE)?),
         // PJ8: the folder's compositions and components, and what isn't connected
@@ -371,6 +384,9 @@ pub fn project(args: &[String]) -> R<String> {
         Some(v) => Err(format!("raea project has no {v:?}\n{USAGE}")),
     }
 }
+
+pub use super::client::client_of;
+pub(crate) use super::client::tag;
 
 fn new_project(name: &str, storage: Option<&str>) -> R<String> {
     let here = std::env::current_dir().map_err(|e| e.to_string())?;
@@ -429,7 +445,8 @@ fn show_project(json_out: bool) -> R<String> {
     let file = dir.join(".raea/project");
     let ws = up(&dir, ".raea/workspace").filter(|w| *w != dir);
     if json_out {
-        return Ok(json!({"path": dir, "id": get(&file, "project.id"), "name": get(&file, "project.name"), "workspace": ws}).to_string());
+        let client = ws.as_ref().and_then(|w| projects(w).into_iter().find(|p| p.1 == relative(w, &dir)).and_then(|p| client_of(w, &p.0)));
+        return Ok(json!({"path": dir, "id": get(&file, "project.id"), "name": get(&file, "project.name"), "workspace": ws, "client": client}).to_string());
     }
     let mut out = format!("{} ({})\n{}\n", get(&file, "project.name").unwrap_or_default(), get(&file, "project.id").unwrap_or_default(), dir.display());
     if let Some(ws) = &ws {

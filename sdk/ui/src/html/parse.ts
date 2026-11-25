@@ -36,7 +36,8 @@ export type HNode = HElement | HText;
 export type HText = { type: "text"; text: string };
 export type HElement = { type: "el"; tag: string; attrs: [string, string][]; kids: HNode[]; content?: HElement };
 
-const VOID = new Set(["area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "param", "source", "track", "wbr"]);
+/** elements with no end tag */
+export const VOID = new Set(["area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "param", "source", "track", "wbr"]);
 const RAW = new Set(["script", "style", "textarea", "title", "xmp"]);
 // a start tag of one of these closes an open <p>
 const CLOSES_P = new Set(["address", "article", "aside", "blockquote", "details", "div", "dl", "fieldset", "figcaption", "figure", "footer", "form", "h1", "h2", "h3", "h4", "h5", "h6", "header", "hr", "main", "menu", "nav", "ol", "p", "pre", "section", "table", "ul"]);

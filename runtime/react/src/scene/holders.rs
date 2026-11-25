@@ -110,9 +110,16 @@ fn fresh_holders(world: &mut World) -> (Vec<Entity>, Option<Entity>) {
 
 /// The 3D's clear colour for a render or play: a layered Canvas3D's `clearColor` (its slot's data-clear, which its parts
 /// blend over in linear light as Bevy's over its ClearColor), else transparent, the page under it; else the nearest
-/// holder's background.
+/// holder's background. A camera in a box of the page clears to nothing as well: its view is that box's picture, in the
+/// page's paint order, so what the page paints under the box shows where the 3D has nothing (a sibling layer under an
+/// <R3F> was cut out to the nearest ancestor's colour, #235).
 pub fn scene_clear(world: &mut World) -> Option<String> {
-    let Some(s) = fresh_holders(world).1 else { return clear_of(&holders_of(world)) };
+    let Some(s) = fresh_holders(world).1 else {
+        if crate::VIEW_BOX.lock().unwrap().is_some() {
+            return Some("#00000000".into());
+        }
+        return clear_of(&holders_of(world));
+    };
     Some(world.get::<ReactProps>(s).and_then(|p| p.0.get("data-clear")?.as_str().map(str::to_string)).unwrap_or_else(|| "#00000000".into()))
 }
 

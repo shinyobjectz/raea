@@ -23,6 +23,15 @@ The brief template, the builder prompt and the judge prompt to paste are in `bev
 - `raea make plan` is the stop before anything costs money: `review/plan/floor-plan.png` (every footprint, invented
   ones dashed), a grey-box blockout seen from the entrance with its review sheets, and `comparison.png` beside the
   reference. Show it, fix positions and sizes, and only then generate.
+- Plan each object's detail with `lod`, 0 to 4, by how large it will be seen: 0 the hero (half the frame or more),
+  1 featured (20%+), 2 dressing (8%+), 3 background (2%+: a grey box reads), 4 far (a silhouette). Build to the
+  plan: a 3 or 4 stays a box, a card or a quarter-triangle `_lod1`, and the budget goes to the 0s and 1s. Name the
+  part as its object's id (`<Mesh3d name="kiosk">`), or put `lod={3}` on the part itself; a parent
+  `<Entity transform lod={4}>` plans everything inside it. Every render then says `lod-closer` when a shot shows a
+  part finer than planned (a camera move added later, a box you meant to replace and forgot), and
+  `raea scene lod EDIT.tsx` lists every part's plan beside the largest the frames show it, the unplanned ones too.
+  Two levels finer is an error; one holds `raea make status` until you build it up and replan it, keep the camera
+  off it, or answer it in NOTES.md on a line with `lod` and its name.
 - NOTES.md beside the brief ends with `## What the skill got wrong`: what the guides or tools led you into. Status
   checks it's there once the work is.
 
@@ -59,6 +68,10 @@ Ask one question of each object: **is it defined by numbers, by a rule, or by it
 
 The TSX is always the scene. Blender is only a workshop an asset passes through on its way into `media/`, when a
 check names a script (`bevy/blender`). It never places, lights, frames, materials or animates the scene.
+
+Every row ends as a component: `<Shelf>`, `<Kettle>`, `<Fern>`, each with its size, a fixture that renders it alone,
+and its materials as jobs (`<Mat job="steel" />`), so a note can name it and the next scene can reuse it
+(`raea guide components`).
 
 | the object | made by | then in Blender when |
 |---|---|---|
@@ -177,3 +190,4 @@ Three tiers, each gating once it has earned it (`raea make status` lists them):
 - Placing generated models by nudging transforms: fit them on the way in (`--h`, `--turn`), then lint.
 - Several fixes to light and materials at once: they are coupled, so do one a round.
 - Calling a stage done because the command ran: every claim needs an image or a check's output.
+- Raising a part's `lod` plan to silence `lod-closer` without building it up: the plan is what you built it for.

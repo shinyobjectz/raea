@@ -74,9 +74,9 @@ fn write_manifest(cx: &mut Ctx, (w, h, fps, length): (u32, u32, f64, i64), found
     let (Some(path), Some(frames)) = (MANIFEST.lock().unwrap().clone(), cx.manifest.take()) else { return Ok(()) };
     path.parent().map_or(Ok(()), std::fs::create_dir_all).map_err(|e| format!("{}: {e}", path.display()))?;
     let mut v = json!({"width": w, "height": h, "fps": fps, "length": length, "frames": frames, "findings": raea_core_facts::finding::ranked(found), "sounds": heard(cx), "not_applied": not_applied::seen(), "layers": raea_sys_layers::finish(fps), "has3d": cx.scene3d.is_some() || cx.live3d.is_some()});
-    // the parts SG9 needs (scene.rs's SEEN): stills' parts on screen, a longer render's remounts
-    if let (Some(m), Some(Value::Object(seen))) = (v.as_object_mut(), scene::SEEN.lock().unwrap().take()) {
-        m.extend(seen);
+    // the parts SG9 needs (scene.rs's SEEN: stills' parts on screen, a longer render's remounts), and --props and --scale
+    for more in [scene::SEEN.lock().unwrap().take(), GIVEN.lock().unwrap().clone()] {
+        v.as_object_mut().into_iter().zip(more.and_then(|m| m.as_object().cloned())).for_each(|(m, more)| m.extend(more));
     }
     std::fs::write(&path, v.to_string()).map_err(|e| format!("{}: {e}", path.display()))
 }
@@ -191,7 +191,7 @@ fn push_sound(cx: &mut Ctx, props: &Map<String, Value>, skey: &str) {
     if let (Some(src), Some(at)) = (props.get("src").and_then(|v| v.as_str()), num(props, "data-source-time")) {
         let Some(file) = raea_io_net::cache::remote(src).map_or_else(|| Some(media_path(cx.dir, src)), Result::ok) else { return }; // http(s): raea's URL cache (#57)
         // a sound track with samples: a short window says so (decoding the whole take for it held a long take whole)
-        let audible = *cx.audible.entry(file.clone()).or_insert_with(|| raea_io_media::decode_audio_window(&file, 0.0, 0.05).is_ok_and(|a| a.len() > 0));
+        let audible = *cx.audible.entry(file.clone()).or_insert_with(|| raea_runtime_sound::there(&file, src) && raea_io_media::decode_audio_window(&file, 0.0, 0.05).is_ok_and(|a| a.len() > 0)); // a file that isn't there is named, once (sound's there)
         if !muted && volume > 0.0 && audible {
             // raea's mix: dialogue at one level, gainDb an offset on it (raea-sys-mix level.rs), as live play has it
             let volume = volume * raea_sys_mix::level::gain(&file, num(props, "data-clip-from").unwrap_or(0.0), num(props, "data-clip-to"), props.get("data-bus").and_then(|v| v.as_str())) as f64;

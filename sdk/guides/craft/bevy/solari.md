@@ -75,6 +75,35 @@
   the PNG), and give anything you work out by hand those values: a reflection traced in a shader, a glow meant to
   sit beside the room's light. A pool hall's walls metered 13-17 under its 7,000 tubes.
 
+## Denoisers, upscalers and neural passes
+
+<!-- sources: docs/denoise.feature engine/render/raytrace/src/metalfx.rs engine/render/raytrace/src/upscale.rs engine/render/raytrace/src/settings.rs engine/render/denoise/bench/src/lib.rs -->
+
+What raea has today, where each runs and what it can't do. Use these and say which one applies; don't reach for a
+tool that isn't here. The plan is docs/denoise.feature (DN0-DN12); each scenario that lands updates its row.
+
+| Option | State | Runs on | Can't do, or isn't allowed |
+|---|---|---|---|
+| MetalFX denoised scaler | ships, the Mac's default | Apple silicon, macOS 26 | anything off the Mac. `denoise={false}` (RAEA_SOLARI_DENOISE=0) shows the raw noise; `scale` has it upscale too |
+| no denoiser | today's state | Windows, Linux, raea cloud | a Solari frame there is noisy until raea's own denoiser lands; raise `primarySamples`, or use `<Pathtracer>` for a still |
+| raea's own denoiser and upscaler | planned (DN1-DN8), the standard | everywhere wgpu runs: Mac, Windows, Linux, raea cloud | not built yet. WGSL, written from the SVGF, A-SVGF and ReBLUR papers and FSR 2/3's MIT source; it becomes the default once it meets MetalFX's numbers on the denoise bench (DN0) |
+| DLSS Ray Reconstruction | in vendored Bevy (`dlss` feature), not wired in raea (DN8) | NVIDIA RTX on Vulkan, a person's own machine | never on raea cloud: NVIDIA's licence allows cloud use only on vGPU hosts. Shipping it needs NVIDIA notified, its marks shown and its terms passed on |
+| Open Image Denoise 2 | planned (DN10) | every OS, on ort | single-frame, so it flickers on video: for stills, held frames and light bakes only |
+| `<AntiAliasing mode="steady">` | ships, off by default | everywhere | raster anti-aliasing over frames; it doesn't denoise traced light |
+| `<MotionBlur>` | ships | everywhere | not a denoiser, but in a film's finals it hides the frames after a doorway or a whip pan that no denoiser has history for |
+| FSR Ray Regeneration | not used | DX12 on Radeon RX 9000, Windows 11 | Solari traces through Vulkan or Metal, so it can't run here |
+| NVIDIA NRD | not used | - | its source can't be ported under its licence; raea's own denoiser is written from the papers instead |
+| `raea neural mlxdlss` | test only | Mac | not a denoiser: it re-shades a `render --aov` folder with DLSS 5 weights the user extracts from NVIDIA's driver. Never ship it or use it in published work (NVIDIA's licence: NVIDIA GPUs only) |
+
+For the light itself: Solari (this guide) draws real time, and `<Pathtracer samples={N} />` is the converged still to
+judge against.
+
+To tell whether a denoiser is good enough on a scene, measure it rather than eyeing one frame: `raea bench denoise
+--backend metalfx,off` draws each case in bench/denoise/cases.json on each denoiser and scores it against the same
+frames path-traced (FLIP, bias, flicker, blotches, lag after a doorway opens or a light goes out). Add the scene that
+looks wrong as a case. A take's own passes after the denoiser (a lens, a grade) aren't evidence about it: bench the
+view without them.
+
 ## Why
 
 Solari is real-time path tracing in three parts. Direct light picks among the emissive triangles and the sun with

@@ -262,7 +262,7 @@ pub(crate) fn sweep_stale_work_in(dir: &Path, now: std::time::SystemTime) {
         // raea-cli-r{pid}-ThreadId(n), raea-cli-b{pid}: gone only when the system says no such process is left, running
         // when it says it runs (this process's own folders too)
         let pid = name.get(10..).and_then(|s| s.split('-').next()).and_then(|p| p.parse::<u32>().ok());
-        let running = pid.map(|p| if p == std::process::id() { Some(true) } else { crate::pid::running(p) });
+        let running = pid.map(|p| if p == std::process::id() { Some(true) } else { raea_runtime_pid::running(p) });
         let gone = running == Some(Some(false));
         // the age rule is for a folder whose process isn't known to run: a long render stops touching its folder's top
         // level well before it ends (#31), and a killed render's PID handed to another process keeps its folder

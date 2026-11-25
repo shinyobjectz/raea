@@ -47,6 +47,18 @@ pub struct Run {
     pub size: f64,
 }
 
+impl Run {
+    /// The frame midway through those that show its whole text, and its box on that frame: `box_` (the last frame's)
+    /// moved back by how far its letters travel from there to where they end. A text that moves was read at its last
+    /// place on its middle frame (#236).
+    pub fn middle(&self, fps: f64) -> (f64, [f64; 4]) {
+        let n = self.boxes.len();
+        let (Some(last), true) = (self.boxes.last(), fps > 0.0 && n > 1) else { return ((self.from + self.to) / 2.0, self.box_) };
+        let (at, [x, y, w, h]) = (self.boxes[n / 2], self.box_);
+        (self.to - (n - n / 2) as f64 / fps, [x + at[0] - last[0], y + at[1] - last[1], w, h])
+    }
+}
+
 /// The brand kit the cut was styled from (brand/ at or above the manifest's or the video's folder, as render finds
 /// brand.css): a kit `raea brand` read from a thin fetch that nobody corrected by hand is a placeholder, P1; a brand.css
 /// with no brand.json beside it wasn't read from the brand at all, P2

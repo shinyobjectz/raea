@@ -12,6 +12,8 @@ modules = ["raea-native/modules"]
 
 [dependencies]
 raea-io-trace = { path = "../../io/trace" }
+# whether the process that left a work folder still runs (cache.rs sweep)
+raea-runtime-pid = { path = "../pid" }
 # canonical paths without Windows' verbatim prefix, for import specifiers (fresh.rs spec)
 dunce = "1"
 # raea's home (the checkout's, or an install's share/raea): the SDK packages, the bundler's library, Tailwind's package
@@ -33,14 +35,9 @@ regex = "1"
 raea-runtime-bundle-lib = { path = "lib" }
 
 # whether the render that left a work folder still runs (pid.rs), asked of the system rather than a `kill` on PATH
-[target.'cfg(unix)'.dependencies]
-libc = "0.2"
-
 # the work folder's node_modules link on Windows (fresh.rs link_node_modules), as raea-io-npm makes its links
 [target.'cfg(windows)'.dependencies]
 junction = "1"
-# and its process check (pid.rs)
-windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_System_Threading"] }
 
 [dev-dependencies]
 # tests/mezz.rs writes its long-GOP clip with the soft backend's H.264

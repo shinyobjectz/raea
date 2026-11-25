@@ -5,13 +5,15 @@ pub fn entry(file: &str, o: &CompOpts) -> String {
     let js = |v: &Option<Value>| v.as_ref().map(Value::to_string).unwrap_or("null".into());
     let (words, perception, input) = (js(&o.words), js(&o.perception), js(&o.input));
     let given = serde_json::to_string(&o.given).unwrap_or("[]".into());
+    let props = format!("{} x{} hold {:?}", js(&o.props), o.scale.unwrap_or(1.0), o.hold);
     // the composition's element made once, so a frame re-renders only what reads the frame (its clock, through
     // useCurrentFrame), not every part (docs/control.feature FC1b). A frame is already pure (a still renders any
     // frame alone), so a part drawing Math.random or Date in render without reading the frame breaks either way.
     // RAEA_STILL_TREE=0 makes it each frame, as before. In the entry's text, so the bundle cache tells the two apart
     let still = std::env::var("RAEA_STILL_TREE").map_or(true, |v| v != "0");
     format!(
-        r#"import {{ frameCallbacks, pureAgain, pureFrame, pureSession, seedOf }} from "./motion/pure";
+        r#"import "./props"; // --props, set before the edit's modules run: {props}
+import {{ frameCallbacks, pureAgain, pureFrame, pureSession, seedOf }} from "./motion/pure";
 import {{ canvas2d }} from "./motion/canvas2d";
 import * as BevyReact from "bevy-react";
 import {{ mount, addEventListener, BevyCanvasElement }} from "bevy-react";
@@ -33,7 +35,8 @@ if (!C) throw new Error("{file} exports no component and registers no compositio
 // durationInFrames}}` (score's SDK backend writes it); its positive numbers win over the CLI's settings
 const MC: any = (M as any).config ?? {{}};
 const pos = (v: any, d: number) => (typeof v === "number" && v > 0 ? v : d);
-const cfg = reg ?? {{ id: "main", width: pos(MC.width, {w}), height: pos(MC.height, {h}), fps: pos(MC.fps, {fps}), durationInFrames: pos(MC.durationInFrames, {frames}), defaultProps: {{}} }};
+const cfg = reg ?? {{ id: "main", width: pos(MC.width, {w}), height: pos(MC.height, {h}), fps: pos(MC.fps, {fps}), durationInFrames: pos(MC.durationInFrames, {frames}), defaultProps: (globalThis as any).__raea_input_props ?? {{}} }};
+if (!reg && (globalThis as any).__raea_scale !== undefined) console.warn("NOT APPLIED  --scale: it draws a <Composition> at a fraction of its size; this file registers none (--w and --h size it)");
 for (const [k, key, v] of {given} as [string, string, number][]) if ((cfg as any)[key] !== v) console.warn(`NOT APPLIED  ${{k}} ${{v}}: the composition says its ${{key}} is ${{(cfg as any)[key]}}; ${{k}} only sizes a file with no <Composition> or config`);
 // the Clock's words (frames {{text, from, to}}, or seconds {{text, start, end}} / {{text, start_ms, end_ms}}), perception
 // (one for every frame, or by frame: the latest at or before it) and input (a timeline, or inputs.rrl's step keys)

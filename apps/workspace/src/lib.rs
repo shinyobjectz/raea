@@ -4,6 +4,7 @@ use std::path::{Path, PathBuf};
 
 use serde_json::json;
 
+mod client;
 pub mod doctor;
 mod repair;
 pub mod next;

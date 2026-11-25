@@ -1,6 +1,17 @@
 //! Whether an edit's bundle writes an <Audio> that always plays (raea-runtime-export: a render with no sound although it
 //! does is an error, not a silent file).
 
+/// Whether a sound's file is there, saying so once when it isn't (the caller remembers each file): a render dropped
+/// it without a word and then refused as silent, with nothing naming the file (0.1.9: three reports in a day, each
+/// read as a Windows bug; the files were in the project's assets/, which an edit in compositions/ didn't search).
+pub fn there(file: &std::path::Path, src: &str) -> bool {
+    let there = file.exists();
+    if !there {
+        eprintln!("raea: no sound file {} (src \"{src}\"), so it's silent: staticFile looks in the project's media/, assets/ and public/", file.display());
+    }
+    there
+}
+
 /// True when the bundle's JSX has an <Audio> call, `(…jsx)(Audio, {`, that isn't behind a condition. One behind `?` or
 /// `&&` is silent when its condition is false, as a sound-only cut's in the starter edit is before there are any cuts
 /// (`c.kind === "audio" ? <Audio … /> : <Video … />`), and that render is meant to be silent. One in a wrapper's children

@@ -22,7 +22,7 @@ raea project --json
 ## Usage
 
 ```sh
-raea project new NAME [--storage inline|submodule] | raea project split NAME [--remote URL] | raea project join NAME | raea project [--json]   (a project in the workspace: its folder, brief.ts, media/, out/; split and join keep its history)
+raea project new NAME [--storage inline|submodule] [--client NAME] | raea project tag [NAME] [--client NAME] [--no-client] | raea project split NAME [--remote URL] | raea project join NAME | raea project [--json]   (a project in the workspace: its folder, brief.ts, media/, out/; its client, what raea.app files every card shown from it under (raea cloud's tags: projects don't nest); split and join keep its history)
 ```
 
 Headless: it needs nothing running and opens no window. Takes up to 2 arguments besides its flags.
@@ -31,7 +31,9 @@ Headless: it needs nothing running and opens no window. Takes up to 2 arguments 
 
 | Flag | Takes | What it does |
 | --- | --- | --- |
+| `--client` | `NAME` | The client the project is for: `new` makes it with that client, `tag` sets it. Projects of one client are listed together, and raea cloud tags them the same way. |
 | `--json` | – | Print the workspace's projects as JSON: name, path and storage. |
+| `--no-client` | – | `tag`: takes the project's client away. |
 | `--remote` | `URL` | With `split`: the git remote the new repository pushes to. |
 | `--storage` | `inline\|submodule` | With `new`: a folder in the workspace (`inline`) or a repository of its own (`submodule`); the workspace's layout decides by default. |
 

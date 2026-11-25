@@ -45,6 +45,8 @@ copies() {
   printf '%s\tmotion.md\n' sdk/guides/craft/motion.md
   for g in sdk/guides/craft/motion/*.md; do printf '%s\tmotion/%s\n' "$g" "${g##*/}"; done
   for g in ROUTER.md floor.md rubric.md NOTICE; do printf '%s\tcraft/%s\n' "sdk/guides/craft/$g" "$g"; done
+  # building anything as components (raea guide components; docs/components.md): at the skill's root, beside its routers
+  printf '%s\tcomponents.md\n' sdk/guides/craft/components.md
   for g in sdk/guides/craft/modes/*.md; do printf '%s\tcraft/modes/%s\n' "$g" "${g##*/}"; done
   for g in sdk/guides/craft/verbs/*.md; do printf '%s\tcraft/verbs/%s\n' "$g" "${g##*/}"; done
   # stories as data (raea/story): the router, how to write, check, sample and score, and a page per framework
@@ -275,6 +277,7 @@ help_stale() {
 # asks whether anything says when and how to use it. COVERAGE_SKIP names what an agent never runs, each with why.
 COVERAGE_SKIP="verb:hook (raea skills install sets it up; an agent never runs it)
 verb:traces (raea's own session logs, for whoever debugs raea)
+verb:voice (raea.app's Ideate runs it and talks to it in lines of JSON; an agent never does)
 verb:bake (until BK5: today only --compare, raea's own measure of its bake against Cycles; BK5 teaches <LightBake> and raea bake light in bevy/lights, docs/bake.feature)
 module:dev_tools (raea's own debugging overlays)
 module:test (raea's test harness, for raea's own tests)

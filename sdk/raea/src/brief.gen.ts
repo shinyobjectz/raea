@@ -411,7 +411,13 @@ crop?: [number, number, number, number],
 /**
  * where it stands in a scene: metres, the floor's front-left corner at the origin, rot 0 = facing the entrance
  */
-at?: [number, number, number], rot?: number, hero?: boolean, pick?: MakePick, 
+at?: [number, number, number], rot?: number, hero?: boolean, 
+/**
+ * how large it is planned to be seen, which is how much of it gets built: 0 the hero (half the frame or more),
+ * 1 featured (under 50%), 2 dressing (under 20%), 3 background (under 8%: a grey box reads), 4 far (under 2%: a
+ * silhouette). A render that shows it finer than this says so (`lod-closer`; `raea scene lod` lists every part)
+ */
+lod?: number, pick?: MakePick, 
 /**
  * what was fixed by script ("glass made transmissive, label kept opaque")
  */

@@ -1,5 +1,6 @@
 // Where a part is drawn (docs/realism.feature LT21): its levels by distance or by size on screen, cross-faded, its
 // draw distance and its shadow, as raea-sys-lod's Detail component on the part (systems/lod).
+import { createContext, useContext } from "react";
 import { BevyComponent } from "./bevy";
 
 /** Where a part is drawn. Distances in metres from the camera; sizes on screen are the part's size across in pixels,
@@ -44,4 +45,23 @@ export function detailNode(who: string, d: Detail | undefined) {
   if (d.box !== undefined && !(Array.isArray(d.box) && d.box.length === 6 && d.box.every(Number.isFinite) && d.box[0] <= d.box[3] && d.box[1] <= d.box[4] && d.box[2] <= d.box[5])) throw new RangeError(`${who}: detail.box is [x0, y0, z0, x1, y1, z1], each low corner at or below its high one, got ${JSON.stringify(d.box)}`);
   const value = { near: d.near ?? 0, far: d.far ?? 0, min_px: d.minPx ?? 0, max_px: d.maxPx ?? 0, fade: d.fade ?? 0.1, shadow: d.shadow ?? true, size: d.size ?? 0, edge: d.edge ?? false, bounds: d.box ?? [] };
   return <BevyComponent key="raea-detail" type="raea_sys_lod::Detail" value={value} />;
+}
+
+/** How large a part is planned to be seen, which is how much of it gets built (docs/make.feature MK21): 0 the hero
+ * (half the frame or more), 1 featured (under 50%), 2 dressing (under 20%), 3 background (under 8%: a grey box
+ * reads), 4 far (under 2%: a silhouette). It draws nothing differently (`detail` switches levels): it is the plan a
+ * render holds the part to, saying `lod-closer` when a frame shows it finer than this, and `raea scene lod` lists
+ * every part's plan beside what the frames show. A part without one takes its name's level from the job's plan
+ * (`lod` on its object in brief.ts's make). */
+export type PlannedLod = 0 | 1 | 2 | 3 | 4;
+
+/** the planned detail of every part inside a <Group lod> that plans none of its own */
+export const PlannedLodOf = createContext<PlannedLod | undefined>(undefined);
+
+/** a part's `lod` checked, else the level of the Group it is in */
+export function usePlannedLod(who: string, own: PlannedLod | undefined): PlannedLod | undefined {
+  const around = useContext(PlannedLodOf);
+  if (own === undefined) return around;
+  if (!(Number.isInteger(own) && own >= 0 && own <= 4)) throw new RangeError(`${who}: lod is its planned detail, 0 (the hero, half the frame or more) to 4 (far, under 2% of it), got ${JSON.stringify(own)}`);
+  return own;
 }

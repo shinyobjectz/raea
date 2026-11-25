@@ -75,6 +75,10 @@ impl<K> El<K> {
     fn p(&self, k: &str) -> Option<&Value> {
         self.props.get(k)
     }
+    /// a text node of only white space
+    fn blank(&self) -> bool {
+        matches!(&self.text, Some(t) if t.trim().is_empty())
+    }
     fn ty(&self) -> String {
         s(self.p("type")).unwrap_or_default().to_ascii_lowercase()
     }
@@ -97,6 +101,11 @@ pub trait Facts<K> {
     fn checked(&self, k: K) -> bool;
     /// its data-testid, the harness's name for it
     fn test_id(&self, k: K) -> Option<String>;
+    /// laid out as a block (its computed display's outside is block: block, flex, grid, list-item, table), when the
+    /// host knows; a name from its content puts a space around it, as Chrome does. None: by its tag
+    fn block(&self, _k: K) -> Option<bool> {
+        None
+    }
 }
 
 struct Ctx<'w, K> {
@@ -138,6 +147,24 @@ fn node_of<K: Copy + Eq + std::hash::Hash>(cx: &Ctx<K>, e: K, el: &El<K>, focus:
     }
     if focus == Some(e) {
         n.add_action(Action::Focus);
+    }
+    // a control a press works: what VoiceOver's and an AX client's press asks for (macOS sends Click only to a node
+    // that has it; raea.app's window took no press on its links or buttons without it, 11-23)
+    if !disabled
+        && matches!(
+            role,
+            Role::Button | Role::Link | Role::CheckBox | Role::RadioButton | Role::Switch | Role::MenuItem | Role::MenuItemCheckBox | Role::MenuItemRadio | Role::Tab | Role::ListBoxOption | Role::TreeItem | Role::DisclosureTriangle | Role::ComboBox
+        )
+    {
+        n.add_action(Action::Click);
+    }
+    // a field typed in takes a value (macOS sends setAccessibilityValue only to a node that has it, or text ranges,
+    // which the tree doesn't carry): an AX client's or Voice Control's text, typed over what the field held (ax.rs)
+    if !disabled
+        && !(truthy(p("readOnly")) || truthy(p("readonly")) || s(p("aria-readonly")).as_deref() == Some("true"))
+        && matches!(role, Role::TextInput | Role::MultilineTextInput | Role::SearchInput | Role::EmailInput | Role::PasswordInput | Role::PhoneNumberInput | Role::UrlInput | Role::NumberInput | Role::SpinButton)
+    {
+        n.add_action(Action::SetValue);
     }
     // checked: a checkbox or radio (its Checked), or aria-checked; pressed: aria-pressed on a button
     let checkable = matches!(role, Role::CheckBox | Role::RadioButton | Role::Switch | Role::MenuItemCheckBox | Role::MenuItemRadio);
@@ -225,10 +252,12 @@ fn node_of<K: Copy + Eq + std::hash::Hash>(cx: &Ctx<K>, e: K, el: &El<K>, focus:
     n
 }
 
-/// A page's elements (the Blitz page's, raea-page's host) as the parity harness's records, by test id, read through
-/// accesskit_consumer. `roots` is each element's root (whose `id`s it looks up), `id_of` its AccessKit id (not
-/// u64::MAX, the window's).
-pub fn records<K: Copy + Eq + std::hash::Hash>(els: HashMap<K, El<K>>, roots: HashMap<K, K>, facts: &dyn Facts<K>, focus: Option<K>, id_of: impl Fn(K) -> u64) -> Value {
+/// A page's elements as one AccessKit tree under `window` (its root, a Role::Window node): each element a node with its
+/// children, its box where `bounds` gives one ([x0, y0, x1, y1] in the root's space), and the elements with a test id
+/// beside it. raea's window publishes it to the OS (VoiceOver, macOS accessibility: raea-page-host's ax.rs); `records`
+/// reads it back for the parity harness. `id_of` must never give `window`.
+#[allow(clippy::too_many_arguments)] // each is its own input: the page, its facts, focus, ids, the window and boxes
+pub fn tree<K: Copy + Eq + std::hash::Hash>(els: HashMap<K, El<K>>, roots: HashMap<K, K>, facts: &dyn Facts<K>, focus: Option<K>, id_of: impl Fn(K) -> u64, window: NodeId, label: Option<&str>, bounds: impl Fn(K) -> Option<[f64; 4]>) -> (TreeUpdate, Vec<(String, NodeId)>) {
     let mut ids = HashMap::new();
     for (k, el) in &els {
         if let (Some(id), Some(r)) = (el.props.get("id").and_then(|v| v.as_str()), roots.get(k)) {
@@ -236,16 +265,25 @@ pub fn records<K: Copy + Eq + std::hash::Hash>(els: HashMap<K, El<K>>, roots: Ha
         }
     }
     let cx = Ctx { facts, els, ids, roots };
-    let window = NodeId(u64::MAX);
     let mut nodes = vec![];
     let mut top = vec![];
     let mut tested = vec![];
+    // a text node of only white space (the markup's line breaks and indents) is no node, as in Chrome's tree: a screen
+    // reader would stop on each
     for (&k, el) in &cx.els {
+        if el.blank() {
+            continue;
+        }
         let mut n = node_of(&cx, k, el, focus);
         for c in &el.kids {
-            if cx.els.contains_key(c) {
+            if let Some(kid) = cx.els.get(c)
+                && !kid.blank()
+            {
                 n.push_child(NodeId(id_of(*c)));
             }
+        }
+        if let Some([x0, y0, x1, y1]) = bounds(k) {
+            n.set_bounds(accesskit::Rect { x0, y0, x1, y1 });
         }
         if el.parent.is_none_or(|p| !cx.els.contains_key(&p)) {
             top.push(NodeId(id_of(k)));
@@ -257,9 +295,48 @@ pub fn records<K: Copy + Eq + std::hash::Hash>(els: HashMap<K, El<K>>, roots: Ha
     }
     let mut root = AkNode::new(Role::Window);
     root.set_children(top);
+    if let Some(l) = label {
+        root.set_label(l);
+    }
     nodes.insert(0, (window, root));
     let focus_id = focus.filter(|f| cx.els.contains_key(f)).map(|f| NodeId(id_of(f))).unwrap_or(window);
-    let update = TreeUpdate { nodes, tree: Some(Tree::new(window)), tree_id: TreeId::ROOT, focus: focus_id };
+    (TreeUpdate { nodes, tree: Some(Tree::new(window)), tree_id: TreeId::ROOT, focus: focus_id }, tested)
+}
+
+/// The update without its hidden nodes (each with what's in it), as a platform's tree from Chrome has none: AccessKit's
+/// filtered walk (accesskit_consumer 0.38's next_filtered_sibling) stops for good at a hidden node that follows an
+/// empty container (a layer with nothing in it, then raea cloud's closed side panel), and everything after them in
+/// their parent was gone from what macOS lists: raea.app's welcome and every sheet (11-23). Focus on what's gone is
+/// the window's.
+pub fn unhide(update: &mut TreeUpdate, window: NodeId) {
+    let kids: HashMap<NodeId, Vec<NodeId>> = update.nodes.iter().map(|(id, n)| (*id, n.children().to_vec())).collect();
+    let mut gone = std::collections::HashSet::new();
+    let mut stack: Vec<NodeId> = update.nodes.iter().filter(|(_, n)| n.is_hidden()).map(|(id, _)| *id).collect();
+    while let Some(id) = stack.pop() {
+        if gone.insert(id) {
+            stack.extend(kids.get(&id).into_iter().flatten().copied());
+        }
+    }
+    if gone.is_empty() {
+        return;
+    }
+    update.nodes.retain(|(id, _)| !gone.contains(id));
+    for (_, n) in &mut update.nodes {
+        if n.children().iter().any(|c| gone.contains(c)) {
+            let left: Vec<NodeId> = n.children().iter().copied().filter(|c| !gone.contains(c)).collect();
+            n.set_children(left);
+        }
+    }
+    if gone.contains(&update.focus) {
+        update.focus = window;
+    }
+}
+
+/// A page's elements (the Blitz page's, raea-page's host) as the parity harness's records, by test id, read through
+/// accesskit_consumer. `roots` is each element's root (whose `id`s it looks up), `id_of` its AccessKit id (not
+/// u64::MAX, the window's).
+pub fn records<K: Copy + Eq + std::hash::Hash>(els: HashMap<K, El<K>>, roots: HashMap<K, K>, facts: &dyn Facts<K>, focus: Option<K>, id_of: impl Fn(K) -> u64) -> Value {
+    let (update, tested) = tree(els, roots, facts, focus, id_of, NodeId(u64::MAX), None, |_| None);
     let tree = accesskit_consumer::Tree::new(update, true);
     let state = tree.state();
     let mut out = Map::new();
@@ -350,3 +427,6 @@ fn record(n: &accesskit_consumer::Node) -> Value {
 fn fmt_num(v: f64) -> String {
     if v.fract() == 0.0 { format!("{}", v as i64) } else { format!("{v}") }
 }
+
+#[cfg(test)]
+mod tests;

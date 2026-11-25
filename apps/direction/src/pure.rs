@@ -28,7 +28,7 @@ const LEVELS: f32 = 96.0;
 const SHARE: f64 = 1e-4;
 const LEAST: usize = 64;
 /// The flags of the render the stills repeat (each takes a value, then the bare ones): what it draws and at what size
-const KEEP: [&str; 9] = ["--composition", "--w", "--h", "--fps", "--frames", "--words", "--perception", "--input", "--stage"];
+const KEEP: [&str; 12] = ["--composition", "--w", "--h", "--fps", "--frames", "--words", "--perception", "--input", "--stage", "--props", "--scale", "--hold"];
 const KEEP_BARE: [&str; 2] = ["--clay", "--lite"];
 const BY: &str = "raea render (frame-pure)";
 

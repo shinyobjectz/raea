@@ -1,6 +1,6 @@
 // Keys and activation: focus targets, Space and Enter clicks, and form submission.
 import * as wire from "../wire";
-import { Control_, Element_, Event_, HTMLButtonElement_, HTMLFormElement_, HTMLInputElement_, HTMLLabelElement_, HTMLOptionElement_, HTMLSelectElement_, InputEvent_, KeyboardEvent_, MODS, Node_, PointerEvent_, S, SubmitEvent_, disabledEl, dispatch, doc, editKey, focusTo, focusable, g, installed, isField, keyInit, query } from "./all";
+import { Control_, Element_, HTMLDialogElement_, modals, Event_, HTMLButtonElement_, HTMLFormElement_, HTMLInputElement_, HTMLLabelElement_, HTMLOptionElement_, HTMLSelectElement_, InputEvent_, KeyboardEvent_, MODS, Node_, PointerEvent_, S, SubmitEvent_, disabledEl, dispatch, doc, editKey, focusTo, focusable, g, installed, isField, keyInit, query } from "./all";
 
 /** An edit's inputType and data, from a field's value before and after it: what was put in (insertText, the text),
  *  else what was taken out (deleteContentBackward, or Forward when the caret's side stayed). */
@@ -58,6 +58,11 @@ export function key(t: Element_, payload: any) {
       break;
     }
   }
+  // Escape on an open modal dialog: its cancel, and it closes unless that's prevented (as Chrome's)
+  if (ok && init.key === "Escape") {
+    const top = modals.at(-1) as HTMLDialogElement_ | undefined;
+    if (top?.isConnected && top.open) top.requestClose();
+  }
   const type = (t as Control_).type;
   // Enter's activation is keydown's default action (before keyup); Space's is keyup's
   if (ok && init.key === "Enter" && !init.altKey) {
@@ -114,6 +119,23 @@ export function activate(t: Element_, ev: Event_, trusted: boolean) {
   if (btn instanceof HTMLButtonElement_ && btn.form) {
     if (btn.type === "submit") submitForm(btn.form as HTMLFormElement_, btn);
     else if (btn.type === "reset") (btn.form as HTMLFormElement_).reset();
+  } else if (btn.localName === "a" && btn.hasAttribute("href")) {
+    // a link's default action, as Chrome's: its fragment on this page (location's hashchange, which a hash router
+    // hears: raea cloud's dashboard in raea.app moved between its pages on none of its rail's links, 11-23), another
+    // page of this one's origin, or a new window for one that asks (target) or is elsewhere
+    const href = btn.getAttribute("href") ?? "";
+    const loc = (g as { location?: { hash: string; href: string; assign?: (u: string) => void } }).location;
+    if (href.startsWith("#")) {
+      if (loc) loc.hash = href;
+    } else if (href && !/^(javascript|mailto|tel):/i.test(href)) {
+      let url: URL | null = null;
+      try {
+        url = new URL(href, loc?.href ?? "http://localhost/");
+      } catch {}
+      const blank = (btn.getAttribute("target") ?? "") !== "" && btn.getAttribute("target") !== "_self";
+      if (url && !blank && loc && url.origin === new URL(loc.href).origin) loc.assign?.(url.href);
+      else if (url) (g as { open?: (u: string, t?: string) => unknown }).open?.(url.href, "_blank");
+    }
   } else if (btn instanceof HTMLLabelElement_) {
     // a click on a label (on it or on what's in it, its control aside) clicks its control
     const c = btn.control;

@@ -8,6 +8,7 @@ import { getComputedStyle, install, layout } from "../src/dom";
 import { createPortal, flushSync, mount } from "../src/react";
 import { flush } from "../src/wire";
 import { fresh, snap } from "./host";
+import "./dom-dashboard"; // its tests run here, after parity.test.tsx, which wants no DOM installed
 
 beforeAll(() => install());
 const g = globalThis as any;

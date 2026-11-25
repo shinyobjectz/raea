@@ -114,7 +114,7 @@ One part, so a curve that grows is solid at every frame (never a chain of parts:
 | `normal` | `Vec3` | the way its face looks: the normal of the plane it lies in (left out: the plane of its points, else +z) |
 | `children` | `ReactNode` | its material (a white StandardMaterial when left out) |
 
-Also takes the props of `MeshProps` (`animate`, `name`, `read`, `pass`, `quaternion`, `allowOverlap`, `posed`, `shape`, `driven`, `shadow`, `material`, `castShadow`, `surface`, `receiveShadow`, `attributes`, `compressed`, `layers`); `PointerHandlers3d` (`onClick`, `onDrag`, `onDragEnd`, `onDragEnter`, `onDragLeave`, `onDragOver`, `onDragStart`, `onDrop`, `onPointerDown`, `onPointerMove`, `onPointerUp`, `onPointerEnter`, `onPointerLeave`, `onPointerOver`, `onPointerOut`, `onWheel`); [`Mesh3dProps`](#mesh3dprops) (`visibility`, `transform`, `detail`).
+Also takes the props of `MeshProps` (`animate`, `name`, `read`, `pass`, `quaternion`, `allowOverlap`, `posed`, `lod`, `shape`, `driven`, `shadow`, `material`, `castShadow`, `surface`, `receiveShadow`, `attributes`, `compressed`, `layers`); `PointerHandlers3d` (`onClick`, `onDrag`, `onDragEnd`, `onDragEnter`, `onDragLeave`, `onDragOver`, `onDragStart`, `onDrop`, `onPointerDown`, `onPointerMove`, `onPointerUp`, `onPointerEnter`, `onPointerLeave`, `onPointerOver`, `onPointerOut`, `onWheel`); [`Mesh3dProps`](#mesh3dprops) (`visibility`, `transform`, `detail`).
 
 ### `Mesh2d`
 
@@ -139,7 +139,7 @@ shadow="only" draws it with the shadow-only material (engine/render shadow_only.
 | `detail` | `Detail` | where it's drawn: its distances or sizes on screen, cross-faded, and its shadow (Detail; raea-sys-lod) |
 | `children` | `ReactNode` | its material and child entities |
 
-Also takes the props of `MeshProps` (`animate`, `name`, `read`, `pass`, `quaternion`, `allowOverlap`, `posed`, `shape`, `driven`, `shadow`, `material`, `castShadow`, `surface`, `receiveShadow`, `attributes`, `compressed`, `layers`); `PointerHandlers3d` (`onClick`, `onDrag`, `onDragEnd`, `onDragEnter`, `onDragLeave`, `onDragOver`, `onDragStart`, `onDrop`, `onPointerDown`, `onPointerMove`, `onPointerUp`, `onPointerEnter`, `onPointerLeave`, `onPointerOver`, `onPointerOut`, `onWheel`).
+Also takes the props of `MeshProps` (`animate`, `name`, `read`, `pass`, `quaternion`, `allowOverlap`, `posed`, `lod`, `shape`, `driven`, `shadow`, `material`, `castShadow`, `surface`, `receiveShadow`, `attributes`, `compressed`, `layers`); `PointerHandlers3d` (`onClick`, `onDrag`, `onDragEnd`, `onDragEnter`, `onDragLeave`, `onDragOver`, `onDragStart`, `onDrop`, `onPointerDown`, `onPointerMove`, `onPointerUp`, `onPointerEnter`, `onPointerLeave`, `onPointerOver`, `onPointerOut`, `onWheel`).
 
 Used in: [ui/render_ui_to_texture](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/ui/render_ui_to_texture.tsx), [ui/widgets/viewport_node](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/ui/widgets/viewport_node.tsx), [3d/fog](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/3d/fog.tsx), [3d/vertex_colors](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/3d/vertex_colors.tsx), [3d/rotate_environment_map](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/3d/rotate_environment_map.tsx), [3d/transparency_3d](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/3d/transparency_3d.tsx), [3d/spherical_area_lights](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/3d/spherical_area_lights.tsx), [3d/animated_material](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/3d/animated_material.tsx), and 54 more.
 
@@ -181,7 +181,7 @@ A line through points in 3D with a round section (a pipe, a wire): one mesh, dra
 | `radius` | `number` | its radius in metres (0.025) |
 | `sides` | `number` | sides around its section (12) |
 
-Also takes the props of `MeshProps` (`animate`, `name`, `read`, `pass`, `quaternion`, `allowOverlap`, `posed`, `shape`, `driven`, `shadow`, `material`, `castShadow`, `surface`, `receiveShadow`, `attributes`, `compressed`, `layers`); `PointerHandlers3d` (`onClick`, `onDrag`, `onDragEnd`, `onDragEnter`, `onDragLeave`, `onDragOver`, `onDragStart`, `onDrop`, `onPointerDown`, `onPointerMove`, `onPointerUp`, `onPointerEnter`, `onPointerLeave`, `onPointerOver`, `onPointerOut`, `onWheel`); [`Mesh3dProps`](#mesh3dprops) (`visibility`, `transform`, `detail`).
+Also takes the props of `MeshProps` (`animate`, `name`, `read`, `pass`, `quaternion`, `allowOverlap`, `posed`, `lod`, `shape`, `driven`, `shadow`, `material`, `castShadow`, `surface`, `receiveShadow`, `attributes`, `compressed`, `layers`); `PointerHandlers3d` (`onClick`, `onDrag`, `onDragEnd`, `onDragEnter`, `onDragLeave`, `onDragOver`, `onDragStart`, `onDrop`, `onPointerDown`, `onPointerMove`, `onPointerUp`, `onPointerEnter`, `onPointerLeave`, `onPointerOver`, `onPointerOut`, `onWheel`); [`Mesh3dProps`](#mesh3dprops) (`visibility`, `transform`, `detail`).
 
 ## Functions
 

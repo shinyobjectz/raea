@@ -55,7 +55,9 @@ leads. raea will add modes as its work grows; `raea context` says when a brief n
 4. **Direction:** when the look or the structure is open, offer real options made with raea, and write the chosen
    one into the deliverable's brief as a section headed "Direction".
 5. **The floor:** read it right before you edit.
-6. **Make it.**
+6. **Make it, as components:** list the components the piece needs, look in `raea component list` and the
+   workspace's `shared/components/` first, add what exists, and write what's missing with a fixture that renders it
+   alone (`raea guide components`). The composition places them and owns the camera, the look and the mix.
 7. **Evidence:** run `raea check`, look at the frames, critique against the mode's guide, fix, and look again.
    A line the work must keep every round is a rule, not a reminder: a line `{ text, check, values }` in the project's
    taste.ts, whose check is one of raea's by name (`text-above`, `loudness`) or a `.ts` check you write with
@@ -123,5 +125,5 @@ words still come first: if they say more than the verb, each more is another ask
 
 ## Other guides
 
-`raea guide` lists the rest: `motion` (writing compositions: timing, words, layout, music, sound, 3D, games) and the
+`raea guide` lists the rest: `components` (building anything as components, and where each kind is made), `motion` (writing compositions: timing, words, layout, music, sound, 3D, games) and the
 3D guides. Read a guide when the work reaches its topic, not all at once.

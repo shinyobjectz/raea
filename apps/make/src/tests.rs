@@ -134,6 +134,22 @@ fn a_composition_needs_a_clean_check_newer_than_it() {
     assert!(s["gates"].to_string().contains("changed since"), "{s:#}");
 }
 
+// MK24: a part a render showed closer than planned holds the job until it's replanned or answered in the notes
+#[test]
+fn a_part_seen_closer_than_planned_holds_the_job() {
+    let d = dir("lod");
+    delivered(&d);
+    put(&d, "scene.tsx", "x");
+    let mut make = kit();
+    make.compositions = vec!["scene.tsx".into()];
+    let future = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).unwrap().as_secs() + 60;
+    let entry: Entry = serde_json::from_value(json!({"id": "r1", "at": future, "by": "raea render", "of": "scene.tsx", "findings": [{"check": "lod-closer", "level": "warn", "about": [{"name": "kiosk"}], "says": "'kiosk' is planned at LOD 3", "by": "raea render"}]})).unwrap();
+    let s = run(&make, &d, &[entry.clone()], &[round(true, 7.5, json!([]))], later());
+    assert!(s["done"] == false && s["gates"].to_string().contains("seen closer than planned at r1: kiosk"), "{s:#}");
+    put(&d, "NOTES.md", "- lod kiosk: one frame at the cut, left as a box\n## What the skill got wrong\n- nothing\n");
+    assert_eq!(run(&make, &d, &[entry], &[round(true, 7.5, json!([]))], later())["done"], true);
+}
+
 #[test]
 fn a_scene_wants_three_stills() {
     let d = dir("scene");

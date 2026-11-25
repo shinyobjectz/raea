@@ -23,6 +23,7 @@ raea-sys-gi = { path = "../../systems/gi" }
 bevy = { version = "=0.20.0", default-features = false, features = ["std", "default_app", "multi_threaded", "3d_bevy_render", "ui_bevy_render", "png", "tonemapping_luts", "ktx2", "zstd_rust"] }
 image = { version = "0.25", default-features = false, features = ["png", "jpeg", "hdr"] }
 # an edit as rows keyed per frame, and 3D shapes as values (docs/media.feature M2)
+raea-core-facts = { path = "../../core/facts" }
 raea-core-program = { path = "../../core/program" }
 # procedural surfaces on a mesh row (`proc`)
 raea-sys-procmat = { path = "../../systems/procmat" }

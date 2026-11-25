@@ -232,7 +232,7 @@ function evalMedia(q: string): boolean {
         case "orientation":
           return v.trim() === (S.vw >= S.vh ? "landscape" : "portrait");
         case "prefers-color-scheme":
-          return v.trim() === "light";
+          return v.trim() === (S.dark ? "dark" : "light");
         case "prefers-reduced-motion":
         case "prefers-reduced-transparency":
         case "prefers-reduced-data":
@@ -337,17 +337,20 @@ export function onLayout(json: string) {
   S.frameNo++;
   S.wantFocus = undefined;
   let resized = false;
+  let rescheme = false;
   if (json) {
-    const s = JSON.parse(json) as { vw: number; vh: number; dpr: number; n: number[] };
+    const s = JSON.parse(json) as { vw: number; vh: number; dpr: number; dark?: boolean; n: number[] };
     resized = s.vw !== S.vw || s.vh !== S.vh;
+    rescheme = !!s.dark !== S.dark;
+    S.dark = !!s.dark;
     S.vw = s.vw;
     S.vh = s.vh;
     S.dpr = s.dpr;
     geo.clear();
     for (let i = 0; i + STRIDE <= s.n.length; i += STRIDE) geo.set(s.n[i], s.n.slice(i + 1, i + STRIDE));
   }
-  if (resized) {
-    run(() => dispatch(g, new UIEvent_("resize", { view: g }), true));
+  if (resized) run(() => dispatch(g, new UIEvent_("resize", { view: g }), true));
+  if (resized || rescheme) {
     for (const m of mqls) {
       const now = evalMedia(m.media);
       if (now !== m._was) {

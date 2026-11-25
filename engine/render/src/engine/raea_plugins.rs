@@ -59,8 +59,8 @@ raea_plugin! {
     ProcMatPlugin: raea_sys_procmat::install, "Procedural surfaces: wood, stone, brick, tiles and the rest, with dust and dirt (systems/procmat).";
     PaintPlugin: super::paint::install, "The paint and cartoon looks' surfaces (paint.rs).";
     PassesPlugin: super::passes::install, "Render passes per view (passes.rs).";
-    TracedAoPlugin: raea_sys_rt::passes, "Traced passes: ambient occlusion, raea GI's world probes and the sun's far shadow map (raea-sys-rt).";
-    GiScreenPlugin: raea_sys_gi::install, "raea GI's light on screen: each pixel's indirect diffuse from the world cache, read by the main pass (raea-sys-gi, RAEA_GI=1).";
+    TracedAoPlugin: raea_sys_rt::passes, "Traced passes: ambient occlusion, raealism's world probes and the sun's far shadow map (raea-sys-rt).";
+    GiScreenPlugin: raea_sys_gi::install, "raealism's light on screen: each pixel's indirect diffuse from the world cache, read by the main pass (raea-sys-gi, RAEA_GI=1).";
     VolumePlugin: super::volume::install, "Simulated smoke, clouds and contrails, raymarched (volume.rs).";
     GrassPlugin: raea_sys_grass::install, "Fields of grass, made in tiles as detailed as the camera's distance asks (systems/grass).";
     DetailPlugin: raea_sys_lod::install, "Where each part is drawn: levels by distance or size on screen, cross-faded, draw distance and shadows left to a coarser level (raea-sys-lod, docs/realism.feature LT21).";

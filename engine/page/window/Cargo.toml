@@ -8,11 +8,14 @@ description = "raea's desktop window around a page: its chrome (--chrome inset: 
 
 [features]
 # on screen (raea-page-host's --window): AppKit's calls are made; without it they are recorded and answered
-window = ["bevy/bevy_winit", "dep:objc2", "dep:objc2-app-kit", "dep:objc2-foundation", "dep:raw-window-handle", "dep:block2", "dep:windows"]
+window = ["bevy/bevy_winit", "dep:objc2", "dep:objc2-app-kit", "dep:objc2-foundation", "dep:raw-window-handle", "dep:block2", "dep:windows", "dep:raea-io-os"]
 
 [dependencies]
 bevy = { version = "=0.20.0", default-features = false, features = ["std", "bevy_window"] }
 raea-runtime-js = { path = "../../../runtime/js" }
+# the page's colour scheme (scheme.rs), and whether a page is drawing (idle.rs)
+raea-sys-page = { path = "../../../systems/page" }
+blitz-traits = "=0.3.0-beta.4"
 serde_json = "1"
 
 # --chrome inset's unified toolbar (the traffic lights centred in a 52 pt title area) and native.rs's AppKit calls
@@ -23,6 +26,11 @@ objc2-foundation = { version = "0.3", optional = true, default-features = false,
 raw-window-handle = { version = "0.6", optional = true }
 # completion handlers for notifications
 block2 = { version = "0.6", optional = true }
+
+# native.rs's links and clipboard off the Mac (Linux's and Windows' window): raea-io-os's opener and arboard, which the
+# page host already links for its text fields' paste
+[target.'cfg(not(target_os = "macos"))'.dependencies]
+raea-io-os = { path = "../../../io/os", optional = true }
 
 # native.rs dock.badge on Windows: the taskbar button's overlay icon (win.rs)
 [target.'cfg(windows)'.dependencies]

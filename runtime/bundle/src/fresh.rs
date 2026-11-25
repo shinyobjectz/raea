@@ -167,6 +167,9 @@ pub fn bundle_fresh(tsx: &Path, out_js: &Path, o: &CompOpts, portable: Option<&P
     }
     let js = raea_io_home::home().join("sdk/react/js");
     link_node_modules(&js, &work)?;
+    // the command line's props, where getInputProps() and a Composition read them (the entry imports it first)
+    let global = |v: Option<String>| v.unwrap_or("undefined".into());
+    std::fs::write(work.join("props.ts"), format!("(globalThis as any).__raea_input_props = {};\n(globalThis as any).__raea_scale = {};\n(globalThis as any).__raea_hold = {};\n", global(o.props.as_ref().map(Value::to_string)), global(o.scale.map(|s| s.to_string())), global(o.hold.map(|(n, m)| format!("[{n}, {m}]"))))).map_err(|e| e.to_string())?;
     if o.lite {
         // the game's code and the SDK's resolve "react" to the live view runtime (tsconfig paths cover the files under
         // the work folder; packages in node_modules keep their own React)

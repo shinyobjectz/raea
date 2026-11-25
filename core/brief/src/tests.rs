@@ -117,6 +117,17 @@ fn a_make_plan_reads_and_its_doctor_names_what_it_lacks() {
     assert!(want.contains(&"out/kit/phone/phone_lod1.glb".to_string()) && want.contains(&"out/kit/kit.json".to_string()), "{want:?}");
 }
 
+// MK22: an object's planned detail, 0 (the hero) to 4 (far)
+#[test]
+fn an_object_plans_its_detail_and_the_doctor_holds_it_to_five_levels() {
+    let m: make::Make = read("make", r#"{"kind": "scene", "objects": [
+        {"id": "kiosk", "label": "Kiosk", "h": 2.4, "route": "solid", "lod": 3},
+        {"id": "tower", "label": "Tower", "h": 40, "route": "picture", "lod": 7}]}"#).unwrap();
+    assert_eq!(m.objects[0].lod, Some(3));
+    let d = make::doctor(&m);
+    assert!(d.iter().any(|x| x.contains("`tower` has lod 7")) && !d.iter().any(|x| x.contains("`kiosk`")), "{d:?}");
+}
+
 #[test]
 fn a_shot_plan_wants_a_still_or_a_move_per_shot() {
     let m: make::Make = read("make", r#"{"kind": "shot", "shots": [{"name": "counter_push", "move": "push_in"}, {"name": "Bad Name"}]}"#).unwrap();

@@ -38,7 +38,7 @@ See [Your first video](../../start/first-video.md) for the whole loop, and
 import { AbsoluteFill, ACTION_KEY, actionsIn, Animate } from "raea"
 ```
 
-`raea` exports 21 components, 9 hooks, 64 functions, 11 values, 108 types. Source: [sdk/raea/src/index.tsx](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/src/index.tsx).
+`raea` exports 21 components, 9 hooks, 65 functions, 11 values, 109 types. Source: [sdk/raea/src/index.tsx](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/src/index.tsx).
 
 ## Components
 
@@ -106,6 +106,7 @@ Declares a composition inside the root. It draws nothing itself; a renderer find
 | `fps` (required) | `number` | frames a second |
 | `durationInFrames` (required) | `number` | its length in frames |
 | `defaultProps` | `P` | the props it's rendered with (JSON-like values only) |
+| `calculateMetadata` | `CalculateMetadata<P>` | its size, rate, length or props worked out from the props it's rendered with (`defaultProps` under the command line's `--props`): what it returns replaces the values above, so one composition renders a video per props file. It returns its values directly, not a promise |
 | `controls` | `Controls<P>` | the composition's controls: which of its defaultProps a person may tune, and how. Each names a defaultProps key, whose value is the control's; the feed's Controls panel shows them on the timeline and a change reaches the live picture as that prop |
 | `edit` | `Edit` | a hand edit laid over the composition (docs/craft-system.md, L): written back by the app's timeline |
 
@@ -523,6 +524,15 @@ The compositions the registered root declares, in order.
 
 ```ts
 function getCompositions(): RegisteredComposition[]
+```
+
+### `getInputProps`
+
+The props given on the command line (`raea render --props '{"n": 2}'` or `--props props.json`), anywhere in a
+program; `{}` when none were. A composition's component gets them over its `defaultProps`.
+
+```ts
+function getInputProps<T extends Record<string, unknown> = Record<string, unknown>>(): T
 ```
 
 ### `gridDelay`
@@ -1112,6 +1122,14 @@ type AssetKind = "lyria" | "sao" | "tokensynth"
 ### `AudioProps`
 
 The props of [`Audio`](#audio), tabled there.
+
+### `CalculateMetadata`
+
+What `calculateMetadata` is given and may return.
+
+```ts
+type CalculateMetadata = (given: { defaultProps: P; props: P; compositionId: string }) => { durationInFrames?: number; width?: number; height?: number; fps?: number; props?: P; } | void
+```
 
 ### `ChoiceControl`
 

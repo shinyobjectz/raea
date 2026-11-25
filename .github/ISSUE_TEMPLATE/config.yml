@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Security problem
+    url: https://github.com/shinyobjectz/raea/security/advisories/new
+    about: Report it privately, not in an issue.
+  - name: Documentation
+    url: https://raea.io/docs
+    about: The CLI and SDK reference and the guides.

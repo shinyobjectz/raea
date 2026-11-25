@@ -199,19 +199,19 @@ pub(crate) fn blotching_from(video: &str, probe: &Probe, scores: &[Option<f64>],
     }
 }
 
-/// Caption contrast: at each text's middle frame, the pixels behind it against its colour, at least 3:1. The pixels
+/// Caption contrast: at each text's middle frame, the pixels behind it where it is on that frame against its colour, at
+/// least 3:1. The pixels
 /// behind are the half of the box least like the text.
 pub(crate) fn contrast(video: &str, runs: &[Run], w: f64, h: f64, probe: &Probe, issues: &mut Vec<Issue>, passed: &mut Vec<String>) {
     let (sx, sy) = (probe.w / w, probe.h / h);
     let mut low = 0;
     let mut measured = 0;
     for r in runs.iter().filter(|r| r.size >= 20.0).take(80) {
-        let [x, y, bw, bh] = r.box_;
+        let (t, [x, y, bw, bh]) = r.middle(probe.fps);
         let crop = [(x * sx).max(0.0) as u32, (y * sy).max(0.0) as u32, (bw * sx) as u32, (bh * sy) as u32];
         if crop[0] + crop[2] > probe.w as u32 || crop[1] + crop[3] > probe.h as u32 {
             continue;
         }
-        let t = (r.from + r.to) / 2.0;
         // the same measure `raea world` joins to a text from its render (raea-sys-measure, DR2)
         let ratio = if crate::read::native() { crate::read::contrast(video, t, crop, &r.color) } else { raea_sys_measure::contrast(std::path::Path::new(video), t, crop, &r.color) };
         let Some(ratio) = ratio else { continue };

@@ -32,7 +32,7 @@ fn help_lists_every_verb() {
     let listed = |v: &str| [format!("raea {v} "), format!("raea {v}\n"), format!("| {v} ")].iter().any(|l| help.contains(l.as_str()));
     let missing: Vec<_> = verbs.iter().filter(|v| !listed(v) && !unlisted.contains(&v.as_str())).collect();
     assert!(missing.is_empty(), "not in raea help: {missing:?}");
-    for usage in [raea_app_check::USAGE, raea_app_ask::USAGE, raea_app_direction::check::USAGE, raea_app_direction::USAGE, raea_app_notes::USAGE, raea_app_game::USAGE, raea_app_scene::USAGE, motion::physics::USAGE, raea_runtime_wear::USAGE, tools::splat::USAGE, tools::sound::SAO_USAGE, tools::sound::TOKENSYNTH_USAGE, tools::song::USAGE, motion::track::USAGE, raea_app_solid::USAGE, raea_app_judge::USAGE, raea_app_make::USAGE, tools::blender::USAGE, raea_app_lightbake::USAGE] {
+    for usage in [raea_app_check::USAGE, raea_app_ask::USAGE, raea_app_direction::check::USAGE, raea_app_direction::USAGE, raea_app_notes::USAGE, raea_app_game::USAGE, raea_app_scene::USAGE, raea_app_voice::USAGE, motion::physics::USAGE, raea_runtime_wear::USAGE, tools::splat::USAGE, tools::sound::SAO_USAGE, tools::sound::TOKENSYNTH_USAGE, tools::song::USAGE, motion::track::USAGE, raea_app_solid::USAGE, raea_app_judge::USAGE, raea_app_make::USAGE, tools::blender::USAGE, raea_app_lightbake::USAGE] {
         assert!(help.contains(usage), "{usage}");
     }
 }

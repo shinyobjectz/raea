@@ -38,6 +38,8 @@ pub(crate) fn ffmpeg(args: &[String]) -> R<()> {
     let mut pending = FfInput::default();
     let (mut ss, mut t, mut to) = (None, None, None);
     let (mut vf, mut af): (Option<String>, Option<String>) = (None, None);
+    // -maxrate: the rate the copy is held to, the one quality choice read (the skill's share copy, #219)
+    let mut cap = None::<u32>;
     let (mut ar, mut ac, mut fmt, mut one_frame, mut outp) = (None, None, None, false, None::<String>);
     let mut i = 0;
     let next = |i: &mut usize| -> R<String> {
@@ -76,11 +78,19 @@ pub(crate) fn ffmpeg(args: &[String]) -> R<()> {
             "-ar" => ar = Some(next(&mut i)?.parse::<u32>().map_err(|_| "-ar takes a rate")?),
             "-ac" => ac = Some(next(&mut i)?.parse::<u32>().map_err(|_| "-ac takes a channel count")?),
             "-frames:v" | "-vframes" => one_frame = next(&mut i)? == "1",
+            "-maxrate" => {
+                let v = next(&mut i)?.to_lowercase();
+                let (n, k) = match v.strip_suffix('k').map(|n| (n, 1.0)).or(v.strip_suffix('m').map(|n| (n, 1000.0))) {
+                    Some(nk) => nk,
+                    None => (v.as_str(), 0.001),
+                };
+                cap = Some((n.parse::<f64>().map_err(|_| "-maxrate takes a rate (2600k)")? * k).round().max(1.0) as u32);
+            }
             "-filter_complex" | "-lavfi" => {
                 return Err(format!("-filter_complex isn't read here: overlays, wipes and layouts are a composition, rendered with raea render. Or {VERBS_HINT}"));
             }
             // codec, quality and container choices: the platform encoder decides (H.264 + AAC in MP4)
-            "-c" | "-c:v" | "-c:a" | "-codec" | "-vcodec" | "-acodec" | "-crf" | "-preset" | "-b:v" | "-b:a" | "-q:v" | "-qscale:v" | "-pix_fmt" | "-movflags" | "-v" | "-loglevel" | "-r" | "-safe" | "-map" | "-tune" | "-profile:v" | "-g" | "-threads" => {
+            "-c" | "-c:v" | "-c:a" | "-codec" | "-vcodec" | "-acodec" | "-crf" | "-preset" | "-b:v" | "-b:a" | "-q:v" | "-qscale:v" | "-pix_fmt" | "-movflags" | "-v" | "-loglevel" | "-r" | "-safe" | "-map" | "-tune" | "-profile:v" | "-g" | "-threads" | "-bufsize" => {
                 next(&mut i)?;
             }
             "-y" | "-n" | "-hide_banner" | "-nostats" | "-nostdin" | "-an" | "-vn" | "-sn" | "-shortest" | "-accurate_seek" => {}
@@ -194,7 +204,10 @@ pub(crate) fn ffmpeg(args: &[String]) -> R<()> {
     } else {
         vec![(path.clone(), from, until)]
     };
-    encode(&srcs, height, Path::new(&out), None)?;
+    match (cap, srcs.as_slice()) {
+        (Some(cap), [(one, None, None)]) => share(one, height, Path::new(&out), cap)?,
+        (cap, _) => encode(&srcs, height, Path::new(&out), cap)?,
+    };
     Ok(())
 }
 

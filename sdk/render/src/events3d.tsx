@@ -11,7 +11,7 @@
 // frame renders, the camera its view; once the frame commits, the pointer is picked against them once and each part's
 // handlers for that frame are called. Frames go in order (a play, a render of a run of frames), as a page's own
 // events do: a render of one frame on its own has no frame before it to press in.
-import { createContext, useContext, useEffect } from "react";
+import { createContext, useContext, useEffect, useRef } from "react";
 import { useCurrentFrame, useVideoConfig } from "@raea/app/clock";
 import { useInput } from "@raea/app/games";
 import { hasNative, native } from "@raea/app/native";
@@ -342,7 +342,12 @@ export function pickIn(pointer: { x: number; y: number }, camera: PickCamera, pa
 
 /** Place3d's value inside a part at `m` (its parent's world matrix times its own). */
 export function usePlace3d(position: Vec3, rotation: Vec3, scale: number | Vec3, q?: [number, number, number, number]): Mat4 {
-  return under(useContext(Place3d), local(position, rotation, scale, q));
+  const m = under(useContext(Place3d), local(position, rotation, scale, q));
+  // the same matrix while its numbers are: a new one each frame is a new Place3d value, which rebuilds every part
+  // under this one, memoised or not (#160)
+  const kept = useRef(m);
+  if (kept.current !== m && kept.current.length === m.length && kept.current.every((v, i) => v === m[i])) return kept.current;
+  return (kept.current = m);
 }
 
 /** A part's pointer handlers, as a page element's. */

@@ -44,9 +44,16 @@ pub fn decoded(src: &str) -> String {
     String::from_utf8(out).unwrap_or_else(|_| s.to_string())
 }
 
+/// The folders of a project's layout an edit can be in (docs/layout.feature), beside its assets/.
+const LAYOUT: [&str; 3] = ["compositions", "components", "artifacts"];
+
 /// The project an edit belongs to: the nearest folder at or above the edit's holding space.json (an object's folder,
-/// docs/sdk.feature S5a, whose edit is src/main.tsx), else the edit's own folder. Remembered per folder, since media
-/// paths are resolved every frame.
+/// docs/sdk.feature S5a, whose edit is src/main.tsx) or .raea/project (a workspace's project); else, for an edit in
+/// one of the layout's folders (docs/layout.feature: compositions/, components/, artifacts/), the folder holding it,
+/// as `raea init` lays a loose folder out; else the edit's own folder. Remembered per folder, since media paths are
+/// resolved every frame. An edit in compositions/ once had only its own folder searched, so a staticFile in the
+/// project's assets/ was never found: a picture failed as missing, and an <Audio> was dropped without a word and the
+/// render refused as silent (0.1.8, 0.1.9).
 pub fn project_dir(dir: &Path) -> PathBuf {
     static SEEN: std::sync::Mutex<Option<std::collections::HashMap<PathBuf, PathBuf>>> = std::sync::Mutex::new(None);
     let mut seen = SEEN.lock().unwrap_or_else(|e| e.into_inner());
@@ -54,7 +61,9 @@ pub fn project_dir(dir: &Path) -> PathBuf {
     if let Some(p) = seen.get(dir) {
         return p.clone();
     }
-    let p = dir.ancestors().find(|d| d.join("space.json").is_file()).unwrap_or(dir).to_path_buf();
+    let marked = dir.ancestors().find(|d| ["space.json", ".raea/project"].iter().any(|m| d.join(m).is_file()));
+    let laid = || dir.ancestors().find(|d| d.file_name().is_some_and(|n| LAYOUT.iter().any(|k| n == *k))).and_then(Path::parent);
+    let p = marked.or_else(laid).unwrap_or(dir).to_path_buf();
     seen.insert(dir.to_path_buf(), p.clone());
     p
 }
@@ -124,6 +133,41 @@ mod tests {
         std::fs::write(plain.join("assets/e.png"), "").unwrap();
         std::fs::remove_file(root.join("space.json")).unwrap();
         assert_eq!(media_path(&plain, "/media/e.png"), plain.join("assets/e.png"));
+        let _ = std::fs::remove_dir_all(&root);
+    }
+
+    // the layout (docs/layout.feature): an edit in compositions/ finds the project's assets/, with a .raea/project
+    // above it or without (a loose folder), at any depth under compositions/
+    #[test]
+    fn media_from_the_layout() {
+        let root = std::env::temp_dir().join(format!("raea-media-layout-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&root);
+        for (name, marked) in [("loose", false), ("project", true)] {
+            let p = root.join(name);
+            let deep = p.join("compositions/ads");
+            for d in [&deep, &p.join("assets"), &p.join("components/reel")] {
+                std::fs::create_dir_all(d).unwrap();
+            }
+            if marked {
+                std::fs::create_dir_all(p.join(".raea")).unwrap();
+                std::fs::write(p.join(".raea/project"), "").unwrap();
+            }
+            std::fs::write(p.join("assets/song.wav"), "").unwrap();
+            for edit in [p.join("compositions"), deep.clone(), p.join("components/reel"), p.clone()] {
+                assert_eq!(media_path(&edit, "/media/song.wav"), p.join("assets/song.wav"), "{name}: from {}", edit.display());
+            }
+            // the edit's own media/ still comes first
+            std::fs::create_dir_all(deep.join("media")).unwrap();
+            std::fs::write(deep.join("media/song.wav"), "").unwrap();
+            assert_eq!(media_path(&deep, "/media/song.wav"), deep.join("media/song.wav"));
+        }
+        // a marked project in a folder named for a layout folder is still itself
+        let odd = root.join("compositions/mine");
+        std::fs::create_dir_all(odd.join(".raea")).unwrap();
+        std::fs::create_dir_all(odd.join("assets")).unwrap();
+        std::fs::write(odd.join(".raea/project"), "").unwrap();
+        std::fs::write(odd.join("assets/a.png"), "").unwrap();
+        assert_eq!(media_path(&odd, "/media/a.png"), odd.join("assets/a.png"));
         let _ = std::fs::remove_dir_all(&root);
     }
 }

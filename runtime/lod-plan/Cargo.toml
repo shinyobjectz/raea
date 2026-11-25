@@ -1,0 +1,18 @@
+[package]
+name = "raea-runtime-lod-plan"
+version = "0.1.0"
+edition = "2024"
+license = "FSL-1.1-ALv2"
+publish = false
+description = "Planned detail held to the frame: a part planned as a grey box or as far away (lod 0 the hero to 4 far) that a shot shows closer than its plan, the levels a job's plan gives its objects, the gate a job is held at and raea scene lod's table (docs/make.feature MK21-MK24)"
+
+[dependencies]
+raea-core-scene = { path = "../../core/scene" }
+# its results as Findings (docs/direction.feature DR3)
+raea-core-facts = { path = "../../core/facts" }
+# the frame's camera, a part's box and what stands in front of it
+raea-sys-stage = { path = "../../systems/stage" }
+# the brief above a composition, found as raea make finds it (MK22)
+dunce = "1"
+bevy = { version = "=0.20.0", default-features = false, features = ["std"] }
+serde_json = "1"

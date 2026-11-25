@@ -191,7 +191,7 @@ pub const MIX: (f64, f64) = (-14.0, -1.0);
 /// play's master-gain): with a <Mix> (`mix`: target LUFS, ceiling dBTP), the gain from the raw sound to the target, then
 /// the limiter at the ceiling, the ceiling lowered by any overshoot `encode` (an AAC round trip) puts back (twice at most);
 /// without one, MIX; the leveller (nodes::LEVEL) rounds the loud passages first, and the gain is made up for what it
-/// took. Returns the master it used and the mastered sound.
+/// took, each pass by what the last one's gain bought (#220). Returns the master it used and the mastered sound.
 pub fn master_mix(raw: &raea_io_media::Audio, mix: Option<(f64, f64)>, encode: Encode) -> (Option<(f64, f64)>, raea_io_media::Audio) {
     let out = mastered(raw, mix, encode);
     // its passes' copies of the whole sound, freed, handed back now (SG4a)
@@ -205,14 +205,14 @@ fn mastered(raw: &raea_io_media::Audio, mix: Option<(f64, f64)>, encode: Encode)
     let mut gain = raea_io_media::audio::master_gained(raw, lufs, ceiling).1;
     // a join the mix drops into dead silence gets the room's tone, found at the level the master plays it (joins.rs)
     let raw = &crate::joins::filled(raw, gain);
-    let mut a = master_raw(raw, Some((gain, ceiling)));
-    // the leveller takes a little loudness with the peaks: made up, twice at most
-    for _ in 0..2 {
+    let (mut a, mut last) = (master_raw(raw, Some((gain, ceiling))), None::<(f64, f64)>);
+    for _ in 0..8 {
         let got = raea_io_media::audio::lufs(&a);
+        let slope = last.map_or(1.0, |(g0, l0)| if gain == g0 { 1.0 } else { ((got - l0) / (gain - g0)).clamp(0.05, 1.0) });
         if !got.is_finite() || (got - lufs).abs() <= 0.2 {
             break;
         }
-        gain += lufs - got;
+        (last, gain) = (Some((gain, got)), gain + ((lufs - got) / slope).clamp(-12.0, 12.0));
         a = master_raw(raw, Some((gain, ceiling)));
     }
     let mut master = Some((gain, ceiling));

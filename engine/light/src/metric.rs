@@ -23,7 +23,8 @@ pub const TILE: usize = 64;
 /// The side of the squares the distance compares, in pixels.
 pub const BLOCK: usize = 8;
 
-fn linear(c: u8) -> f32 {
+/// An 8-bit sRGB value as linear light
+pub fn linear(c: u8) -> f32 {
     let v = c as f32 / 255.0;
     if v <= 0.04045 { v / 12.92 } else { ((v + 0.055) / 1.055).powf(2.4) }
 }

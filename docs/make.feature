@@ -24,6 +24,8 @@ Feature: Make: scenes, kits and shots built to a frozen plan and held to a revie
        once each is calibrated on the person's labels; a fresh critic's fixes always (fixed or answered), its score
        once `raea judge calibrate` agrees with the person's eye.
     5. Every job ends with its notes, including what the skill got wrong for it, so the next job starts from them.
+    6. Every object is planned at a level of detail, by how large it is meant to be seen, and every render says
+       when a shot shows one closer than that (MK21-MK24).
 
   Background:
     Given raea's scene loop as advice (sdk/guides/craft/bevy/scenes.md, from the 11-06 research): brief, routing,
@@ -193,6 +195,53 @@ Feature: Make: scenes, kits and shots built to a frozen plan and held to a revie
         height, invented ones dashed, a metre grid, the entrance the camera looks in from), renders a grey box of the
         plan from the entrance (blockout.tsx, and `raea render --review` sheets of it) and puts the reference, the
         blockout and the floor plan on comparison.png, for the person to approve before anything is generated
+
+  Rule: planned detail (MK21-MK24)
+    Shane, 2026-11-24: "define objects at an LOD level based on either us grayboxing or thinking of them as generally
+    distant objects and alert agents when an LOD that was at 3 or 4 for example is now appearing in frame at LOD 2
+    level or 1, or 0 ... helpful for planning objects as generally distant and unseen objects versus close ones and
+    knowing if we forgot about something over time". A level is how large a part is planned to be seen, which is how
+    much of it gets built; the frames are measured against it on every render, so a camera move added later, or a
+    box that was meant to be replaced, is said the next time anything is drawn.
+
+    Scenario: MK21. A part shown closer than its planned detail is said
+      Given a level is how much of the frame a part's box spans through the frame's camera, the larger of its width's
+        and its height's share: 0 the hero (50% or more), 1 featured (20%), 2 dressing (8%), 3 background (2%), 4 far
+      And a part's plan is its own `lod` (Mesh3d, Model, and every part inside an Entity with a transform or a Group
+        that has one), else the `lod` of the plan's object of its name
+      When a frame shows a planned part at a finer level than its plan (raea-runtime-lod-plan)
+      Then the render's end checks, `raea scene stage` and `raea check --quick` say `lod-closer`: the part, its plan,
+        the level it is seen at, how much of the frame it spans at its largest and on which frame, how many frames it
+        is closer on, and the fix (build it for that level and plan it there, or keep the camera off it)
+      And one level finer is a warning, two or more an error, which fails the render as any error does
+      And a part out of the frame, behind the camera, or with another mesh's box across every line to it isn't seen;
+        a part the camera stands in or beside is measured at its nearest point; RAEA_LOD_CHECK=0 leaves the check out
+
+    @needs:MK21
+    Scenario: MK22. The plan carries each object's level
+      Given `lod: 0..4` on an object of `make` in brief.ts (core/brief make.rs; `doctor` refuses a level past 4)
+      Then a render of a composition under that brief holds the parts named as the objects' ids to those levels
+        (runtime/lod-plan plan.rs reads the brief only when its words plan a level, once a version)
+      And `raea make plan` labels each footprint with its level and writes each grey box with its object's id as its
+        name and its `lod`, so the blockout is held to the plan it draws
+
+    @needs:MK21
+    Scenario: MK23. `raea scene lod`: every part's plan beside what the frames show
+      When `raea scene lod EDIT.tsx [--from N] [--to N] [--json]` steps the frames without drawing
+      Then it lists every part: its planned level, the finest level a frame shows it at, how much of the frame it
+        spans there, on which frame, and how many frames it is in; parts seen closer than planned first (the widest
+        gap on top), then the rest of the planned, then the parts with no plan by how large they get
+      And a planned part no frame shows as close as its plan says so (built finer than it is ever seen)
+      And a level the plan gives a name that no part in the frames goes by is listed, since it holds nothing
+      And it exits 1 when a part is seen two or more levels finer than planned
+
+    @needs:MK22
+    Scenario: MK24. A job is held at a part seen closer than planned
+      Given a job whose composition's last render or check found `lod-closer`
+      Then `raea make status` has a `lod` gate for that composition, open with the parts' names, until each is built
+        for the level it is seen at and replanned, kept out of the camera's way, or answered in NOTES.md on a line
+        with `lod` and its name; the Stop hook holds the agent there as at any open gate
+      And a job that plans a level and whose render found none shows the gate clear
 
   Rule: raea cloud (MK19-MK20)
 

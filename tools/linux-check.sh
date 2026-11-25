@@ -1,7 +1,10 @@
 #!/bin/bash
-# PT8, the Linux check after landing (docs/ports.feature): `cargo check` of raea-cli, and of raea-render without its
-# default features, for x86_64 Linux on the probe box (Fly Sprite raea-linux in raea's own org, set up by
-# tools/linux-box.sh), so an Apple-only call outside a cfg is caught the day it lands.
+# PT8, the Linux check after landing (docs/ports.feature): `cargo check` of raea-cli, of raea-render without its
+# default features, and of the app's window as the Linux app builds it (raea-page-host --features window, whose bevy
+# brings winit's X11 and Wayland: raea-page-window alone has none, so winit refuses Linux. The window's links and
+# clipboard were Mac-only stubs off the Mac until 11-23, so signing in opened nothing on Linux), for x86_64 Linux on
+# the probe box (Fly Sprite raea-linux in raea's own org, set up by tools/linux-box.sh), so an Apple-only call outside
+# a cfg is caught the day it lands.
 #
 #   tools/linux-check.sh [SHA]                            # default: origin/main
 #   tools/linux-check.sh --release VERSION [SHA] [--dry]  # RL3: the Linux tarball, built and tried there
@@ -185,7 +188,7 @@ if [ "$2" = release ]; then
   echo "linux done $ok"; exit $ok
 fi
 cd $W && export CARGO_TARGET_DIR=~/linux-check-target
-for args in '-p raea-cli' '-p raea-render --no-default-features'; do
+for args in '-p raea-cli' '-p raea-render --no-default-features' '-p raea-page-host --features window'; do
   t0=$(date +%s)
   guarded bash -c "cargo check $args -j 7 --message-format short > ~/linux-check.out 2>&1"
   code=$?

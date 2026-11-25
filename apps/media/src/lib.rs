@@ -12,6 +12,7 @@
 //!   raea media cuts FILE [--threshold 0.08]                 shot changes (ffmpeg's scene score)
 //!   raea media freezes FILE [--noise 0.001] [--min 2]       held pictures (ffmpeg's freezedetect)
 //!   raea media proxy FILE [--height 720] -o OUT.mp4         a smaller copy
+//!   raea media share FILE [--kbps 2600] [--height H] -o OUT.mp4   a copy to send: any player takes it, held to a bitrate
 //!   raea media lod MODEL.glb [--level 1] [--texture 1024] -o OUT.glb   a model at a lower level of detail (triangles halved a level)
 //!   raea media trim FILE --from S --to S -o OUT.mp4         a stretch, frame-exact (re-encoded)
 //!   raea media concat A B ... -o OUT.mp4                    one after another (same aspect)
@@ -82,6 +83,17 @@ fn ext(p: &Path) -> String {
     p.extension().map(|e| e.to_string_lossy().to_lowercase()).unwrap_or_default()
 }
 
+/// One argument as the files it names. A shell that doesn't split a variable (zsh's `$FILES`) hands every name over as
+/// one argument, which read as a single path fails as "No such file", or past 255 bytes as "File name too long" (#218):
+/// an argument that isn't a file, but whose words each are, is those files.
+fn names(a: &str) -> Vec<String> {
+    let words: Vec<&str> = a.split_whitespace().collect();
+    if words.len() > 1 && !Path::new(a).exists() && words.iter().all(|w| Path::new(w).exists()) {
+        return words.into_iter().map(String::from).collect();
+    }
+    vec![a.to_string()]
+}
+
 /// `--name value` flags (and `-o`), switches, and positional arguments.
 fn parse(args: &[String]) -> (Vec<String>, BTreeMap<String, String>) {
     let (mut pos, mut fl) = (Vec::new(), BTreeMap::new());
@@ -97,7 +109,7 @@ fn parse(args: &[String]) -> (Vec<String>, BTreeMap<String, String>) {
                 i += 1;
             }
         } else {
-            pos.push(a.clone());
+            pos.extend(names(a));
         }
         i += 1;
     }
@@ -109,11 +121,11 @@ fn num(fl: &BTreeMap<String, String>, k: &str) -> R<Option<f64>> {
 }
 
 /// The verbs `raea media` answers here.
-pub const VERBS: &[&str] = &["probe", "still", "sheet", "audio", "loudness", "motion", "cuts", "freezes", "proxy", "lod", "trim", "concat", "encode", "help"];
+pub const VERBS: &[&str] = &["probe", "still", "sheet", "audio", "loudness", "motion", "cuts", "freezes", "proxy", "share", "lod", "trim", "concat", "encode", "help"];
 
 pub fn cli(args: &[String]) -> i32 {
     let Some(verb) = args.first() else {
-        println!("usage: raea media <probe|still|sheet|audio|loudness|motion|cuts|proxy|lod|trim|concat|encode> FILE ... (raea media help)");
+        println!("usage: raea media <probe|still|sheet|audio|loudness|motion|cuts|proxy|share|lod|trim|concat|encode> FILE ... (raea media help)");
         return 2;
     };
     let (pos, fl) = parse(&args[1..]);
@@ -194,6 +206,10 @@ fn run(verb: &str, pos: &[String], fl: &BTreeMap<String, String>) -> R<Option<Va
             let h = fl.get("height").and_then(|h| h.parse().ok()).unwrap_or(720);
             encode(&[(file()?, None, None)], Some(h), &out()?, fl.get("kbps").and_then(|k| k.parse().ok())).map(Some)
         }
+        "share" => {
+            let cap = fl.get("kbps").and_then(|k| k.parse().ok()).unwrap_or(2600);
+            share(&file()?, fl.get("height").and_then(|h| h.parse().ok()), &out()?, cap).map(Some)
+        }
         "trim" => {
             let (from, to) = range()?;
             if from.is_none() && to.is_none() {
@@ -217,6 +233,6 @@ fn run(verb: &str, pos: &[String], fl: &BTreeMap<String, String>) -> R<Option<Va
             println!("{}", include_str!("lib.rs").lines().take_while(|l| l.starts_with("//!")).map(|l| l.trim_start_matches("//!").strip_prefix(' ').unwrap_or("")).collect::<Vec<_>>().join("\n"));
             Ok(None)
         }
-        v => Err(format!("no media verb {v:?}: probe, still, sheet, audio, loudness, motion, cuts, freezes, proxy, trim, concat, encode")),
+        v => Err(format!("no media verb {v:?}: probe, still, sheet, audio, loudness, motion, cuts, freezes, proxy, share, trim, concat, encode")),
     }
 }

@@ -3,7 +3,10 @@
 
 pub mod badge;
 pub mod chrome;
+#[cfg(feature = "window")]
+pub mod idle;
 pub mod native;
+pub mod scheme;
 #[cfg(all(windows, feature = "window"))]
 mod win;
 

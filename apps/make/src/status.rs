@@ -136,6 +136,13 @@ fn checks(job: &Job) -> Vec<Value> {
         .collect()
 }
 
+/// MK24: parts a composition's last render showed closer than planned, held until replanned or answered (raea-runtime-lod-plan)
+fn lods(job: &Job, notes: &str) -> Vec<Value> {
+    let plans = job.make.objects.iter().any(|o| o.lod.is_some());
+    let last = |c: &String| job.record.iter().rev().find(|e| e.of == job.project.map(|p| raea_core_facts::record::rel(p, &job.dir.join(c))).unwrap_or_else(|| c.clone()));
+    job.make.compositions.iter().filter_map(|c| last(c).and_then(|l| raea_runtime_lod_plan::gate(c, &l.id, &l.findings, notes, plans)).map(|(clear, says)| gate("lod", Some(c), clear, says))).collect()
+}
+
 /// Tier 3: a fresh critic has judged a round newer than the newest deliverable, and each blocking defect it named is
 /// fixed (the round passed) or answered in NOTES.md by its name. Its score gates once the judge is calibrated.
 fn critic(job: &Job, newest: Option<SystemTime>, notes: &str) -> Vec<Value> {
@@ -188,6 +195,7 @@ pub fn status(job: &Job) -> Value {
         missing.push(format!("NOTES.md with a \"{SKILL_HEADING}\" section (one line per thing that cost time; what the guide got wrong for this job)"));
     }
     let mut gates = checks(job);
+    gates.extend(lods(job, &notes));
     gates.extend(critic(job, newest, &notes));
     let (asks, said) = crate::asked::gates(&sheets(job), job.ledger, &notes);
     gates.extend(asks);

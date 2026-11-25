@@ -1,7 +1,7 @@
 ---
 title: "raea world"
 summary: "A frame as one world: its layers, text, 3D parts, camera, shots, clips, cues and lines as entities, queried across media."
-order: 49
+order: 50
 sources: ["apps/direction/src/world.rs", "runtime/world/src/lib.rs", "core/facts/src/components.rs"]
 ---
 

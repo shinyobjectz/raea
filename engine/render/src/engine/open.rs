@@ -128,7 +128,7 @@ impl Engine {
         app.add_plugins((raea_plugins::RaeaPlugins, raea_plugins::RegisteredPlugins { fps: prog.fps }));
         app.sub_app_mut(bevy::render::RenderApp).add_systems(
             bevy::render::Render,
-            wait_pipelines.in_set(bevy::render::RenderSystems::Render).before(bevy::render::renderer::render_system),
+            (wait_pipelines, failed_pipelines).chain().in_set(bevy::render::RenderSystems::Render).before(bevy::render::renderer::render_system),
         );
         // overlapping fog volumes composited in one order whatever frames came before (raea-sys-fog's FogRank)
         app.sub_app_mut(bevy::render::RenderApp)
@@ -290,5 +290,24 @@ fn solari_cut(mut cams: Query<(&raea_sys_post::cut::CameraCut, &mut bevy::solari
         if cut.0 {
             s.reset = true;
         }
+    }
+}
+
+/// A pipeline whose shader didn't compile draws nothing, and the frame comes out without its pass (Solari's light, a
+/// material): an error of the render, said once a pipeline, so `raea render` ends on it instead of "0 errors" over a
+/// picture that isn't the scene's (11-25: a reserved word in a shader, and three held runs measured as if lit). A
+/// shader still loading is Bevy's to retry, not a failure.
+fn failed_pipelines(cache: Res<bevy::render::render_resource::PipelineCache>, mut told: Local<std::collections::HashSet<usize>>) {
+    use bevy::render::render_resource::CachedPipelineState;
+    use bevy::shader::ShaderCacheError;
+    for (i, p) in cache.pipelines().enumerate() {
+        let CachedPipelineState::Err(e) = &p.state else { continue };
+        if matches!(e, ShaderCacheError::ShaderNotLoaded(_) | ShaderCacheError::ShaderImportNotYetAvailable) || !told.insert(i) {
+            continue;
+        }
+        let why = e.to_string();
+        let found = raea_core_facts::Finding::new("shader", raea_core_facts::Level::Error, format!("a shader didn't compile, so its pass isn't in the picture: {}", why.lines().map(str::trim).filter(|l| !l.is_empty()).take(4).collect::<Vec<_>>().join(" ")), "raea render");
+        eprintln!("raea: {}", found.line());
+        raea_core_facts::finding::said(&[found]);
     }
 }

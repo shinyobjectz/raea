@@ -221,7 +221,7 @@ impl<K: Copy + Eq + std::hash::Hash> Ctx<'_, K> {
                 continue;
             }
             let part = self.alt(k, true, seen);
-            let block = !matches!(kel.tag.as_str(), "span" | "a" | "b" | "i" | "em" | "strong" | "code" | "small" | "abbr" | "kbd" | "label" | "img" | "svg" | "text" | "sub" | "sup" | "mark" | "s" | "u" | "q" | "time");
+            let block = self.facts.block(k).unwrap_or_else(|| !matches!(kel.tag.as_str(), "span" | "a" | "b" | "i" | "em" | "strong" | "code" | "small" | "abbr" | "kbd" | "label" | "img" | "svg" | "text" | "sub" | "sup" | "mark" | "s" | "u" | "q" | "time"));
             if block {
                 out.push(' ');
             }

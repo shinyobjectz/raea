@@ -99,6 +99,11 @@ fn shape(expr: &str, out: &Path, meshes: &mut BTreeMap<String, String>) -> R<Val
         Some(f) => f.clone(),
         None => {
             let f = format!("meshes/mesh{k}.glb");
+            // export() empties meshes/ before the parts are walked, so the folder is made here, where a file first needs it
+            let dir = out.join("meshes");
+            if let Err(e) = std::fs::create_dir_all(&dir) {
+                return Err(format!("{}: {e}", dir.display()));
+            }
             // and as an .obj, which Godot imports as a mesh of its own (a .glb comes in as a scene)
             let (glb, obj) = (out.join(&f).to_string_lossy().into_owned(), out.join(f.replace(".glb", ".obj")).to_string_lossy().into_owned());
             match expr.strip_prefix("buffer:") {
@@ -312,7 +317,8 @@ mod tests {
     #[test]
     fn primitives_cross_as_themselves_and_the_rest_as_a_mesh() {
         let out = std::env::temp_dir().join(format!("raea-interchange-shape-{}", std::process::id()));
-        std::fs::create_dir_all(out.join("meshes")).unwrap();
+        // no meshes/ beforehand, as export() leaves it: shape() makes it (it once failed every solid in a fresh export)
+        std::fs::create_dir_all(&out).unwrap();
         let mut m = BTreeMap::new();
         assert_eq!(shape("box(1, 2, 3)", &out, &mut m).unwrap(), json!({ "type": "cuboid", "size": [1.0, 2.0, 3.0] }));
         assert_eq!(shape("sphere(0.5)", &out, &mut m).unwrap()["type"], "sphere");

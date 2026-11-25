@@ -18,11 +18,17 @@ fn vp9_webm_keeps_its_alpha() {
     let dir = std::env::temp_dir().join(format!("raea-ffmpeg-alpha-{}", std::process::id()));
     std::fs::create_dir_all(&dir).unwrap();
     let Some(webm) = alpha_webm(&dir) else { return eprintln!("skipped: no ffmpeg with libvpx-vp9 here") };
-    let mut d = Ffmpeg.open_video(&webm).expect("the ffmpeg backend opens a VP9 WebM");
-    for t in [0.0, 0.2] {
-        let f = d.frame_at(t).expect("a frame");
-        let at = |x: usize, y: usize| f.rgba[(y * f.width as usize + x) * 4 + 3];
-        assert_eq!((at(2, 2), at(32, 32)), (0, 255), "at {t} s: outside the square is transparent, inside opaque");
+    // as made, and copied by ffmpeg's muxer, which writes the tag as ALPHA_MODE (#224)
+    let copy = dir.join("copy.webm");
+    let copied = Command::new("ffmpeg").args(["-v", "error", "-y", "-i"]).arg(&webm).args(["-c", "copy"]).arg(&copy).status().is_ok_and(|s| s.success());
+    assert!(copied, "ffmpeg copies the WebM");
+    for file in [&webm, &copy] {
+        let mut d = Ffmpeg.open_video(file).expect("the ffmpeg backend opens a VP9 WebM");
+        for t in [0.0, 0.2] {
+            let f = d.frame_at(t).expect("a frame");
+            let at = |x: usize, y: usize| f.rgba[(y * f.width as usize + x) * 4 + 3];
+            assert_eq!((at(2, 2), at(32, 32)), (0, 255), "{} at {t} s: outside the square is transparent, inside opaque", file.display());
+        }
     }
     let _ = std::fs::remove_dir_all(&dir);
 }

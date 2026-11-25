@@ -12,6 +12,11 @@ sources: ["apps/make/src/lib.rs", "apps/make/src/status.rs", "apps/make/src/aske
   and kit.json; a shot's still or move per shot), or the plan's own `deliverables`;
 - NOTES.md, ending with a "What the skill got wrong" section;
 - each composition the plan names has a render or check newer than it that found no error (the project's record);
+- no part is seen closer than its planned detail. An object's `lod` (0 the hero to 4 far; the levels are in
+  [raea scene](scene.md)) says how large it is planned to be seen, so a grey box or a far backdrop is planned at 3
+  or 4. A render that shows it two levels finer is an error, held by the line above; one level finer holds the job
+  until the part is built for that level and replanned, the camera keeps off it, or NOTES.md answers it on a line
+  with `lod` and its name. `raea scene lod` lists every part;
 - a fresh critic (`raea judge --kind KIND`) has judged a round newer than the newest deliverable on the job's own
   kind's rubric, and each blocking defect it named is fixed or answered in NOTES.md by its name; once the judge is
   calibrated against your eye, two passes in a row as well;

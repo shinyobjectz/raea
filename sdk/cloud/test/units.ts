@@ -8,6 +8,7 @@ import os from "node:os"
 import path from "node:path"
 import { parseSummary, pick } from "../server/gpu.ts"
 import { plan, projectRoot } from "../server/offload.ts"
+import { shellEnv } from "../server/shell-os.ts"
 
 const L4 = `Devices:
 ========
@@ -69,4 +70,9 @@ try {
 } finally {
   rmSync(root, { recursive: true, force: true })
 }
+
+// the box's shell on Windows: its own folder first on PATH, whatever case Windows gave the name; untouched elsewhere
+assert.deepEqual(shellEnv({ Path: "C:\\w" }, true, "C:\\g\\usr\\bin\\sh.exe"), { Path: "C:\\g\\usr\\bin;C:\\w" })
+assert.deepEqual(shellEnv({ PATH: "C:\\w" }, true, "bash"), { PATH: "C:\\w" })
+assert.deepEqual(shellEnv({ PATH: "/usr/bin" }, false, "/bin/bash"), { PATH: "/usr/bin" })
 console.log("units: ok")

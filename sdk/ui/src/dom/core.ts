@@ -16,7 +16,7 @@ export const STRIDE = 18;
 // innerWidth and media queries read in a first render are the page's
 const vp0 = (globalThis as { __ui_viewport?: { w: number; h: number; dpr: number } }).__ui_viewport;
 
-/** the module's state its files assign (each field was a top-level let) */ export const S: { vw: number; vh: number; dpr: number; frameNo: number; pointerCapture: Element_ | null; active: Element_ | null; wantFocus: Element_ | null | undefined; downTarget: Element_ | null; spaceDown: { t: Element_; ok: boolean } | null; focusVisible: boolean } = { vw: vp0?.w ?? 0, vh: vp0?.h ?? 0, dpr: vp0?.dpr ?? 1, frameNo: 0, pointerCapture: null, active: null, wantFocus: undefined, downTarget: null, spaceDown: null, focusVisible: false };
+/** the module's state its files assign (each field was a top-level let) */ export const S: { vw: number; vh: number; dpr: number; dark: boolean; frameNo: number; pointerCapture: Element_ | null; active: Element_ | null; wantFocus: Element_ | null | undefined; downTarget: Element_ | null; spaceDown: { t: Element_; ok: boolean } | null; focusVisible: boolean } = { vw: vp0?.w ?? 0, vh: vp0?.h ?? 0, dpr: vp0?.dpr ?? 1, dark: false, frameNo: 0, pointerCapture: null, active: null, wantFocus: undefined, downTarget: null, spaceDown: null, focusVisible: false };
 
 // ---------------------------------------------------------------- the runner (the mounted driver's batch)
 

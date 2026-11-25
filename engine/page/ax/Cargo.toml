@@ -1,0 +1,22 @@
+[package]
+name = "raea-page-ax"
+version = "0.1.0"
+edition = "2024"
+license = "FSL-1.1-ALv2"
+publish = false
+description = "A Blitz page's accessibility: its elements read for raea-sys-a11y, as the parity harness's records, and (on screen) published to the OS's assistive clients, whose asks come back as input"
+
+[features]
+# on screen (raea-page-host's --window): the tree in the window's AccessKit adapter, bevy_winit's
+window = ["bevy/bevy_winit", "dep:accesskit"]
+
+[dependencies]
+bevy = { version = "=0.20.0", default-features = false, features = ["std", "bevy_window"] }
+raea-sys-a11y = { path = "../../../systems/a11y" }
+raea-sys-page = { path = "../../../systems/page" }
+raea-runtime-dom = { path = "../../../runtime/dom" }
+# the AccessKit Bevy's winit adapter takes, its version exactly
+accesskit = { version = "=0.24.1", default-features = false, optional = true }
+blitz-dom = { version = "=0.3.0-beta.4", default-features = false }
+stylo = "=0.22.0"
+serde_json = "1"

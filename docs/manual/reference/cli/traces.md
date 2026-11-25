@@ -1,7 +1,7 @@
 ---
 title: "raea traces"
 summary: "List the sessions raea apps left, newest first, with how each ended and its glitches, or tell one in full."
-order: 54
+order: 55
 sources: ["engine/cli/src/cli.rs", "io/trace/src"]
 ---
 

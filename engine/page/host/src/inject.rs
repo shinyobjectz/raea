@@ -96,6 +96,18 @@ impl Pending {
     }
 }
 
+/// An input event queued in `world` (Pending::queue), and known to the `ui` answers that wait for it.
+pub fn queue(world: &mut World, v: Value, next: u64) -> u64 {
+    let f = world.resource_mut::<Pending>().queue(v, next);
+    LAST_INPUT.fetch_max(f, std::sync::atomic::Ordering::SeqCst);
+    f
+}
+
+/// The frame the host is on.
+pub fn frame(world: &World) -> u64 {
+    world.resource::<Frame>().0
+}
+
 /// A button going down or up: the events after it wait for the next frame, so the press is picked (and focus moves)
 /// before the keys typed after it are dispatched.
 fn edge(v: &Value) -> bool {
@@ -392,7 +404,13 @@ pub fn resize(world: &mut World, win: Entity, w: f32, h: f32) {
 /// points, as AppKit's scrollingDeltaY hands them, natural scrolling already in them: winit makes them physical pixels,
 /// which ScrollArea and onWheel would move twice as far on a 2x screen. And a press's click count is kept (Clicks), for
 /// onPointerDown's `detail`: the header's double click zooms the window.
-pub fn window_pointer(mut evs: MessageReader<WindowEvent>, target: Res<Target>, windows: Query<&Window>, mut out: MessageWriter<PointerInput>, mut pending: ResMut<Pending>, mut clicks: ResMut<Clicks>, mut at: Local<Option<Vec2>>) {
+///
+/// A pointer with a button down leaves the window on its release, as Chrome's does: AppKit reports the mouse itself
+/// outside the window between an assistive client's press and its release, and the release was dropped with the
+/// pointer's place (a press on a card opened nothing, 11-24).
+pub fn window_pointer(mut evs: MessageReader<WindowEvent>, target: Res<Target>, windows: Query<&Window>, mut out: MessageWriter<PointerInput>, mut pending: ResMut<Pending>, mut clicks: ResMut<Clicks>, mut at: Local<Option<Vec2>>, mut down: Local<Vec<MouseButton>>, mut gone: Local<bool>) {
+    // off every camera's viewport, so hover ends (picking keeps a pointer's last place when it leaves)
+    const OFF: Vec2 = Vec2::splat(-1.0e6);
     let mut put = |position: Vec2, action: PointerAction| {
         out.write(PointerInput::new(PointerId::Mouse, Location { target: target.norm.clone(), position }, action));
     };
@@ -401,6 +419,9 @@ pub fn window_pointer(mut evs: MessageReader<WindowEvent>, target: Res<Target>, 
             WindowEvent::CursorMoved(e) => {
                 let delta = at.map(|a| e.position - a).unwrap_or(Vec2::ZERO);
                 *at = Some(e.position);
+                *gone = false;
+                // where an injected press is (`at_of`): it moves there first unless it's the pointer's place now
+                pending.cursor = *at;
                 put(e.position, PointerAction::Move { delta });
             }
             WindowEvent::MouseButtonInput(e) => {
@@ -418,9 +439,20 @@ pub fn window_pointer(mut evs: MessageReader<WindowEvent>, target: Res<Target>, 
                         } else if b == PointerButton::Primary {
                             pending.clicks = clicks.press(p);
                         }
+                        if !down.contains(&e.button) {
+                            down.push(e.button);
+                        }
                         put(p, PointerAction::Press(b));
                     }
-                    ButtonState::Released => put(p, PointerAction::Release(b)),
+                    ButtonState::Released => {
+                        down.retain(|d| *d != e.button);
+                        put(p, PointerAction::Release(b));
+                        if down.is_empty() && std::mem::take(&mut *gone) {
+                            *at = None;
+                            pending.cursor = None;
+                            put(OFF, PointerAction::Move { delta: Vec2::ZERO });
+                        }
+                    }
                 }
             }
             WindowEvent::MouseWheel(e) => {
@@ -428,10 +460,11 @@ pub fn window_pointer(mut evs: MessageReader<WindowEvent>, target: Res<Target>, 
                 let k = if e.unit == MouseScrollUnit::Pixel { windows.get(e.window).map(|w| w.scale_factor()).unwrap_or(1.0) } else { 1.0 };
                 put(p, PointerAction::Scroll { x: e.x / k, y: e.y / k, unit: e.unit, phase: e.phase });
             }
+            WindowEvent::CursorLeft(_) if !down.is_empty() => *gone = true,
             WindowEvent::CursorLeft(_) => {
-                // off every camera's viewport, so hover ends (picking keeps a pointer's last place when it leaves)
                 *at = None;
-                put(Vec2::splat(-1.0e6), PointerAction::Move { delta: Vec2::ZERO });
+                pending.cursor = None;
+                put(OFF, PointerAction::Move { delta: Vec2::ZERO });
             }
             _ => {}
         }

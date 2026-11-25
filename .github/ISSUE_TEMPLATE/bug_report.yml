@@ -1,0 +1,54 @@
+name: Bug report
+description: Something raea did wrong, with a way to see it happen.
+body:
+  - type: markdown
+    attributes:
+      value: |
+        For a security problem, use the Security tab, not a public issue. Leave out keys and anything private.
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: What `raea --version` prints, or the app's version from its About screen.
+    validations:
+      required: true
+  - type: dropdown
+    id: where
+    attributes:
+      label: Where
+      options:
+        - raea CLI (render, play, check, media, ...)
+        - SDK (TypeScript, React)
+        - raea app (desktop)
+        - Install or update
+        - Not sure
+    validations:
+      required: true
+  - type: input
+    id: machine
+    attributes:
+      label: Machine
+      description: OS and version, CPU, and for a picture problem the GPU.
+      placeholder: macOS 27.2, Apple Silicon
+    validations:
+      required: true
+  - type: textarea
+    id: ran
+    attributes:
+      label: What you ran
+      description: The command, and the smallest composition that shows it (paste the TSX).
+    validations:
+      required: true
+  - type: textarea
+    id: happened
+    attributes:
+      label: What happened
+      description: The output as printed. For a picture or sound problem, the frame or time and a screenshot.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected
+    validations:
+      required: true

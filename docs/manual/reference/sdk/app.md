@@ -32,7 +32,7 @@ app.step(10);
 import { App, BevyApp, clearRegistry, Composition } from "raea/app"
 ```
 
-`raea/app` exports 1 component, 1 hook, 4 functions, 3 classes, 17 values, 17 types. Bevy's counterpart: `bevy_app`. Source: [sdk/raea/src/app.ts](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/src/app.ts).
+`raea/app` exports 1 component, 1 hook, 5 functions, 3 classes, 17 values, 18 types. Bevy's counterpart: `bevy_app`. Source: [sdk/raea/src/app.ts](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/src/app.ts).
 
 ## Components
 
@@ -49,6 +49,7 @@ Declares a composition inside the root. It draws nothing itself; a renderer find
 | `fps` (required) | `number` | frames a second |
 | `durationInFrames` (required) | `number` | its length in frames |
 | `defaultProps` | `P` | the props it's rendered with (JSON-like values only) |
+| `calculateMetadata` | `CalculateMetadata<P>` | its size, rate, length or props worked out from the props it's rendered with (`defaultProps` under the command line's `--props`): what it returns replaces the values above, so one composition renders a video per props file. It returns its values directly, not a promise |
 | `controls` | `Controls<P>` | the composition's controls: which of its defaultProps a person may tune, and how. Each names a defaultProps key, whose value is the control's; the feed's Controls panel shows them on the timeline and a change reaches the live picture as that prop |
 | `edit` | `Edit` | a hand edit laid over the composition (docs/craft-system.md, L): written back by the app's timeline |
 
@@ -88,6 +89,15 @@ The compositions the registered root declares, in order.
 
 ```ts
 function getCompositions(): RegisteredComposition[]
+```
+
+### `getInputProps`
+
+The props given on the command line (`raea render --props '{"n": 2}'` or `--props props.json`), anywhere in a
+program; `{}` when none were. A composition's component gets them over its `defaultProps`.
+
+```ts
+function getInputProps<T extends Record<string, unknown> = Record<string, unknown>>(): T
 ```
 
 ### `registerRoot`
@@ -239,6 +249,14 @@ Bevy's schedules by their labels, for `app.addSystems(Update,...)` as in Rust.
 The frame's main schedules: Update for game logic, then SpawnScene, PostUpdate and Last.
 
 ## Types
+
+### `CalculateMetadata`
+
+What `calculateMetadata` is given and may return.
+
+```ts
+type CalculateMetadata = (given: { defaultProps: P; props: P; compositionId: string }) => { durationInFrames?: number; width?: number; height?: number; fps?: number; props?: P; } | void
+```
 
 ### `ChoiceControl`
 

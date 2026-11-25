@@ -6,7 +6,7 @@ import { modelScreens, type ModelScreens } from "../screen";
 import { pageLayers } from "../layers";
 import { Place3d, useCamera3d, usePlace3d } from "../events3d";
 import { MeshStandardMaterialProps, PerspectiveCameraProps, Vec3, checkMaterial, checkPass, checkVec, colours, node3d, samplerSpec, type SamplerSpec } from "./all";
-import { detailNode, type Detail } from "./detail";
+import { PlannedLodOf, detailNode, usePlannedLod, type Detail, type PlannedLod } from "./detail";
 
 /** What a light or camera holds: Bevy's own reflected components on it (<BevyComponent>, or a generated wrapper such
  * as bevy_light's ShadowFilteringMethod or bevy_pbr's ScreenSpaceReflections), applied through Bevy's TypeRegistry. */
@@ -66,6 +66,8 @@ export interface EntityProps {
   transform?: { translation?: Vec3; rotation?: [number, number, number, number]; scale?: Vec3 };
   /** with `transform`: the composition pass of every part inside that doesn't name its own (Mesh's `pass`) */
   pass?: string;
+  /** with `transform`: the planned detail of every part inside that plans none of its own, 0 (the hero) to 4 (far) */
+  lod?: PlannedLod;
   /** its Bevy components (<BevyComponent>, or the generated wrappers in raea/bevy-own); with `transform`, also
    * the parts it carries */
   children?: ReactNode;
@@ -79,18 +81,19 @@ export interface EntityProps {
  * hand-written element. */
 export function Entity({ children, ...rest }: EntityProps) {
   if (rest.transform !== undefined) {
-    const { transform: t, pass, ...own } = rest;
+    const { transform: t, pass, lod, ...own } = rest;
     if (own.position !== undefined || own.rotation !== undefined || own.scale !== undefined) throw new TypeError("Entity: transform, or position, rotation and scale, not both");
     if (own.name !== undefined) throw new TypeError("Entity: a parent entity (with a transform) takes no name yet; name a bare Entity inside it");
     // a parent entity draws as the old Group: its place, and its children placed in it
     return (
-      <Group position={t.translation ?? [0, 0, 0]} rotation={t.rotation ? eulerOf(t.rotation) : [0, 0, 0]} scale={t.scale ?? 1} {...(pass !== undefined ? { pass } : {})}>
+      <Group position={t.translation ?? [0, 0, 0]} rotation={t.rotation ? eulerOf(t.rotation) : [0, 0, 0]} scale={t.scale ?? 1} {...(pass !== undefined ? { pass } : {})} {...(lod !== undefined ? { lod } : {})}>
         {children}
       </Group>
     );
   }
   if (rest.position !== undefined) checkVec("Entity", "position", rest.position);
   if (rest.rotation !== undefined) checkVec("Entity", "rotation", rest.rotation);
+  if (rest.lod !== undefined) throw new TypeError("Entity: lod is a parent entity's (with a transform), for the parts inside it; a part takes its own");
   if (rest.name !== undefined && (typeof rest.name !== "string" || !rest.name)) throw new TypeError(`Entity: name is a non-empty string, got ${JSON.stringify(rest.name)}`);
   const id = useId();
   const m = usePlace3d(rest.position ?? [0, 0, 0], rest.rotation ?? [0, 0, 0], rest.scale ?? 1);
@@ -106,6 +109,9 @@ export interface GroupProps {
   scale?: number | Vec3;
   /** the composition pass of every part inside that doesn't name its own (Mesh's `pass`) */
   pass?: string;
+  /** the planned detail of every part inside that plans none of its own, 0 (the hero) to 4 (far): a skyline's
+   * buildings, a street's far end (PlannedLod) */
+  lod?: PlannedLod;
   children?: ReactNode;
 }
 
@@ -139,7 +145,8 @@ export function Group(props: GroupProps) {
   const q = props.quaternion;
   if (q !== undefined && !(Array.isArray(q) && q.length === 4 && q.every(Number.isFinite))) throw new TypeError(`Group: quaternion is [x, y, z, w], got ${JSON.stringify(q)}`);
   const m = usePlace3d(position, rotation, scale, q);
-  return node3d("Group", { position, rotation, scale, ...(q !== undefined ? { quaternion: q } : {}), ...(props.pass !== undefined ? { pass: props.pass } : {}) }, <Place3d.Provider value={m}>{props.children}</Place3d.Provider>);
+  const lod = usePlannedLod("Group", props.lod);
+  return node3d("Group", { position, rotation, scale, ...(q !== undefined ? { quaternion: q } : {}), ...(props.pass !== undefined ? { pass: props.pass } : {}) }, <Place3d.Provider value={m}><PlannedLodOf.Provider value={lod}>{props.children}</PlannedLodOf.Provider></Place3d.Provider>);
 }
 
 export interface ModelProps {
@@ -225,6 +232,9 @@ export interface ModelProps {
   shadow?: boolean;
   /** where it's drawn: its distances or sizes on screen, cross-faded, and its shadow (Detail; raea-sys-lod) */
   detail?: Detail;
+  /** its planned detail, 0 (the hero) to 4 (far): how large it is meant to be seen. A render that shows it finer
+   * says so (`lod-closer`); a stand-in or a far backdrop is planned at 3 or 4 (PlannedLod) */
+  lod?: PlannedLod;
   /** false: no shadow falls on its meshes, its own included (true by default): a furry coat of many cards that would
    * otherwise speckle itself in the shadow maps */
   receiveShadow?: boolean;
@@ -322,7 +332,7 @@ export function Model(props: ModelProps) {
   if (props.sampler !== undefined) samplerSpec("Model", props.sampler);
   if (props.pixelSize !== undefined && !(props.pixelSize >= 1)) throw new RangeError(`Model: pixelSize must be at least 1, got ${props.pixelSize}`);
   if (props.bones !== undefined && (typeof props.bones !== "object" || Object.values(props.bones).some((v) => typeof v !== "string"))) throw new TypeError(`Model: bones maps each joint's name to a model's name, got ${JSON.stringify(props.bones)}`);
-  const p: Record<string, unknown> = { ...props, time };
+  const p: Record<string, unknown> = { ...props, time, lod: usePlannedLod("Model", props.lod) };
   if (props.animations !== undefined) {
     const a = props.animations;
     if (props.animation !== undefined) throw new TypeError("Model: give animation (one clip) or animations (a blend), not both");

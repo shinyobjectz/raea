@@ -1,6 +1,7 @@
-//! `raea scene lint|explain|light|stage`: a composition's frames stepped without drawing and handed to raea-sys-contact
+//! `raea scene lint|explain|light|stage|lod`: a composition's frames stepped without drawing and handed to raea-sys-contact
 //! (what each part rests on, and parts that clip), raea-sys-light-meter (the light on a subject) and raea-sys-stage (3D
-//! type that can't be read, parts that snap, a camera that lurches, empty frames: docs/stage-guards.feature).
+//! type that can't be read, parts that snap, a camera that lurches, empty frames: docs/stage-guards.feature). `lod` is
+//! each part's planned detail beside how large the frames show it (docs/make.feature MK23).
 
 use serde_json::json;
 
@@ -10,9 +11,11 @@ use raea_runtime_export::{frame_of, items};
 // how near the camera passes to each solid part, every frame (`--clearance M`, MK16)
 pub mod clearance;
 mod light;
+// each part's planned detail beside how large the frames show it (MK23)
+pub mod lod;
 mod stage;
 
-pub const USAGE: &str = "raea scene lint|explain|light|stage EDIT.tsx [--composition ID] [--frame N] [--part NAME] [--from N] [--to N] [--clearance M] [--json]";
+pub const USAGE: &str = "raea scene lint|explain|light|stage|lod EDIT.tsx [--composition ID] [--frame N] [--part NAME] [--from N] [--to N] [--clearance M] [--json]";
 
 /// `raea scene lint|explain EDIT.tsx [--composition ID] [--frame N] [--json]`: the frame's parts measured
 /// (frame 0 by default). `lint` says the faults (errors fail it: floating, sunk, clipping; warnings: in the air,
@@ -24,6 +27,7 @@ pub fn cli(args: &[String]) -> Result<String, String> {
     match mode {
         "light" => return light::cli(args),
         "stage" => return stage::cli(args),
+        "lod" => return lod::cli(args),
         "lint" | "explain" => {}
         _ => return Err(usage.into()),
     }

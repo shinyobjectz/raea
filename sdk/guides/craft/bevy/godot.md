@@ -11,6 +11,10 @@ wrong argument type before Godot runs anything.
 A Godot project's scenes and meshes as `.glb` models for a raea scene, and which open Godot demos and kits may be
 used, are `bevy/godot-projects`.
 
+Godot isn't a second runtime for raea's own scenes: they run on Bevy, so one file renders and plays and `raea check`
+sees every part. What Godot makes comes in as a model or as frames, and a component wraps it
+(`raea guide components`).
+
 ## Setting it up — HEADLESS
 
 - `raea setup godot` downloads Godot 4.6.1 with GodotJS into `~/.raea/tools/godot` (JavaScriptCore on the Mac,

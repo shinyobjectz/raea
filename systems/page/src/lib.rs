@@ -81,6 +81,11 @@ impl Page {
 #[derive(Resource, Default)]
 pub struct PageClock(pub Option<f64>);
 
+/// The colour scheme pages are drawn in, `@media (prefers-color-scheme)` and matchMedia's: light (a render's, always),
+/// or what the window says (raea-page-host scheme.rs).
+#[derive(Resource, Default, Clone, Copy, PartialEq, Debug)]
+pub struct PageScheme(pub blitz_traits::shell::ColorScheme);
+
 /// A page whose image is straight alpha, not premultiplied: one Bevy's UI or sprites draw (they blend straight), as
 /// an overlay over a scene (docs/blitz-bevy.feature B3 H5).
 #[derive(Component, Clone, Copy, Debug, Default)]
@@ -171,16 +176,18 @@ pub struct Painted(pub Arc<Mutex<Vec<Drawn>>>);
 pub type Drawn = (Handle<Image>, UVec2, vello::Scene, Vec<raea_sys_filters::Filtered>, u64, bool, bool);
 
 /// Each page restyled and laid out (what changed).
-pub fn resolve(mut docs: NonSendMut<Docs>, pages: Query<(Entity, &Page)>, time: Res<Time>, clock: Res<PageClock>, mut scanned: Local<HashMap<Entity, usize>>) {
+pub fn resolve(mut docs: NonSendMut<Docs>, pages: Query<(Entity, &Page)>, time: Res<Time>, clock: Res<PageClock>, scheme: Option<Res<PageScheme>>, mut scanned: Local<HashMap<Entity, usize>>) {
+    let scheme = scheme.map(|s| s.0).unwrap_or_default();
     for (e, page) in &pages {
         let Some(doc) = docs.0.get_mut(&e) else { continue };
         let at = clock.0.unwrap_or_else(|| time.elapsed_secs_f64());
         // a page resized or rescaled (the iPad sets its scale late): its viewport follows, or text lays out off its box
         let px = page.px();
-        if doc.viewport().window_size != (px.x, px.y) || doc.viewport().hidpi_scale != page.scale {
+        if doc.viewport().window_size != (px.x, px.y) || doc.viewport().hidpi_scale != page.scale || doc.viewport().color_scheme != scheme {
             let mut v = doc.viewport().clone();
             v.window_size = (px.x, px.y);
             v.hidpi_scale = page.scale;
+            v.color_scheme = scheme;
             doc.set_viewport(v);
         }
         let t0 = std::time::Instant::now();

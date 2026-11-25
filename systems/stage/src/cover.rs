@@ -69,7 +69,7 @@ pub(crate) fn behind(its: &[Item], parts: &[Part], me: usize, world: &Mat4, x: (
 }
 
 /// Whether a part lets the words through: its material's opacity (else its own) under SEE_THROUGH.
-fn see_through(it: &Item) -> bool {
+pub fn see_through(it: &Item) -> bool {
     let material = match &it.material {
         Some(m) => opacity(&m.props),
         None => None,
@@ -83,6 +83,12 @@ fn opacity(props: &serde_json::Map<String, Value>) -> Option<f64> {
 
 /// Where the segment o to q first enters the box [lo, hi], as a share of its length, if it does before q.
 fn enters(o: Vec3, q: Vec3, lo: Vec3, hi: Vec3) -> Option<f32> {
+    crossing(o, q, lo, hi).map(|c| c.0)
+}
+
+/// Where the segment o to q enters the box [lo, hi] and where it leaves it, as shares of its length (1 when q is
+/// inside), if it meets it before q.
+pub fn crossing(o: Vec3, q: Vec3, lo: Vec3, hi: Vec3) -> Option<(f32, f32)> {
     let d = q - o;
     let (mut t0, mut t1) = (0.0f32, 1.0f32);
     for a in 0..3 {
@@ -102,7 +108,7 @@ fn enters(o: Vec3, q: Vec3, lo: Vec3, hi: Vec3) -> Option<f32> {
             return None;
         }
     }
-    Some(t0)
+    Some((t0, t1))
 }
 
 #[cfg(test)]

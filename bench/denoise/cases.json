@@ -1,0 +1,166 @@
+{
+  "about": "raea bench denoise's cases (docs/denoise.feature DN0). The small ones are cases/cases.tsx at 960x540; doorway-mall is MALL RAT's take t1 (Raea/anchor-tenant, the exposed view: the take's exposure and white balance after the denoiser, no lens or tape, 1440x1080 at 60 fps; the clean view delivers means of 2-12 of 255, too few levels to measure), through the dead wing's doorway onto a wet floor lit through roof holes, 15.5-20.5 s, where MetalFX shimmered at 32/16 spp. Events are frames inside each shot where its history breaks on purpose; the lag counts the frames to settle after each.",
+  "scenes": [
+    {
+      "name": "dark-gain",
+      "dir": "cases",
+      "file": "cases.tsx",
+      "composition": "dark-gain",
+      "stills": [
+        30
+      ],
+      "shot": [
+        20,
+        31
+      ]
+    },
+    {
+      "name": "waxed-floor",
+      "dir": "cases",
+      "file": "cases.tsx",
+      "composition": "waxed-floor",
+      "stills": [
+        30
+      ],
+      "shot": [
+        20,
+        31
+      ]
+    },
+    {
+      "name": "doorway",
+      "dir": "cases",
+      "file": "cases.tsx",
+      "composition": "doorway",
+      "stills": [
+        30
+      ],
+      "shot": [
+        10,
+        27
+      ],
+      "events": [
+        {
+          "at": 15,
+          "what": "disocclusion"
+        }
+      ]
+    },
+    {
+      "name": "whip-pan",
+      "dir": "cases",
+      "file": "cases.tsx",
+      "composition": "whip-pan",
+      "stills": [
+        30
+      ],
+      "shot": [
+        10,
+        29
+      ],
+      "events": [
+        {
+          "at": 18,
+          "what": "disocclusion"
+        }
+      ]
+    },
+    {
+      "name": "neon",
+      "dir": "cases",
+      "file": "cases.tsx",
+      "composition": "neon",
+      "stills": [
+        30
+      ],
+      "shot": [
+        20,
+        31
+      ]
+    },
+    {
+      "name": "foliage",
+      "dir": "cases",
+      "file": "cases.tsx",
+      "composition": "foliage",
+      "stills": [
+        30
+      ],
+      "shot": [
+        20,
+        31
+      ]
+    },
+    {
+      "name": "fog",
+      "dir": "cases",
+      "file": "cases.tsx",
+      "composition": "fog",
+      "stills": [
+        30
+      ],
+      "shot": [
+        20,
+        31
+      ]
+    },
+    {
+      "name": "mirror",
+      "dir": "cases",
+      "file": "cases.tsx",
+      "composition": "mirror",
+      "stills": [
+        30
+      ],
+      "shot": [
+        20,
+        31
+      ]
+    },
+    {
+      "name": "light-off",
+      "dir": "cases",
+      "file": "cases.tsx",
+      "composition": "light-off",
+      "stills": [
+        30
+      ],
+      "shot": [
+        10,
+        27
+      ],
+      "events": [
+        {
+          "at": 15,
+          "what": "light"
+        }
+      ]
+    },
+    {
+      "name": "cost",
+      "dir": "cases",
+      "file": "cases.tsx",
+      "composition": "cost",
+      "stills": [],
+      "reference": false,
+      "why": "the frame's cost at 1920x1080 only: its picture is waxed-floor's",
+      "live": true
+    },
+    {
+      "name": "doorway-mall",
+      "dir": "~/Documents/raea/raea/projects/anchor-tenant",
+      "file": "compositions/shots.tsx",
+      "composition": "t1-view",
+      "stills": [
+        1020,
+        1140
+      ],
+      "shot": [
+        1080,
+        1091
+      ],
+      "live_why": "a film's take; the cost is the cost case's",
+      "about": "t1's own SolariLighting draws it (32/16 spp, raised 11-24 for the doorway): RAEA_LIGHT=solari leaves a camera's SolariLighting as the composition has it. Frames count from the trimmed take; the doorway stretch is 930-1230"
+    }
+  ]
+}

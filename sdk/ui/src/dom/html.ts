@@ -18,6 +18,9 @@ export class HTMLElement_ extends Element_ {
   get lang() {
     return this.getAttribute("lang") ?? "";
   }
+  set lang(v: string) {
+    this.setAttribute("lang", String(v));
+  }
   get dir() {
     return this.getAttribute("dir") ?? "";
   }
@@ -41,6 +44,9 @@ export class HTMLElement_ extends Element_ {
   get draggable() {
     return this.getAttribute("draggable") === "true";
   }
+  set draggable(v: boolean) {
+    this.setAttribute("draggable", String(!!v));
+  }
   get contentEditable() {
     const a = this.getAttribute("contenteditable");
     if (a === null) return "inherit";
@@ -58,6 +64,9 @@ export class HTMLElement_ extends Element_ {
   }
   get accessKey() {
     return this.getAttribute("accesskey") ?? "";
+  }
+  set accessKey(v: string) {
+    this.setAttribute("accesskey", String(v));
   }
   get offsetParent(): Element_ | null {
     if (!this.isConnected || computedOf(this).display === "none") return null;
@@ -96,6 +105,9 @@ export class HTMLElement_ extends Element_ {
   }
   get autofocus() {
     return this.hasAttribute("autofocus");
+  }
+  set autofocus(v: boolean) {
+    this.toggleAttribute("autofocus", !!v);
   }
 }
 
@@ -149,8 +161,14 @@ export class Control_ extends HTMLElement_ {
   get required() {
     return this.hasAttribute("required");
   }
+  set required(v: boolean) {
+    this.toggleAttribute("required", !!v);
+  }
   get readOnly() {
     return this.hasAttribute("readonly");
+  }
+  set readOnly(v: boolean) {
+    this.toggleAttribute("readonly", !!v);
   }
   get form(): HTMLFormElement_ | null {
     return this.closest("form") as HTMLFormElement_ | null;
@@ -204,11 +222,20 @@ export class Control_ extends HTMLElement_ {
   get defaultChecked() {
     return this.hasAttribute("checked");
   }
+  set defaultChecked(v: boolean) {
+    this.toggleAttribute("checked", !!v);
+  }
   get placeholder() {
     return this.getAttribute("placeholder") ?? "";
   }
+  set placeholder(v: string) {
+    this.setAttribute("placeholder", String(v));
+  }
   get valueAsNumber() {
     return this.value === "" ? NaN : Number(this.value);
+  }
+  set valueAsNumber(v: number) {
+    this.value = Number.isFinite(v) ? String(v) : "";
   }
   get files() {
     return null;
@@ -288,12 +315,21 @@ export class HTMLSelectElement_ extends Control_ {
     const o = query(this, "option", false) as HTMLOptionElement_[];
     return o.indexOf(this.selectedOptions[0] as HTMLOptionElement_);
   }
+  set selectedIndex(i: number) {
+    const o = (query(this, "option", false) as HTMLOptionElement_[])[i];
+    for (const x of query(this, "option", false) as HTMLOptionElement_[]) x._sel = x === o;
+    this._value = o?.value ?? "";
+    if (this._wired && this.__wid !== undefined) wire.set(this.__wid, "value", this.value);
+  }
 }
 
 export class HTMLOptionElement_ extends HTMLElement_ {
   _sel: boolean | undefined;
   get value() {
     return this.getAttribute("value") ?? this.textContent;
+  }
+  set value(v: string) {
+    this.setAttribute("value", String(v));
   }
   get selected() {
     return this._sel ?? this.hasAttribute("selected");
@@ -304,11 +340,20 @@ export class HTMLOptionElement_ extends HTMLElement_ {
   get label() {
     return this.getAttribute("label") ?? this.textContent;
   }
+  set label(v: string) {
+    this.setAttribute("label", String(v));
+  }
   get text() {
     return this.textContent;
   }
+  set text(v: string) {
+    this.textContent = String(v);
+  }
   get disabled() {
     return this.hasAttribute("disabled");
+  }
+  set disabled(v: boolean) {
+    this.toggleAttribute("disabled", !!v);
   }
 }
 
@@ -324,11 +369,20 @@ export class HTMLFormElement_ extends HTMLElement_ {
   get noValidate() {
     return this.hasAttribute("novalidate");
   }
+  set noValidate(v: boolean) {
+    this.toggleAttribute("novalidate", !!v);
+  }
   get action() {
     return this.getAttribute("action") ?? "";
   }
+  set action(v: string) {
+    this.setAttribute("action", String(v));
+  }
   get method() {
     return this.getAttribute("method") ?? "get";
+  }
+  set method(v: string) {
+    this.setAttribute("method", String(v));
   }
   submit() {}
   requestSubmit(submitter?: Element_) {
@@ -353,11 +407,17 @@ export class HTMLAnchorElement_ extends HTMLElement_ {
   get href() {
     return this.getAttribute("href") ?? "";
   }
+  set href(v: string) {
+    this.setAttribute("href", String(v));
+  }
 }
 
 export class HTMLLabelElement_ extends HTMLElement_ {
   get htmlFor() {
     return this.getAttribute("for") ?? "";
+  }
+  set htmlFor(v: string) {
+    this.setAttribute("for", String(v));
   }
   get control(): Element_ | null {
     const f = this.htmlFor;

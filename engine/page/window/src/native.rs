@@ -121,8 +121,8 @@ fn run(live: bool, name: &str, a: &Value, answer: Answer) {
     match name {
         "clipboard.write" => {
             let t = text(a, "text");
-            if live {
-                mac::clipboard_write(&t);
+            if live && let Err(e) = mac::clipboard_write(&t) {
+                return answer.err(e);
             }
             log(|l| l.clipboard = t);
             answer.ok(json!(true))
@@ -133,8 +133,9 @@ fn run(live: bool, name: &str, a: &Value, answer: Answer) {
             if !(url.starts_with("https://") || url.starts_with("http://") || url.starts_with("mailto:")) {
                 return answer.err(format!("app.open: {url:?} isn't an http(s) or mailto link"));
             }
-            if live {
-                mac::open(&url);
+            // a link that didn't open says so, so the page can show it to copy rather than a button that does nothing
+            if live && let Err(e) = mac::open(&url) {
+                return answer.err(e);
             }
             log(|l| l.opened.push(url));
             answer.ok(json!(true))
@@ -242,8 +243,9 @@ mod mac {
         }
     }
 
-    pub fn clipboard_write(t: &str) {
-        write_to(None, t)
+    pub fn clipboard_write(t: &str) -> Result<(), String> {
+        write_to(None, t);
+        Ok(())
     }
 
     pub fn clipboard_read() -> String {
@@ -265,14 +267,15 @@ mod mac {
         }
     }
 
-    pub fn open(url: &str) {
+    pub fn open(url: &str) -> Result<(), String> {
         unsafe {
             let u: *mut AnyObject = msg_send![class("NSURL").unwrap(), URLWithString: &*NSString::from_str(url)];
             if u.is_null() {
-                return;
+                return Err(format!("app.open: macOS can't read {url:?} as a link"));
             }
             let ws: *mut AnyObject = msg_send![class("NSWorkspace").unwrap(), sharedWorkspace];
-            let _: Bool = msg_send![ws, openURL: u];
+            let opened: Bool = msg_send![ws, openURL: u];
+            if opened.as_bool() { Ok(()) } else { Err(format!("app.open: macOS didn't open {url}")) }
         }
     }
 
@@ -414,27 +417,10 @@ mod mac {
     }
 }
 
-/// Without a window (the benches, CI, other platforms): nothing reaches the system; Live is false, so these never run.
+/// Off AppKit: Linux's and Windows' window, through raea-io-os, and no window at all (other.rs).
 #[cfg(not(all(target_os = "macos", feature = "window")))]
-mod mac {
-    use super::Answer;
-    pub fn clipboard_write(_: &str) {}
-    pub fn clipboard_read() -> String {
-        String::new()
-    }
-    pub fn open(_: &str) {}
-    pub fn badge(_: &str) {}
-    pub fn notify(_: &str, _: &str) -> Result<(), String> {
-        Err("notifications need raea's window on a Mac".into())
-    }
-    pub fn ask_permission(a: Answer) {
-        a.err("notifications need raea's window on a Mac")
-    }
-    pub fn listen_for_urls() {}
-    pub fn share(paths: &[String], _: f64, _: f64) -> Result<(), String> {
-        Err(format!("sharing {} files needs raea's window on a Mac", paths.len()))
-    }
-}
+#[path = "other.rs"]
+mod mac;
 
 #[cfg(all(test, target_os = "macos", feature = "window"))]
 mod tests {

@@ -56,8 +56,9 @@ fn a_sandboxed_frame_posts_to_its_parent_and_reaches_nothing_else() {
     let parent = format!(
         r#"{WINDOW}
         globalThis.dispatchEvent = (e) => __ui_emit("got", JSON.stringify({{ data: e.data, origin: e.origin, fromTheFrame: e.source === __raea_frames.window({{ __wid: 1 }}) }}));
-        __ui_flush(JSON.stringify({{ v: 1, ops: [{{ op: "create", id: 1, kind: "iframe", props: {{ src: "/frame.html", sandbox: "allow-scripts", style: {{ width: "200px", height: "100px" }} }} }}, {{ op: "append", parent: 0, child: 1 }}, {{ op: "listen", id: 1, events: ["pointerdown"] }}] }}));
-        globalThis.__ui_deliver = (json) => {{ const m = JSON.parse(json); if (m.t === "event") __ui_emit("parentHeard", JSON.stringify(m.event)); }};
+        __ui_flush(JSON.stringify({{ v: 1, ops: [{{ op: "create", id: 1, kind: "iframe", props: {{ src: "/frame.html", sandbox: "allow-scripts", style: {{ width: "200px", height: "100px" }} }} }}, {{ op: "append", parent: 0, child: 1 }}, {{ op: "listen", id: 1, events: ["pointerdown"] }}, {{ op: "create", id: 2, kind: "div", props: {{ style: {{ width: "400px", height: "100px" }} }} }}, {{ op: "append", parent: 0, child: 2 }}, {{ op: "listen", id: 2, events: ["pointerdown"] }}] }}));
+        // a press below the frame closes it (an artifact's review closed); any other event the parent hears is reported
+        globalThis.__ui_deliver = (json) => {{ const m = JSON.parse(json); if (m.t !== "event") return; if (m.payload && m.payload.clientY > 150) __ui_flush(JSON.stringify({{ v: 1, ops: [{{ op: "remove", id: 1 }}] }})); else __ui_emit("parentHeard", JSON.stringify(m.event)); }};
         "#
     );
     let page = host::mount(app.world_mut(), 400, 300, &parent, &[], None).unwrap();
@@ -98,6 +99,30 @@ fn a_sandboxed_frame_posts_to_its_parent_and_reaches_nothing_else() {
     // the frame's own asks reach no one, and the parent heard nothing of the press
     let all = &app.world().resource::<PageAsks>().0;
     assert!(all.iter().all(|(_, n, _)| n == "got"), "a frame's ask, or the press, reached the parent's app: {all:?}");
+
+
+    // the iframe removed (a press below it): the frame's root goes, its document and its entity with it, so a page
+    // that opens and closes artifacts doesn't keep each one's JS running
+    let frame_pages: Vec<Entity> = app.world().non_send::<Docs>().0.keys().copied().filter(|e| *e != page).collect();
+    assert_eq!(frame_pages.len(), 1, "the frame's own document, beside the parent's");
+    let below = blitz_traits::events::PointerCoords { page_x: 50.0, page_y: 160.0, screen_x: 50.0, screen_y: 160.0, client_x: 50.0, client_y: 160.0 };
+    host::input(app.world_mut(), page, blitz_traits::events::UiEvent::PointerDown(blitz_traits::events::BlitzPointerEvent {
+        id: blitz_traits::events::BlitzPointerId::Mouse,
+        is_primary: true,
+        coords: below,
+        button: blitz_traits::events::MouseEventButton::Main,
+        buttons: blitz_traits::events::MouseEventButtons::Primary,
+        mods: Default::default(),
+        details: Default::default(),
+        element: Default::default(),
+        active_pointers: Default::default(),
+    }));
+    for _ in 0..4 {
+        app.update();
+    }
+    let docs: Vec<Entity> = app.world().non_send::<Docs>().0.keys().copied().collect();
+    assert_eq!(docs, vec![page], "the frame's document outlived its iframe");
+    assert!(app.world().get_entity(frame_pages[0]).is_err(), "the frame's entity outlived its iframe");
 
     std::fs::remove_dir_all(&root).unwrap();
 }

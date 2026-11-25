@@ -85,10 +85,12 @@ pub fn snapshot_by(doc: &BaseDocument, nodes: &Nodes, id: impl Fn(u64) -> Option
     }
     n.pop();
     o.pop();
+    // the dark scheme, said only when it's on (matchMedia reads it)
+    let dark = if doc.viewport().color_scheme == blitz_traits::shell::ColorScheme::Dark { ",\"dark\":true" } else { "" };
     if offsets {
-        format!("{{\"vw\":{},\"vh\":{},\"dpr\":{dpr},\"n\":[{n}],\"o\":[{o}]}}", vp.0, vp.1)
+        format!("{{\"vw\":{},\"vh\":{},\"dpr\":{dpr}{dark},\"n\":[{n}],\"o\":[{o}]}}", vp.0, vp.1)
     } else {
-        format!("{{\"vw\":{},\"vh\":{},\"dpr\":{dpr},\"n\":[{n}]}}", vp.0, vp.1)
+        format!("{{\"vw\":{},\"vh\":{},\"dpr\":{dpr}{dark},\"n\":[{n}]}}", vp.0, vp.1)
     }
 }
 

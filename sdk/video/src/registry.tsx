@@ -23,12 +23,31 @@ export interface CompositionProps<P extends Record<string, unknown> = Record<str
   durationInFrames: number;
   /** the props it's rendered with (JSON-like values only) */
   defaultProps?: P;
+  /** its size, rate, length or props worked out from the props it's rendered with (`defaultProps` under the command
+   *  line's `--props`): what it returns replaces the values above, so one composition renders a video per props file.
+   *  It returns its values directly, not a promise */
+  calculateMetadata?: CalculateMetadata<P>;
   /** the composition's controls: which of its defaultProps a person may tune, and how (docs/realtime.feature RT4).
    *  Each names a defaultProps key, whose value is the control's; the feed's Controls panel shows them on the
    *  timeline and a change reaches the live picture as that prop */
   controls?: Controls<P>;
   /** a hand edit laid over the composition (docs/craft-system.md, L): written back by the app's timeline */
   edit?: Edit;
+}
+
+/** What `calculateMetadata` is given and may return. */
+export type CalculateMetadata<P extends Record<string, unknown> = Record<string, unknown>> = (given: { defaultProps: P; props: P; compositionId: string }) => {
+  durationInFrames?: number;
+  width?: number;
+  height?: number;
+  fps?: number;
+  props?: P;
+} | void;
+
+/** The props given on the command line (`raea render --props '{"n": 2}'` or `--props props.json`), anywhere in a
+ *  program; `{}` when none were. A composition's component gets them over its `defaultProps`. */
+export function getInputProps<T extends Record<string, unknown> = Record<string, unknown>>(): T {
+  return ((globalThis as { __raea_input_props?: unknown }).__raea_input_props ?? {}) as T;
 }
 
 /** A hand edit: `segments` are the composition's own frame ranges, [from, to), played one after another, so a trim,
@@ -89,16 +108,34 @@ function validate(props: CompositionProps<any>, taken: readonly RegisteredCompos
   if (typeof props.component !== "function" && (typeof props.component !== "object" || props.component === null)) {
     fail("component", "must be a React component");
   }
+  const jsonObject = (field: string, v: unknown) => {
+    if (!isJsonLike(v, new Set()) || Array.isArray(v)) fail(field, "must be an object of JSON-like values (no functions, class instances or cycles)");
+  };
+  const declared = props.defaultProps ?? {};
+  jsonObject("defaultProps", declared);
+  // the command line's props over its own (--props, MV4), then what calculateMetadata makes of them
+  const input = getInputProps();
+  let defaultProps: Record<string, unknown> = Object.keys(input).length ? { ...declared, ...input } : declared;
+  if (props.calculateMetadata !== undefined) {
+    if (typeof props.calculateMetadata !== "function") fail("calculateMetadata", "must be a function");
+    const meta = props.calculateMetadata({ defaultProps: declared, props: defaultProps, compositionId: props.id });
+    if (meta && typeof (meta as { then?: unknown }).then === "function") fail("calculateMetadata", "returned a promise: it returns its values directly (pass data it would load with --props)");
+    if (meta) {
+      const { props: made, ...size } = meta;
+      // (a copy: an element's props are frozen)
+      props = { ...props, ...Object.fromEntries(Object.entries(size).filter(([, v]) => v !== undefined)) };
+      if (made !== undefined) {
+        jsonObject("calculateMetadata's props", made);
+        defaultProps = made;
+      }
+    }
+  }
   for (const field of ["width", "height", "durationInFrames"] as const) {
     const v = props[field];
     if (!Number.isInteger(v) || v <= 0) fail(field, `must be a positive integer, got ${v}`);
   }
   if (typeof props.fps !== "number" || !(props.fps > 0) || !Number.isFinite(props.fps)) {
     fail("fps", `must be a positive number, got ${props.fps}`);
-  }
-  const defaultProps = props.defaultProps ?? {};
-  if (!isJsonLike(defaultProps, new Set()) || Array.isArray(defaultProps)) {
-    fail("defaultProps", "must be an object of JSON-like values (no functions, class instances or cycles)");
   }
   const segments = props.edit?.segments;
   if (segments !== undefined) {
@@ -108,18 +145,23 @@ function validate(props: CompositionProps<any>, taken: readonly RegisteredCompos
       if (!ok) fail("edit.segments", `has ${JSON.stringify(seg)}: each is [from, to) with 0 <= from < to <= ${props.durationInFrames}`);
     }
   }
-  const scale = props.edit?.scale;
-  if (scale !== undefined && !(typeof scale === "number" && scale > 0 && scale <= 1)) fail("edit.scale", `must be a number above 0 and at most 1, got ${scale}`);
-  const [w, h] = scale === undefined || scale === 1 ? [props.width, props.height] : [Math.max(1, Math.round(props.width * scale)), Math.max(1, Math.round(props.height * scale))];
+  const draft = props.edit?.scale;
+  if (draft !== undefined && !(typeof draft === "number" && draft > 0 && draft <= 1)) fail("edit.scale", `must be a number above 0 and at most 1, got ${draft}`);
+  // with the command line's --scale (MV5): laid out at its own size, drawn at that many times it
+  const scale = (draft ?? 1) * ((globalThis as { __raea_scale?: number }).__raea_scale ?? 1);
+  const [w, h] = scale === 1 ? [props.width, props.height] : [Math.max(1, Math.round(props.width * scale)), Math.max(1, Math.round(props.height * scale))];
   const controls = validControls(props.controls, defaultProps as Record<string, unknown>, fail);
-  const cut = segments ? edited(props.component, segments) : props.component;
+  // --hold N:M: frame N drawn M times, so what still changes on screen is the renderer's own (raea light steady)
+  const hold = (globalThis as { __raea_hold?: [number, number] }).__raea_hold;
+  const Whole = segments ? edited(props.component, segments) : props.component;
+  const cut: ComponentType<any> = hold ? (p) => <Freeze frame={hold[0]}><Whole {...p} /></Freeze> : Whole;
   return {
     id: props.id,
     component: w === props.width && h === props.height ? cut : scaled(cut, props.width, props.height, w, h),
     width: w,
     height: h,
     fps: props.fps,
-    durationInFrames: segments ? segments.reduce((n, [a, b]) => n + b - a, 0) : props.durationInFrames,
+    durationInFrames: hold ? hold[1] : segments ? segments.reduce((n, [a, b]) => n + b - a, 0) : props.durationInFrames,
     defaultProps,
     controls,
   };
@@ -435,7 +477,7 @@ export function registerRoot(given: ComponentType | ReactElement): void {
       ...IMPLICIT,
       durationInFrames: walk.latestEnd > 0 ? Math.ceil(walk.latestEnd) : IMPLICIT.durationInFrames,
       component: Root,
-      defaultProps: {},
+      defaultProps: getInputProps(),
       controls: {},
     });
   }

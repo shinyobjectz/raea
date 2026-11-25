@@ -156,7 +156,7 @@ fn a_shot_frames_its_start_middle_and_end() {
 fn the_plan_draws_a_floor_plan_and_a_blockout() {
     let m: Make = read("make", r#"{"kind": "scene", "references": ["media/ref.png"], "objects": [
         {"id": "desk", "label": "Desk", "dims": [1.6, 0.8, 0.75], "at": [2, 0, 3], "rot": 90, "source": "reference", "hero": true},
-        {"id": "plant", "label": "Plant", "h": 1.2, "at": [0.5, 0, 4], "source": "invented"},
+        {"id": "plant", "label": "Plant", "h": 1.2, "at": [0.5, 0, 4], "source": "invented", "lod": 3},
         {"id": "pen", "label": "Pen", "max": 0.14}]}"#)
     .unwrap();
     let (placed, b) = crate::floor::extent(&m);
@@ -172,6 +172,7 @@ fn the_plan_draws_a_floor_plan_and_a_blockout() {
     let t = crate::floor::blockout_tsx(&m);
     assert_eq!(t.matches("<Cuboid").count(), 3, "the floor and two boxes");
     assert!(t.contains("half_size={[0.800, 0.375, 0.400]}"), "{t}");
+    assert!(t.contains("<Mesh3d name=\"plant\" lod={3} transform=") && svg.contains("1.20 m, LOD 3<"), "MK22, each box named with its planned detail: {t}");
     let none: Make = read("make", r#"{"kind": "scene", "objects": [{"id": "pen", "label": "Pen"}]}"#).unwrap();
     assert!(crate::floor::floor_svg(&none).unwrap_err().contains("no object has an `at`"));
 }

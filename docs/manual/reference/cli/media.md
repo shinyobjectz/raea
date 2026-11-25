@@ -39,6 +39,7 @@ What agents used ffmpeg and ffprobe for, on raea-media (the platform's decoders 
   raea media cuts FILE [--threshold 0.08]                 shot changes (ffmpeg's scene score)
   raea media freezes FILE [--noise 0.001] [--min 2]       held pictures (ffmpeg's freezedetect)
   raea media proxy FILE [--height 720] -o OUT.mp4         a smaller copy
+  raea media share FILE [--kbps 2600] [--height H] -o OUT.mp4   a copy to send: any player takes it, held to a bitrate
   raea media lod MODEL.glb [--level 1] [--texture 1024] -o OUT.glb   a model at a lower level of detail (triangles halved a level)
   raea media trim FILE --from S --to S -o OUT.mp4         a stretch, frame-exact (re-encoded)
   raea media concat A B ... -o OUT.mp4                    one after another (same aspect)

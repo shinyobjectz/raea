@@ -11,4 +11,6 @@ raea-core-scene = { path = "../../core/scene" }
 raea-core-facts = { path = "../../core/facts" }
 raea-sys-contact = { path = "../../systems/contact" }
 raea-sys-stage = { path = "../../systems/stage" }
+# each part held to its planned detail (MK21)
+raea-runtime-lod-plan = { path = "../lod-plan" }
 serde_json = "1"

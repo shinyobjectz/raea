@@ -12,6 +12,7 @@ mod cache;
 mod entry;
 mod fresh;
 mod outside;
+#[cfg(test)]
 mod pid;
 mod rewrite;
 pub mod styles;
@@ -133,6 +134,13 @@ pub struct CompOpts {
     pub words: Option<Value>,
     pub perception: Option<Value>,
     pub input: Option<Value>,
+    /// `--props`: the composition's props from the command line, a JSON object or a file of one (over its
+    /// defaultProps, and what getInputProps() returns; docs/move-in.feature MV4, #176)
+    pub props: Option<Value>,
+    /// `--scale S`: a `<Composition>` laid out at its own size and drawn at S times it (MV5, #175)
+    pub scale: Option<f64>,
+    /// `--hold N:M`: frame N of a `<Composition>` drawn M times (96 unless given), a held camera on a still scene
+    pub hold: Option<(u32, u32)>,
     /// live play's runtime instead of React (sdk/react/js/lite: each frame rendered and only what changed sent, no
     /// reconciler): what a game plays on; renders keep React
     pub lite: bool,
@@ -184,9 +192,19 @@ pub fn input_file(path: &str) -> R<Value> {
     Ok(json!({ "steps": steps }))
 }
 
+/// `--props`: a JSON object written out, or a file holding one.
+pub fn props_arg(given: &str) -> R<Value> {
+    let v = if given.trim_start().starts_with('{') { serde_json::from_str(given).map_err(|e| format!("--props {given}: {e}"))? } else { json_file(given)? };
+    if v.is_object() { Ok(v) } else { Err(format!("--props takes a JSON object ({{\"n\": 2}}) or a file of one, not {v}")) }
+}
+
+/// What the command line gave this run's composition (`--props`, `--scale`), for the render's manifest: a check of
+/// the file knows what it was rendered with.
+pub static GIVEN: std::sync::Mutex<Option<Value>> = std::sync::Mutex::new(None);
+
 pub fn comp_opts(args: &[String]) -> R<CompOpts> {
     let n = |k: &str| -> R<Option<f64>> { flag(args, k).map(|v| v.parse::<f64>().map_err(|_| format!("{k} takes a number"))).transpose() };
-    Ok(CompOpts {
+    let o = CompOpts {
         composition: flag(args, "--composition"),
         w: n("--w")?.unwrap_or(1080.0) as u32,
         h: n("--h")?.unwrap_or(1920.0) as u32,
@@ -196,9 +214,16 @@ pub fn comp_opts(args: &[String]) -> R<CompOpts> {
         words: flag(args, "--words").map(|p| json_file(&p).and_then(|v| words_shape(&v).map(|_| v).map_err(|e| format!("--words {p}: {e}")))).transpose()?,
         perception: flag(args, "--perception").map(|p| json_file(&p)).transpose()?,
         input: flag(args, "--input").map(|p| input_file(&p)).transpose()?,
+        props: flag(args, "--props").map(|p| props_arg(&p)).transpose()?,
+        hold: flag(args, "--hold").map(|h| { let (n, m) = h.split_once(':').unwrap_or((&h, "96")); n.parse().ok().zip(m.parse().ok().filter(|m| *m > 0)).ok_or(format!("--hold takes a frame, or FRAME:FRAMES (--hold 1308:96), not {h}")) }).transpose()?,
+        scale: n("--scale")?.map(|s| if s > 0.0 && s <= 8.0 { Ok(s) } else { Err(format!("--scale takes a number above 0, 8 at most (0.5 draws a half-size draft), not {s}")) }).transpose()?,
         lite: args.iter().any(|a| a == "--lite"),
         comps: args.iter().any(|a| a == "--comps"),
-    })
+    };
+    if o.props.is_some() || o.scale.is_some() || o.hold.is_some() {
+        *GIVEN.lock().unwrap() = Some(json!({"props": o.props, "scale": o.scale, "hold": o.hold}));
+    }
+    Ok(o)
 }
 
 /// A composition bundled for the engine (raea-bundle's library: Rolldown, on the Mac): the edit's folder and the SDK beside the engine's

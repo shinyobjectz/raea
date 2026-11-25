@@ -5,6 +5,9 @@ material sits inside the `Mesh3d` it covers.
 
 ## What to do
 
+- A finish used more than once is a component that returns its material (`<BrushedSteel grain={0.6} />`, or a
+  project's `<Mat job="carpet" />`), placed inside the Mesh3d after its shape: `raea guide components`, "Materials as
+  components".
 - Each Mesh3d holds one material (toon shading: see "Toon" below):
   - `<StandardMaterial>`: physically based, Bevy's fields: `base_color`, `perceptual_roughness`, `metallic`,
     `emissive`, `base_color_texture`, `normal_map_texture`, `metallic_roughness_texture`, `occlusion_texture`,

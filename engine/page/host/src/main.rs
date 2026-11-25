@@ -123,6 +123,11 @@ fn main() {
     if a.window && raea_io_home::setting("RAEA_IDLE_GATE").as_deref() != Some("0") {
         app.add_plugins(raea_page_host::idle::IdlePlugin);
     }
+    // on screen, the page's accessibility tree is the OS's (VoiceOver, macOS accessibility clients: raea-page-ax)
+    #[cfg(feature = "window")]
+    if a.window {
+        app.add_plugins(raea_page_ax::AxPlugin(raea_page_ax::Host { page: page::shown, frame: raea_page_host::inject::frame, queue: raea_page_host::inject::queue }));
+    }
     // on screen, bevy_winit's event loop is the runner (a ScheduleRunner here replaced it: no window, 11-04)
     if !a.window && !app.is_plugin_added::<ScheduleRunnerPlugin>() {
         // 60 frames a second, as most screens; RAEA_PAGE_FPS stands in for another screen's rate (a 120 Hz one, to
@@ -150,6 +155,7 @@ fn main() {
     let mut code = Some(code);
     let mount = move |world: &mut World| {
         chrome::install(world);
+        raea_page_host::scheme::install(world);
         let m = page::Mount { code: code.take().unwrap_or_default(), preamble: preamble.clone(), css: css.clone(), styles: None, picking, size };
         if let Err(e) = page::mount(world, m) {
             eprintln!("raea-page-host: {e}");
@@ -167,6 +173,7 @@ fn main() {
     } else {
         app.add_systems(Update, (page::read_input, page::input, page::size, page::step_dropping_asks, page::show).chain());
     }
+    app.add_systems(PreUpdate, raea_page_host::scheme::follow.run_if(resource_exists::<raea_page_host::scheme::Scheme>));
     app.add_systems(Last, page::tree.before(tree::answer));
     app.run();
 }

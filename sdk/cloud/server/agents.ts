@@ -8,6 +8,7 @@
 //   node agents.ts skills          the raea skill names for the installed agents (entrypoint.sh)
 //   node agents.ts list            the installed agents, one per line
 
+import { sh } from "./shell-os.ts"
 import { execFileSync } from "node:child_process"
 import { createHash } from "node:crypto"
 import { chmodSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs"
@@ -121,7 +122,7 @@ export function installed(): Spawn[] {
 export function spawnFor(id?: string): Spawn {
   const want = id || process.env.RAEA_AGENT || ""
   const cmd = process.env.RAEA_AGENT_CMD
-  if (cmd && (!want || want === "custom")) return { id: "custom", version: "", command: "/bin/sh", args: ["-c", cmd], env: {} }
+  if (cmd && (!want || want === "custom")) return { id: "custom", version: "", command: sh(), args: ["-c", cmd], env: {} }
   const all = installed()
   const s = want ? all.find((a) => a.id === want) : all[0]
   if (!s) throw new Error(want ? `${want} isn't installed in this image (installed: ${all.map((a) => a.id).join(", ") || "none"})` : "no agent is installed: build with AGENTS=..., or set RAEA_AGENT_CMD")

@@ -202,6 +202,10 @@ impl StylesheetInvalidationSet {
     {
         debug_assert!(!self.style_fully_invalid);
 
+        // raea: a snapshot of state alone (a hover, a press, the focus) has no old class or id to ask for, and Servo's
+        // panics when asked (raea.app's window crashed as Approve was pressed: engine/page/host/tests/restyle.rs)
+        let snapshot = snapshot.filter(|s| s.has_attrs());
+
         let mut kind = InvalidationKind::None;
 
         if !self.buckets.classes.is_empty() {

@@ -52,6 +52,8 @@ serde_json = "1"
 raea-neural = { path = "../neural" }
 # `raea light check` (docs/realism.feature LT1)
 raea-light = { path = "../light" }
+# `raea bench denoise`: each denoiser against its converged truth (docs/denoise.feature DN0)
+raea-denoise-bench = { path = "../render/denoise/bench" }
 # `raea fix`: a problem looked up in raea's own fixes and the library of community ones the release ships
 raea-sys-fixes = { path = "../../systems/fixes" }
 regex = "1"
@@ -74,6 +76,7 @@ raea-app-solid = { path = "../../apps/solid" }
 raea-app-judge = { path = "../../apps/judge" }
 # raea scene lint|explain|light|stage (docs/stage-guards.feature)
 raea-app-scene = { path = "../../apps/scene" }
+raea-app-voice = { path = "../../apps/voice" }
 raea-app-ask = { path = "../../apps/ask" }
 raea-app-videoform = { path = "../../apps/videoform" }
 # raea bake light (docs/bake.feature)

@@ -359,6 +359,18 @@ mod tests {
     }
 
     #[test]
+    fn stray_downbeats_between_whole_bars_are_dropped_and_a_phase_that_holds_stays() {
+        // #49: a downbeat marked mid-bar (51, 55, 59), and two in a row off the phase (67, 71) between 65 and 73
+        let model = [1, 5, 9, 49, 51, 53, 55, 57, 59, 61, 65, 67, 71, 73, 77];
+        assert_eq!(analyse::steady(&model, 4), vec![1, 5, 9, 49, 53, 57, 61, 65, 69, 73, 77]);
+        // the other decode's downbeats there, with no strays: the same bars
+        assert_eq!(analyse::steady(&[1, 5, 9, 49, 53, 57, 61, 65, 69, 73, 77], 4), vec![1, 5, 9, 49, 53, 57, 61, 65, 69, 73, 77]);
+        // a dropped beat moves the phase for good (three downbeats hold it), and bars of three in a song of fours stay
+        assert_eq!(analyse::steady(&[0, 4, 8, 11, 15, 19, 23], 4), vec![0, 4, 8, 11, 15, 19, 23]);
+        assert_eq!(analyse::steady(&[0, 4, 8, 11, 14, 17, 20, 24], 4), vec![0, 4, 8, 11, 14, 17, 20, 24]);
+    }
+
+    #[test]
     fn beats_refine_to_the_parabola_vertex() {
         let mut l = vec![-5f32; 10];
         (l[3], l[4], l[5]) = (1.0, 3.0, 2.0);

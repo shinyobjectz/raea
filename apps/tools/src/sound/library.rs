@@ -185,7 +185,21 @@ pub(crate) fn sounds_get(args: &[String]) -> R<String> {
         }
     }
     let base = PathBuf::from(flag(args, "--dir").unwrap_or_else(|| ".".into()));
-    let out = flag(args, "-o").map(PathBuf::from).unwrap_or_else(|| base.join("media/sounds").join(format!("{pid}-{iid}")));
+    let mut out = flag(args, "-o").map(PathBuf::from).unwrap_or_else(|| base.join("media/sounds").join(format!("{pid}-{iid}")));
+    let licence = format!(
+        "{}\n{}\nlicence: {}\nsource: {}\n{}\n",
+        pack["name"].as_str().unwrap_or_default(),
+        inst["name"].as_str().unwrap_or_default(),
+        pack["licence"].as_str().unwrap_or_default(),
+        pack["source"].as_str().unwrap_or_default(),
+        pack["attribution"].as_str().unwrap_or_default()
+    );
+    // a folder that already holds another instrument keeps it: two instruments' notes share names (C4.mp3), and the
+    // second one's replaced the first's and its licence (#217). This one goes in a folder of its own inside it
+    if std::fs::read_to_string(out.join("LICENCE.txt")).is_ok_and(|held| held != licence) {
+        out = out.join(format!("{pid}-{iid}"));
+        said.push(format!("the folder given already holds another instrument, so this one is in {}", out.display()));
+    }
     std::fs::create_dir_all(&out).map_err(|e| format!("{}: {e}", out.display()))?;
     let cache = raea_io_home::user_home().unwrap_or_default().join(".cache/raea-sounds").join(pid).join(iid);
     let template = pack["url"].as_str().unwrap_or_default();
@@ -201,14 +215,6 @@ pub(crate) fn sounds_get(args: &[String]) -> R<String> {
         std::fs::copy(&cached, &to).map_err(|e| format!("{}: {e}", to.display()))?;
         bytes += std::fs::metadata(&to).map(|m| m.len()).unwrap_or(0);
     }
-    let licence = format!(
-        "{}\n{}\nlicence: {}\nsource: {}\n{}\n",
-        pack["name"].as_str().unwrap_or_default(),
-        inst["name"].as_str().unwrap_or_default(),
-        pack["licence"].as_str().unwrap_or_default(),
-        pack["source"].as_str().unwrap_or_default(),
-        pack["attribution"].as_str().unwrap_or_default()
-    );
     std::fs::write(out.join("LICENCE.txt"), &licence).map_err(|e| e.to_string())?;
     let var = iid.replace(|c: char| !c.is_ascii_alphanumeric(), "_");
     let tsx = if pitched {

@@ -1,0 +1,25 @@
+[package]
+name = "raea-app-voice"
+version = "0.1.0"
+edition = "2024"
+license = "FSL-1.1-ALv2"
+publish = false
+description = "raea voice: speech to speech on this computer (Silero's turns, Parakeet's words, Pocket TTS's voice) as lines of JSON, for an agent that talks"
+
+[[bin]]
+name = "raea-voice"
+path = "src/main.rs"
+
+[dependencies]
+# Pocket TTS and its word clock
+raea-sys-speech = { path = "../../systems/speech" }
+# ort sessions the way raea builds them, and the model cache
+raea-sys-ml = { path = "../../systems/ml" }
+ort = { version = "=2.0.0-rc.13", features = ["half"] }
+# the microphone and the speakers: the cpal the mixer uses
+cpal = "0.15"
+anyhow = "1"
+serde_json = "1"
+
+[target.'cfg(all(windows, target_arch = "x86_64"))'.dependencies]
+ort = { version = "=2.0.0-rc.13", features = ["load-dynamic"] }

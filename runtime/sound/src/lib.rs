@@ -16,7 +16,7 @@ pub use raea_sys_mix::Sound;
 
 mod names;
 mod declared;
-pub use declared::always_plays_audio;
+pub use declared::{always_plays_audio, there};
 pub use names::*;
 
 /// The live mixer: the one mixer core's device stream (raea_sys_mix::live::Live).

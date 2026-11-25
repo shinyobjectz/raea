@@ -3,8 +3,9 @@ import { Children, Fragment, isValidElement, memo, useId, type ReactElement, typ
 import { Solid } from "../solid";
 import { useAnimation3d, type Keys, type Move, type TrackSpec } from "@raea/math/animate";
 import { Place3d, usePlace3d, usePointer3d, type LocalBounds, type PointerHandlers3d } from "../events3d";
-import { Canvas3DProps, Vec3, checkArgs, checkPass, checkVec, node3d, serialisable } from "./all";
+import { Canvas3DProps, Vec3, checkArgs, checkPass, checkVec, node3d, sameProps, serialisable } from "./all";
 import { InCanvas3D } from "./model";
+import { usePlannedLod, type PlannedLod } from "./detail";
 import type { MeshAttribute } from "./attribute";
 import { firstKey, useSequenceFrames } from "./clock";
 import { Text3D, text3dShape, type Text3DProps } from "./text3d";
@@ -128,7 +129,7 @@ function geometry<P extends { args?: number[] }>(name: string, defaults: number[
   };
   Object.defineProperty(Component, "name", { value: display });
   // memo: a geometry's props seldom change while its Mesh3d moves every frame, so React skips it (FC1b, bloom_3d)
-  const Memo = Object.assign(memo(Component), { displayName: display });
+  const Memo = Object.assign(memo(Component, sameProps), { displayName: display });
   GEOMETRY_SHAPES.set(Memo, toShape);
   GEOMETRY_BOUNDS.set(Memo, (props) => boundsOf(name, argsOf(props as P)));
   return Memo as unknown as typeof Component;
@@ -368,6 +369,9 @@ export interface MeshProps extends PointerHandlers3d {
   allowOverlap?: boolean;
   /** set at an angle on purpose (a bowl knocked over, a mug on its side): `raea scene lint` doesn't call it tilted */
   posed?: boolean;
+  /** its planned detail, 0 (the hero) to 4 (far): how large it is meant to be seen. A render that shows it finer
+   * says so (`lod-closer`); a grey box or a far backdrop is planned at 3 or 4 (PlannedLod) */
+  lod?: PlannedLod;
   /** a Manifold solid (manifold.box(...).minus(...)) or its expression; wins over the geometry child */
   shape?: string | Solid;
   /** a Bevy plugin moves it (a rigid body): position, rotation and scale set where it starts, then the plugin's */
@@ -474,11 +478,12 @@ export function Mesh(props: MeshProps) {
   const manifold = shape instanceof Solid ? shape.expr : shape ?? shapeFromChildren(props.children);
   // a Text3D's read={false} rides on its mesh, which the stage checks read (SG10)
   const read = props.read ?? text3dRead(props.children);
+  const lod = usePlannedLod("Mesh", props.lod);
   const extra: Record<string, string> = {};
   if (manifold !== undefined) extra["data-shape"] = manifold as string;
   if (anim.attr) extra["data-raea-anim"] = anim.attr;
   const id = useId();
   const m = usePlace3d(position, rotation, scale, props.quaternion);
   usePointer3d(props.name ?? id, m, () => (shape === undefined ? boundsFromChildren(props.children) : undefined), props as Record<string, unknown>);
-  return node3d("Mesh", { ...props, read, animate: undefined, shape: undefined, position, rotation, scale, attributes: props.attributes && JSON.stringify(props.attributes) }, <Place3d.Provider value={m}>{props.children}</Place3d.Provider>, Object.keys(extra).length ? extra : undefined);
+  return node3d("Mesh", { ...props, read, lod, animate: undefined, shape: undefined, position, rotation, scale, attributes: props.attributes && JSON.stringify(props.attributes) }, <Place3d.Provider value={m}>{props.children}</Place3d.Provider>, Object.keys(extra).length ? extra : undefined);
 }

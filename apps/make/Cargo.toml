@@ -11,6 +11,8 @@ description = "raea make: a scene, kit or shot held to its frozen plan; what's m
 raea-core-brief = { path = "../../core/brief" }
 # the project's record of renders and checks, and the folder it lives in
 raea-core-facts = { path = "../../core/facts" }
+# the parts a render showed closer than their planned detail (MK24)
+raea-runtime-lod-plan = { path = "../../runtime/lod-plan" }
 # the judge's rounds, passes and blocking defects, read as it keeps them
 raea-app-judge = { path = "../judge" }
 # the make questions, their calibrations and a sheet's ident, as raea ask keeps them (MK4)

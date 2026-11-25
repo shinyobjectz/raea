@@ -245,6 +245,10 @@ function start(opts: RootOptions) {
 }
 function container(at: number, opts: RootOptions) {
   const box = domMode ? dom.container(at) : { id: at };
+  // React's handlers run from its root container's listeners: the host's root has them from the start, and a root
+  // mounted on another element (raea.app's welcome and pages over the dashboard, 11-23) needs them as a portal does,
+  // or it draws and no press reaches its handlers
+  if (domMode && at !== ROOT) dom.reactContainer(box);
   return reconciler.createContainer(box, ConcurrentRoot, null, false, null, opts.identifierPrefix ?? "", opts.onUncaughtError ?? uncaught, opts.onCaughtError ?? logError, opts.onRecoverableError ?? logError, () => {}, null);
 }
 

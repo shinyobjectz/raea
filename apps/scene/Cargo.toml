@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2024"
 license = "FSL-1.1-ALv2"
 publish = false
-description = "raea scene lint|explain|light|stage: a composition's frames stepped without drawing and held to the contact, light and stage checks"
+description = "raea scene lint|explain|light|stage|lod: a composition's frames stepped without drawing and held to the contact, light and stage checks"
 
 [dependencies]
 raea-runtime-bundle = { path = "../../runtime/bundle" }
@@ -12,6 +12,8 @@ raea-runtime-export = { path = "../../runtime/export" }
 raea-sys-contact = { path = "../../systems/contact" }
 raea-sys-light-meter = { path = "../../systems/light-meter" }
 raea-sys-stage = { path = "../../systems/stage" }
+# each part's planned detail beside how large the frames show it (MK21, MK23)
+raea-runtime-lod-plan = { path = "../../runtime/lod-plan" }
 # its results as Findings (docs/direction.feature DR3)
 raea-core-facts = { path = "../../core/facts" }
 # camera clearance (MK16): the parts, their models' triangles, and the camera's point in space

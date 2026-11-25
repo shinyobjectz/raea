@@ -85,4 +85,14 @@ pub fn encode(srcs: &[(PathBuf, Option<f64>, Option<f64>)], height: Option<u32>,
     Ok(json!({"wrote": out, "frames": frames, "seconds": round3(frames as f64 / fps), "width": w, "height": h, "fps": round3(fps), "kbps": kbps, "bytes": stats.bytes, "sound": any_sound}))
 }
 
+/// `media share`: a copy any phone, chat and upload form takes (H.264 and AAC in an MP4, its index first), held to
+/// `cap` kbit/s (2600: a 1080p minute in about 20 MB) and never given more than a full-size copy would get (#219).
+pub fn share(file: &Path, height: Option<u32>, out: &Path, cap: u32) -> R<Value> {
+    std::fs::metadata(file).map_err(|e| format!("{}: {e}", file.display()))?; // the platform's decoder panics on no path
+    let i = backend()?.open_video(file).map_err(|e| format!("{}: {e}", file.display()))?.info().clone();
+    let k = height.map_or(1.0, |h| (h as f64 / i.height as f64).min(1.0));
+    let full = (i.width as f64 * k * i.height as f64 * k * standard_fps(i.fps) * 0.1 / 1000.0).max(300.0) as u32;
+    encode(&[(file.to_path_buf(), None, None)], height, out, Some(cap.min(full)))
+}
+
 // ---- ffmpeg and ffprobe, read

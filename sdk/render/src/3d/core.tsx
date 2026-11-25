@@ -13,6 +13,21 @@ export function serialisable(props: Record<string, unknown>): Record<string, unk
   return out;
 }
 
+const same = (a: unknown, b: unknown, depth: number): boolean => {
+  if (Object.is(a, b)) return true;
+  if (typeof a !== "object" || typeof b !== "object" || a === null || b === null || depth === 0) return false;
+  // a React element is its identity: its props can hold anything
+  if ("$$typeof" in a || Object.getPrototypeOf(a) !== Object.getPrototypeOf(b)) return false;
+  const [ka, kb] = [Object.keys(a), Object.keys(b)];
+  return ka.length === kb.length && ka.every((k) => Object.hasOwn(b, k) && same((a as Record<string, unknown>)[k], (b as Record<string, unknown>)[k], depth - 1));
+};
+
+/** Whether two elements' props say the same thing: `memo`'s compare for a part whose props are values. An array or a
+ * colour written inline (`half_size={[1, 0.5, 1]}`, `Srgba.hex("#f80")`) is made again every frame, which the default
+ * compare by identity reads as a change, so every such part was rebuilt every frame (#160). Functions, elements and
+ * children still compare by identity. */
+export const sameProps = (a: object, b: object): boolean => same(a, b, 4);
+
 export function node3d(kind: string, props: Record<string, unknown>, children?: ReactNode, extra?: Record<string, string>) {
   return (
     <div data-3d={kind} data-props={JSON.stringify(serialisable(props))} {...extra}>

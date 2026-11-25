@@ -420,3 +420,15 @@ fn things_found_are_findings_and_an_unknown_rule_is_not() {
     let _ = std::fs::remove_file(&p);
     assert_eq!(passed.len(), 1, "nothing found is a pass");
 }
+
+/// #236: a text that moves is read where it is on its middle frame, not where it ends.
+#[test]
+fn a_moving_text_is_read_where_it_is() {
+    let ink = |f: usize| [56.7 + 4.0 * f as f64, 1000.0, 26.7, 40.0];
+    let run = Run { text: "E".into(), from: 0.0, to: 8.0, box_: [996.0, 1000.0, 60.0, 40.0], boxes: (0..240).map(ink).collect(), color: String::new(), size: 40.0 };
+    let (t, b) = run.middle(30.0);
+    assert_eq!(t, 4.0);
+    assert!((b[0] - 520.0).abs() < 1e-9 && b[1..] == [1000.0, 60.0, 40.0], "{b:?}");
+    let still = Run { boxes: vec![ink(0); 240], box_: [40.0, 1000.0, 60.0, 40.0], ..run };
+    assert_eq!(still.middle(30.0), (4.0, [40.0, 1000.0, 60.0, 40.0]));
+}

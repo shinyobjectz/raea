@@ -85,7 +85,7 @@ pub fn floor_svg(m: &Make) -> Result<String, String> {
             fd * px / 2.0
         );
         s += &format!("<text x=\"{:.1}\" y=\"{:.1}\" font-size=\"{:.0}\" fill=\"#111\" text-anchor=\"middle\">{}</text>", sx(at[0]), sy(at[2]) - t * 0.25, t, esc(&o.label));
-        s += &format!("<text x=\"{:.1}\" y=\"{:.1}\" font-size=\"{:.0}\" fill=\"#555\" text-anchor=\"middle\">{:.2} m</text>", sx(at[0]), sy(at[2]) + t * 0.9, t * 0.8, height(o));
+        s += &format!("<text x=\"{:.1}\" y=\"{:.1}\" font-size=\"{:.0}\" fill=\"#555\" text-anchor=\"middle\">{:.2} m{}</text>", sx(at[0]), sy(at[2]) + t * 0.9, t * 0.8, height(o), o.lod.map(|l| format!(", LOD {l}")).unwrap_or_default());
     }
     s += &format!("<line x1=\"20\" y1=\"{0}\" x2=\"{1:.1}\" y2=\"{0}\" stroke=\"#111\" stroke-width=\"5\"/><text x=\"20\" y=\"{2:.0}\" font-size=\"{3:.0}\" fill=\"#111\">1 m</text>", h - 18, 20.0 + px, h as f64 - 26.0, t * 0.9);
     s += "</svg>";
@@ -102,8 +102,10 @@ pub fn blockout_tsx(m: &Make) -> String {
         let h = height(o);
         let colour = if o.source == Some(Origin::Invented) { "#b4b0bd" } else { "#bdbdb8" };
         let a = -o.rot.unwrap_or(0.0).to_radians() / 2.0;
+        let lod = o.lod.map(|l| format!(" lod={{{l}}}")).unwrap_or_default();
         boxes += &format!(
-            "      <Mesh3d transform={{Transform.fromXyz({:.3}, {:.3}, {:.3}).withRotation([0, {:.5}, 0, {:.5}])}}>\n        <Cuboid half_size={{[{:.3}, {:.3}, {:.3}]}} />\n        <StandardMaterial base_color=\"{colour}\" perceptual_roughness={{0.9}} />\n      </Mesh3d>\n",
+            "      <Mesh3d name=\"{}\"{lod} transform={{Transform.fromXyz({:.3}, {:.3}, {:.3}).withRotation([0, {:.5}, 0, {:.5}])}}>\n        <Cuboid half_size={{[{:.3}, {:.3}, {:.3}]}} />\n        <StandardMaterial base_color=\"{colour}\" perceptual_roughness={{0.9}} />\n      </Mesh3d>\n",
+            o.id,
             at[0],
             at[1] + h / 2.0,
             at[2],

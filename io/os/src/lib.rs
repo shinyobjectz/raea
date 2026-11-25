@@ -116,6 +116,12 @@ pub fn call(name: &str, args: Value, done: Done) {
     }
 }
 
+/// `url` (http, https or mailto) in the system's handler, recorded when headless: os.open's own, for a caller with no
+/// call to answer. raea's window opens its links through it on Linux and Windows (engine/page/window native.rs app.open).
+pub fn open_url(url: &str) -> Result<(), String> {
+    open(&json!({ "url": url })).map(|_| ())
+}
+
 fn open(args: &Value) -> Result<Value, String> {
     let url = args["url"].as_str().ok_or("os.open: no url")?;
     let scheme = url.split_once(':').map_or("", |(s, _)| s).to_ascii_lowercase();

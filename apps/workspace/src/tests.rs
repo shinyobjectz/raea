@@ -236,3 +236,31 @@ fn a_workspace_0_1_6_broke_is_repaired() {
     assert!(status().status.success(), "git status after the repair: {}", String::from_utf8_lossy(&status().stderr));
     let _ = std::fs::remove_dir_all(&ws);
 }
+
+#[test]
+fn a_project_names_its_client() {
+    // Shane 11-24: projects relate by raea cloud's tags (a client), not by nesting; raea.app files `raea show`'s cards
+    // under the client the folder names (host/local-cloud/clients.ts)
+    use crate::client::tag_in;
+    use crate::workspace::{client_of, new_project_in};
+    let ws = scratch("client");
+    crate::workspace::make_workspace(&ws, "Clients", "monorepo").unwrap();
+    new_project_in(&ws, "Launch", None).unwrap();
+    new_project_in(&ws, "Teaser", None).unwrap();
+    assert_eq!(client_of(&ws, "launch"), None);
+    // named, from inside the project; then by name; cleared
+    let inside = ws.join("projects/launch/compositions");
+    assert!(tag_in(&ws, &inside, None, Some("Acme"), false, false).unwrap().contains("client Acme"));
+    assert_eq!(client_of(&ws, "launch").as_deref(), Some("Acme"));
+    let j: serde_json::Value = serde_json::from_str(&tag_in(&ws, &ws, Some("Teaser"), Some(" Acme "), false, true).unwrap()).unwrap();
+    assert_eq!(j, serde_json::json!({"project": "teaser", "client": "Acme"}));
+    assert!(tag_in(&ws, &ws, Some("nope"), Some("Acme"), false, false).is_err());
+    assert!(tag_in(&ws, &ws, Some("launch"), Some("  "), false, false).is_err());
+    tag_in(&ws, &ws, Some("launch"), None, true, false).unwrap();
+    assert_eq!(client_of(&ws, "launch"), None);
+    // committed, so the workspace's history has it
+    let log = std::process::Command::new("git").args(["log", "--format=%s"]).current_dir(&ws).output().unwrap();
+    let log = String::from_utf8_lossy(&log.stdout);
+    assert!(log.contains("project teaser: client Acme") && log.contains("project launch: no client"), "{log}");
+    let _ = std::fs::remove_dir_all(&ws);
+}

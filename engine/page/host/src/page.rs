@@ -19,6 +19,11 @@ use crate::tree::r1;
 #[derive(Resource)]
 pub struct HostPage(pub Entity);
 
+/// The page the host shows, once it's up.
+pub fn shown(world: &World) -> Option<Entity> {
+    world.get_resource::<HostPage>().map(|p| p.0)
+}
+
 /// The node on the UI camera that shows the page's image.
 #[derive(Component)]
 pub struct Shows;
@@ -281,78 +286,9 @@ pub fn tree(page: Res<HostPage>, roots: NonSend<Roots>, docs: NonSend<Docs>, win
     out.0 = Some(json!({"frame": frame.0, "window": {"w": r1(size.x), "h": r1(size.y)}, "scale": target.scale, "nodes": nodes, "panels": panels, "composite": false, "substrate": "blitz"}));
 }
 
-/// What raea-runtime-js's accessibility computation asks of the Blitz page: the document's computed style and its controls'
-/// state, by the wire's element ids.
-struct Facts<'a> {
-    doc: &'a blitz_dom::BaseDocument,
-    nodes: &'a raea_sys_page::ops::Nodes,
-}
-
-impl Facts<'_> {
-    fn node(&self, id: u64) -> Option<&blitz_dom::Node> {
-        self.nodes.by_id.get(&id).and_then(|n| self.doc.get_node(*n))
-    }
-}
-
-impl raea_sys_a11y::Facts<u64> for Facts<'_> {
-    fn display_none(&self, id: u64) -> bool {
-        self.node(id).and_then(|n| n.primary_styles()).is_some_and(|s| s.get_box().display.is_none())
-    }
-    fn invisible(&self, id: u64) -> bool {
-        use style::computed_values::visibility::T as V;
-        self.node(id).and_then(|n| n.primary_styles()).is_some_and(|s| matches!(s.clone_visibility(), V::Hidden | V::Collapse))
-    }
-    fn natively_disabled(&self, _id: u64) -> bool {
-        false
-    }
-    fn editor_value(&self, id: u64) -> Option<String> {
-        self.node(id).and_then(|n| n.element_data()).and_then(|e| e.text_input_data()).map(|t| t.editor.raw_text().to_string())
-    }
-    fn tabbable(&self, id: u64) -> bool {
-        self.node(id).is_some_and(|n| n.is_focussable())
-    }
-    fn checked(&self, id: u64) -> bool {
-        self.node(id).and_then(|n| n.element_data()).and_then(|e| e.checkbox_input_checked()).unwrap_or(false)
-    }
-    fn test_id(&self, id: u64) -> Option<String> {
-        self.nodes.props.get(&id).and_then(|p| p.get("data-testid")).and_then(Value::as_str).map(str::to_string)
-    }
-}
-
-/// The `a11y` method on the page: each element with a data-testid as AccessKit has it, by the computation bevy_ui's page
-/// uses (raea-runtime-js's a11y.rs), over the document's elements and the props React set on them.
+/// The `a11y` method on the page (raea-page-ax).
 pub fn a11y(world: &mut World) -> Value {
-    if !world.contains_resource::<HostPage>() {
-        return json!({"nodes": {}});
-    }
-    let page = world.resource::<HostPage>().0;
-    let roots = world.non_send::<Roots>();
-    let docs = world.non_send::<Docs>();
-    let (Some(r), Some(doc)) = (roots.0.iter().find(|r| r.page == page), docs.0.get(&page)) else { return json!({"nodes": {}}) };
-    let n = &r.nodes;
-    let mut els = std::collections::HashMap::new();
-    let mut tops = std::collections::HashMap::new();
-    for (&id, &node) in &n.by_id {
-        let Some(dn) = doc.get_node(node) else { continue };
-        let kind = n.kind(id).unwrap_or("div");
-        let props = n.props.get(&id).cloned().unwrap_or_default();
-        let tag = match kind {
-            "editableText" if props.get("multiline") == Some(&Value::Bool(true)) => "textarea",
-            "editableText" => "input",
-            k => k,
-        };
-        let text = (kind == "text").then(|| dn.text_content());
-        let title = (kind == "svg")
-            .then(|| dn.children.iter().filter_map(|c| doc.get_node(*c)).find(|c| c.element_data().is_some_and(|e| &*e.name.local == "title")).map(|t| t.text_content()))
-            .flatten();
-        let parent = dn.parent.and_then(|p| n.id_of(p)).filter(|p| n.by_id.contains_key(p));
-        let kids = dn.children.iter().filter_map(|c| n.id_of(*c)).filter(|c| n.by_id.contains_key(c)).collect();
-        els.insert(id, raea_sys_a11y::El { tag: tag.to_string(), props, parent, kids, text, title });
-        tops.insert(id, 0u64);
-    }
-    let facts = Facts { doc, nodes: n };
-    let focus = doc.get_focussed_node_id().and_then(|f| n.id_of(f));
-    raea_sys_a11y::records(els, tops, &facts, focus, |k| k)
+    shown(world).map_or_else(|| json!({"nodes": {}}), |p| raea_page_ax::records(world, p))
 }
 
 /// The system's faces as Chrome on macOS has them (Times, Helvetica and Courier boosted, Menlo for monospace, CoreText's

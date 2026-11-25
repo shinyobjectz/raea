@@ -21,6 +21,11 @@ raea-sys-vision = { path = "../../systems/vision" }
 raea-sys-song = { path = "../../systems/song" }
 raea-sys-perceive = { path = "../../systems/perceive" }
 raea-sys-footage = { path = "../../systems/footage" }
+# each shot's layers (VF8e)
+raea-sys-videoform = { path = "../../systems/videoform" }
+raea-sys-videoform-layers = { path = "../../systems/videoform-layers" }
+# a brand kit asset as it's read
+raea-sys-videoform-kit = { path = "../../systems/videoform-kit" }
 serde_json = "1"
-image = { version = "0.25", default-features = false, features = ["png", "jpeg"] }
+image = { version = "0.25", default-features = false, features = ["png", "jpeg", "webp"] }
 

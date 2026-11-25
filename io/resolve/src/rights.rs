@@ -1,6 +1,7 @@
 //! The rights confirmation (docs/videoform.feature VF1): once per account, before the first video is read from a link,
 //! the person confirms they have the right to use what they add. The answer is kept by the account it was given for
-//! (~/.raea/account.json's user, or this machine's when no one is signed in), in ~/.raea/videoform-rights.json.
+//! (~/.raea/account.json's user, or this machine's when no one is signed in), in ~/.raea/videoform-rights.json. It
+//! lives with the resolver, since it's what a link needs before it's read.
 
 use serde_json::{Value, json};
 use std::io::{BufRead, IsTerminal, Write};
@@ -17,12 +18,12 @@ fn file() -> PathBuf {
 /// The account the answer belongs to: the signed-in user's id, else this machine's
 fn account() -> String {
     let path = raea_io_home::env_path("RAEA_ACCOUNT", ".raea/account.json");
-    let v = raea_io_resolve::fetch::json_file(&path);
+    let v = crate::fetch::json_file(&path);
     v["user"]["id"].as_str().map(|id| format!("user:{id}")).unwrap_or_else(|| "this machine".into())
 }
 
 fn kept() -> Value {
-    raea_io_resolve::fetch::json_file(&file())
+    crate::fetch::json_file(&file())
 }
 
 pub fn confirmed() -> bool {
@@ -33,7 +34,7 @@ pub fn confirmed() -> bool {
 pub fn confirm() -> Result<String, String> {
     let mut all = kept();
     let who = account();
-    all[&who] = json!({"confirmed": true, "on": crate::today(), "words": WORDS});
+    all[&who] = json!({"confirmed": true, "on": crate::fetch::today(), "words": WORDS});
     if let Some(d) = file().parent() {
         std::fs::create_dir_all(d).map_err(|e| e.to_string())?;
     }

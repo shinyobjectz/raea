@@ -2,22 +2,24 @@
 //! resolved (raea-io-resolve) into its videos, whose streams are held in a private folder while they're read and then
 //! dropped. Each reference is one line of references.jsonl: where it came from, what it is, and its readings.
 
-use crate::{Eval, flag, name_ok, pass, plain, readers, references, rights};
+use crate::{Eval, flag, name_ok, pass, plain, readers, references};
+use raea_io_resolve::rights;
+use raea_app_videoform_docs as docs;
 use raea_core_brief::Videoform;
 use raea_sys_columns::Encoders;
 use serde_json::{Value, json};
 use std::io::Write;
 use std::path::{Path, PathBuf};
 
-const MEDIA: &[&str] = &["mp4", "mov", "m4v", "mkv", "webm", "avi", "mxf", "mts"];
-
 enum Source {
     File(PathBuf),
     Link(String),
+    /// a brief, a brand's guide, notes: read into passages (VF8f)
+    Doc(PathBuf),
 }
 
 fn holding() -> PathBuf {
-    raea_io_home::caches().unwrap_or_else(std::env::temp_dir).join("videoform-reading")
+    crate::cache("videoform-reading")
 }
 
 /// Folders a run that was stopped left behind (a run's own folder is named by its process and goes when it ends)
@@ -48,9 +50,11 @@ fn sources(args: &[String], list: Option<&str>) -> Result<Vec<Source>, String> {
         }
         let p = PathBuf::from(&w);
         if p.is_dir() {
-            let mut files: Vec<PathBuf> = std::fs::read_dir(&p).map_err(|e| format!("{w}: {e}"))?.flatten().map(|e| e.path()).filter(|f| f.extension().is_some_and(|x| MEDIA.contains(&x.to_string_lossy().to_ascii_lowercase().as_str()))).collect();
+            let mut files: Vec<PathBuf> = std::fs::read_dir(&p).map_err(|e| format!("{w}: {e}"))?.flatten().map(|e| e.path()).filter(|f| crate::is_media(f) || docs::is_doc(f, false)).collect();
             files.sort();
-            out.extend(files.into_iter().map(Source::File));
+            out.extend(files.into_iter().map(|f| if docs::is_doc(&f, false) { Source::Doc(f) } else { Source::File(f) }));
+        } else if p.is_file() && docs::is_doc(&p, true) {
+            out.push(Source::Doc(p));
         } else if p.is_file() {
             out.push(Source::File(p));
         } else {
@@ -84,13 +88,17 @@ struct Run<'a> {
     known: Vec<Value>,
     enc: Option<Encoders>,
     sheet: Option<PathBuf>,
+    /// the brand the references read now are for (--brand): a finding only its videos hold is the brand's, not the form's
+    brand: Option<String>,
+    /// the group they're in with the documents given with them (--group, else the brand): VF8f
+    group: Option<String>,
 }
 
 impl Run<'_> {
     /// Whether a source is read already, by its link or its content hash, at this rows version and with its stills
     /// (one read before the rows changed, or before stills were kept, is read again)
     fn seen(&self, key: &str, v: &str) -> bool {
-        let stills = |r: &Value| r["hash"].as_str().is_some_and(|h| raea_sys_videoform::rows::stills(&self.dir, h).is_dir());
+        let stills = |r: &Value| r["hash"].as_str().is_some_and(|h| self.dir.join(raea_sys_videoform::rows::STILLS).join(h).is_dir());
         let rows = |r: &Value| r["reading"]["rows"]["version"].as_u64() == Some(u64::from(raea_sys_videoform::rows::VERSION)) && stills(r);
         self.known.iter().any(|r| (r["source"][key].as_str() == Some(v) || (key == "hash" && r["hash"].as_str() == Some(v))) && rows(r))
     }
@@ -104,15 +112,29 @@ impl Run<'_> {
     }
 
     /// Read one reference's streams and keep its line
-    fn keep(&mut self, picture: &Path, sound: Option<&Path>, source: Value) -> Result<String, String> {
+    fn keep(&mut self, picture: &Path, sound: Option<&Path>, mut source: Value) -> Result<String, String> {
+        if let Some(b) = &self.brand {
+            source["brand"] = json!(b);
+        }
+        if let Some(g) = &self.group {
+            source["group"] = json!(g);
+        }
         let hash = readers::hash(picture, sound)?;
         if self.seen("hash", &hash) {
-            return Ok(format!("  (already read: {})", source["title"].as_str().or(source["path"].as_str()).unwrap_or(&hash)));
+            let what = source["title"].as_str().or(source["path"].as_str()).unwrap_or(&hash).to_string();
+            // read before its layers were (VF8e): only those are read now
+            let work = holding().join(format!("{}-layers-{}", std::process::id(), self.known.len()));
+            let layered = pass::add_layers(picture, &hash, &work, &self.dir);
+            let _ = std::fs::remove_dir_all(&work);
+            return Ok(match layered? {
+                true => format!("  (already read: {what}; its layers read now)"),
+                false => format!("  (already read: {what})"),
+            });
         }
         let t = std::time::Instant::now();
         let work = holding().join(format!("{}-work-{}", std::process::id(), self.known.len()));
         let dir = self.dir.clone();
-        let read = pass::read(picture, sound, &hash, self.encoders()?, &work, &dir);
+        let read = pass::read(picture, sound, &hash, self.encoders()?, &work, &dir, false);
         let _ = std::fs::remove_dir_all(&work);
         let reading = read?;
         if let Some(dir) = &self.sheet {
@@ -192,7 +214,7 @@ pub(crate) fn measure(p: &Path) -> Result<(raea_sys_videoform::ranges::Measures,
     let hash = readers::hash(p, None)?;
     let work = holding().join(format!("{}-score", std::process::id()));
     let mut enc = Encoders::load().map_err(|e| format!("loading the encoders: {e:#}"))?;
-    let read = pass::read(p, None, &hash, &mut enc, &work.join("work"), &work).and_then(|reading| {
+    let read = pass::read(p, None, &hash, &mut enc, &work.join("work"), &work, false).and_then(|reading| {
         let m = crate::found::measured(&work, &json!({"hash": hash, "reading": reading})).ok_or("its rows weren't kept")?;
         Ok((m, reading))
     });
@@ -200,7 +222,7 @@ pub(crate) fn measure(p: &Path) -> Result<(raea_sys_videoform::ranges::Measures,
     read
 }
 
-/// `raea videoform add NAME SOURCE... [--from LIST] [--last N] [--context "…"] [--sheet DIR]`, the videoform made
+/// `raea videoform add NAME SOURCE... [--from LIST] [--last N] [--context "…"] [--sheet DIR] [--brand B]`, the videoform made
 /// first when it's new (with new's flags)
 pub fn add(args: &[String], eval: Eval) -> (String, i32) {
     let words = plain(args);
@@ -229,8 +251,11 @@ pub fn add(args: &[String], eval: Eval) -> (String, i32) {
         Err(e) => return (e, 1),
     };
     let mut section = fp.videoform.take().unwrap_or_default();
-    if let Some(c) = flag(args, "--context").map(str::trim).filter(|c| !c.is_empty()) {
-        section.context = c.to_string();
+    let brand = flag(args, "--brand").map(str::trim).filter(|b| !b.is_empty());
+    let group = flag(args, "--group").map(str::trim).filter(|g| !g.is_empty()).or(brand);
+    // the person's words, kept as theirs (VF8f): they outrank any document's
+    if let Err(e) = docs::person(&mut section, &folder.dir, flag(args, "--context"), group, brand, &crate::today()) {
+        return (e, 1);
     }
     if srcs.is_empty() {
         fp.videoform = Some(section);
@@ -246,7 +271,7 @@ pub fn add(args: &[String], eval: Eval) -> (String, i32) {
         }
         sweep();
     }
-    let mut run = Run { name, dir: folder.dir.clone(), section, known: references(&folder.dir), enc: None, sheet: flag(args, "--sheet").map(PathBuf::from) };
+    let mut run = Run { name, dir: folder.dir.clone(), section, known: references(&folder.dir), enc: None, sheet: flag(args, "--sheet").map(PathBuf::from), brand: brand.map(str::to_string), group: group.map(str::to_string) };
     let (mut out, mut failed) = (Vec::new(), 0usize);
     for s in &srcs {
         match s {
@@ -258,6 +283,13 @@ pub fn add(args: &[String], eval: Eval) -> (String, i32) {
                 }
             },
             Source::Link(u) => run.link(u, last, &mut out, &mut failed),
+            Source::Doc(p) => match docs::take(&mut run.section, &run.dir, p, group, brand, &crate::today()) {
+                Ok(l) => out.push(l),
+                Err(e) => {
+                    out.push(format!("  {}: {e}", p.display()));
+                    failed += 1;
+                }
+            },
         }
     }
     fp.videoform = Some(run.section);

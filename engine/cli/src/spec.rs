@@ -38,6 +38,7 @@ pub struct Loaded {
     pub text: String,
     pub title: String,
     pub modes: Vec<String>,
+    pub approve: Vec<String>,
     /// deliverables' own briefs and the project's script, each (path, text)
     pub more: Vec<(PathBuf, String)>,
     pub look: Option<String>,
@@ -70,7 +71,7 @@ pub fn load_brief_ts(path: &Path) -> R<Loaded> {
         }));
     }
     modes.dedup();
-    Ok(Loaded { path: path.to_path_buf(), text, title: brief.title.clone(), modes, more, look: brief.look, missing })
+    Ok(Loaded { path: path.to_path_buf(), text, title: brief.title.clone(), modes, approve: brief.approve, more, look: brief.look, missing })
 }
 
 /// A taste file by name (taste, motion, games...): NAME.ts, checked as Taste.

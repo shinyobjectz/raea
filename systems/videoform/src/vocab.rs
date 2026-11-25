@@ -54,7 +54,7 @@ pub struct Background {
     pub sound: Vec<Vec<f32>>,
 }
 
-pub(crate) fn dot(a: &[f32], b: &[f32]) -> f32 {
+pub fn dot(a: &[f32], b: &[f32]) -> f32 {
     a.iter().zip(b).fold(0.0, |s, (x, y)| s + x * y)
 }
 
@@ -199,8 +199,8 @@ pub fn report(refs: &[Rows], heads: &[Head], bg: &Background, pats: &[Pat], sect
         terms.push(TermFound { name: name.to_string(), kind: kind.into(), shots, of: all.len(), missing: missing(&how, &in_ref), refs: in_ref, verdict: verdict.into(), with, how });
     }
     let sections = sections.iter().map(|sec| {
-        let idx: Vec<usize> = sec.shows.iter().filter_map(|n| names.iter().position(|x| x == n)).collect();
-        let unknown = sec.shows.iter().filter(|n| !names.contains(&n.as_str())).cloned().collect();
+        let idx: Vec<usize> = (0..names.len()).filter(|&i| sec.shows.iter().any(|n| n == names[i])).collect();
+        let unknown = sec.shows.iter().filter(|n| names.iter().all(|x| x != n)).cloned().collect();
         let hits: Vec<Vec<usize>> = refs.iter().zip(&fired).map(|(r, f)| {
             let dur = r.shots.last().map_or(0.0, |s| s.end);
             (0..r.shots.len()).filter(|&i| inside(sec.at.as_deref(), r.shots[i].start, r.shots[i].end, dur) && idx.iter().any(|&t| f[i][t])).collect()

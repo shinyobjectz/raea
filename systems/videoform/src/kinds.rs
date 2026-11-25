@@ -36,6 +36,13 @@ pub struct Kind {
     /// its scale (close-up, medium, wide, no people) and people (no one, one person, two or more), each a share of its shots
     pub framing: BTreeMap<String, f64>,
     pub people: BTreeMap<String, f64>,
+    /// how its shots are layered (VF8e): each layer form's share of its shots, "" for one picture alone
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub layers: BTreeMap<String, f64>,
+    /// what its main layer shows (VF9d), told as a kit's asset is (testimonial, logo, screenshot...): each kind's share
+    /// of its layered shots
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub shows: BTreeMap<String, f64>,
     /// the share of its shots with words said, and with the camera moving
     pub talking: f64,
     pub moving: f64,
@@ -61,8 +68,42 @@ pub fn people(s: &Shot) -> &'static str {
     }
 }
 
-fn measures(s: &Shot) -> [String; 3] {
-    [s.framing.clone(), people(s).into(), (!s.words.trim().is_empty()).to_string()]
+/// A shot's main layer (VF8e): a person cut out, a picture inset, a card, a split, a screen, a backdrop, in that order;
+/// "" for one picture alone or layers not read
+pub fn layered(s: &Shot) -> &'static str {
+    ["cutout", "inset", "card", "split", "screen", "backdrop"].into_iter().find(|f| s.has_layer(f)).unwrap_or("")
+}
+
+/// What a shot's main layer shows (VF9d): a kit's asset kind, "" when it has none or it wasn't told
+pub fn shows(s: &Shot) -> &str {
+    let form = layered(s);
+    s.layers.iter().flatten().find(|l| l.form == form).and_then(|l| l.kind.as_deref()).unwrap_or("")
+}
+
+/// A layer form and what it shows, said: "a card laid over, showing a testimonial"
+pub fn said_showing(form: &str, kind: &str) -> String {
+    match (said(form), kind) {
+        ("", _) => String::new(),
+        (f, "") => f.into(),
+        (f, k) => format!("{f}, showing a {k}"),
+    }
+}
+
+/// A layer form, said
+pub fn said(form: &str) -> &'static str {
+    match form {
+        "cutout" => "a person cut out over the picture",
+        "inset" => "a picture inset",
+        "card" => "a card laid over",
+        "split" => "a split frame",
+        "screen" => "a screen or page",
+        "backdrop" => "a plain backdrop",
+        _ => "",
+    }
+}
+
+fn measures(s: &Shot) -> [String; 4] {
+    [s.framing.clone(), people(s).into(), (!s.words.trim().is_empty()).to_string(), layered(s).into()]
 }
 
 /// Each shot's description against the phrases, standardised and less its reference's own look, unit length
@@ -135,7 +176,7 @@ fn shares(of: impl Iterator<Item = String>) -> BTreeMap<String, f64> {
 
 /// The most of a share map, when it's most of them
 fn most(m: &BTreeMap<String, f64>) -> Option<&str> {
-    m.iter().max_by(|a, b| a.1.total_cmp(b.1)).filter(|x| *x.1 >= 0.6).map(|x| x.0.as_str())
+    m.iter().max_by(|(_, a), (_, b)| a.total_cmp(b)).filter(|x| *x.1 >= 0.6).map(|x| x.0.as_str())
 }
 
 /// The references' shot kinds, named from the vocabulary's picture terms
@@ -146,7 +187,7 @@ pub fn kinds(refs: &[Rows], heads: &[Head], bg: &Background) -> Kinds {
     let shot = |i: usize| &refs[shots[i].0].shots[shots[i].1];
     let desc: Vec<Vec<f32>> = describe(refs, &phrases);
     let u: Vec<Vec<f32>> = desc.iter().map(|d| unit(d)).collect();
-    let ms: Vec<[String; 3]> = (0..shots.len()).map(|i| measures(shot(i))).collect();
+    let ms: Vec<[String; 4]> = (0..shots.len()).map(|i| measures(shot(i))).collect();
     let n = shots.len();
     let mut dist = vec![0f32; n * n];
     for a in 0..n {
@@ -181,7 +222,7 @@ pub fn kinds(refs: &[Rows], heads: &[Head], bg: &Background) -> Kinds {
         let mut lens: Vec<f64> = g.iter().map(|&i| shot(i).seconds()).collect();
         lens.sort_by(f64::total_cmp);
         let q = |p: f64| lens[((lens.len() - 1) as f64 * p).round() as usize];
-        let [framing, people] = [|s: &Shot| s.framing.clone(), |s: &Shot| people(s).to_string()].map(|f| shares(g.iter().map(|&i| f(shot(i)))));
+        let [framing, people, layers] = [|s: &Shot| s.framing.clone(), |s: &Shot| people(s).to_string(), |s: &Shot| layered(s).to_string()].map(|f| shares(g.iter().map(|&i| f(shot(i)))));
         let at = g.iter().map(|&i| shot(i).start / refs[shots[i].0].shots.last().map_or(1.0, |l| l.end).max(1e-6)).sum::<f64>() / g.len() as f64;
         let frac = |f: &dyn Fn(&Shot) -> bool| g.iter().filter(|&&i| f(shot(i))).count() as f64 / g.len() as f64;
         let mut kind = Kind {
@@ -193,6 +234,8 @@ pub fn kinds(refs: &[Rows], heads: &[Head], bg: &Background) -> Kinds {
             seconds: [q(0.1), q(0.5), q(0.9)],
             framing,
             people,
+            layers: if layers.keys().all(String::is_empty) { BTreeMap::new() } else { layers },
+            shows: shares(g.iter().map(|&i| shows(shot(i)).to_string()).filter(|k| !k.is_empty())),
             at,
             name: String::new(),
         };
@@ -210,7 +253,8 @@ fn name(k: &Kind, scene: impl Iterator<Item = String>) -> String {
     } else {
         k.terms.join(", ")
     };
-    let how: Vec<String> = [most(&k.framing).filter(|f| *f != "no people").map(str::to_string), most(&k.people).map(str::to_string)].into_iter().flatten().collect();
+    let layer = most(&k.layers).map(|f| said_showing(f, most(&k.shows).unwrap_or(""))).filter(|l| !l.is_empty());
+    let how: Vec<String> = [most(&k.framing).filter(|f| *f != "no people").map(str::to_string), most(&k.people).map(str::to_string), layer].into_iter().flatten().collect();
     if how.is_empty() { what } else { format!("{what}: {}", how.join(", ")) }
 }
 

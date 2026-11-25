@@ -22,7 +22,7 @@ const QUIET: f64 = -50.0;
 fn heard_score(scores: &[f32], classes: &[usize], start: f64, end: f64) -> f64 {
     let patches = scores.chunks(YAM_CLASSES);
     // a patch is 0.96 s from its start, every YAM_HOP s; it's the shot's when its middle is
-    let inside: Vec<f32> = patches.enumerate().filter(|(i, _)| (start..end).contains(&(*i as f64 * YAM_HOP + 0.48))).map(|(_, p)| classes.iter().map(|&c| p.get(c).copied().unwrap_or(0.0)).fold(0.0, f32::max)).collect();
+    let inside: Vec<f32> = patches.enumerate().filter(|(i, _)| (start..end).contains(&(*i as f64 * YAM_HOP + 0.48))).map(|(_, p)| classes.iter().filter_map(|&c| p.get(c).copied()).fold(0.0, f32::max)).collect();
     if inside.is_empty() { 0.0 } else { r2((inside.iter().sum::<f32>() / inside.len() as f32) as f64) }
 }
 
@@ -39,6 +39,49 @@ pub fn shots_from_cuts(cuts: &[f64], dur: f64) -> Vec<[f64; 2]> {
         }
     }
     at.iter().enumerate().map(|(i, &s)| [s, at.get(i + 1).copied().unwrap_or(dur)]).collect()
+}
+
+/// Footage's talk breaks at a pause this long or longer, or at a sentence's end
+const PAUSE: f64 = 0.45;
+/// A stretch of footage with no talk is cut into pieces this long or shorter, when it's longer than GAP
+const WINDOW: f64 = 3.0;
+const GAP: f64 = 1.0;
+
+/// Raw footage's pieces (VF9): each cut-to-cut shot split where its talk breaks, a sentence a piece, and its stretches
+/// with no talk into pieces of WINDOW or shorter; each with the shot it's in. A reference keeps its shots as they're cut.
+pub fn pieces(cuts: &[[f64; 2]], words: &[Word]) -> Vec<([f64; 2], usize)> {
+    let mut out = Vec::new();
+    for (c, &[s, e]) in cuts.iter().enumerate() {
+        let said: Vec<&Word> = words.iter().filter(|w| (s..e).contains(&((w.start + w.end) / 2.0))).collect();
+        let mut talk: Vec<[f64; 2]> = Vec::new();
+        for (i, w) in said.iter().enumerate() {
+            let breaks = i == 0 || w.start - said[i - 1].end >= PAUSE || said[i - 1].text.ends_with(['.', '?', '!']);
+            match talk.last_mut() {
+                Some(t) if !breaks => t[1] = w.end,
+                _ => talk.push([w.start, w.end]),
+            }
+        }
+        // a little air either side of a line, never into the line before or after it
+        let bare = talk.clone();
+        let talk: Vec<[f64; 2]> = bare.iter().enumerate().map(|(i, &[a, b])| {
+            let before = if i == 0 { s } else { (bare[i - 1][1] + a) / 2.0 };
+            let after = bare.get(i + 1).map_or(e, |n| (b + n[0]) / 2.0);
+            [r2((a - 0.08).max(before)), r2((b + 0.12).min(after))]
+        }).collect();
+        let mut at = s;
+        for t in talk.iter().copied().chain(std::iter::once([e, e])) {
+            if t[0] - at >= GAP {
+                let n = ((t[0] - at) / WINDOW).ceil();
+                let step = (t[0] - at) / n;
+                out.extend((0..n as usize).map(|k| ([r2(at + k as f64 * step), r2(at + (k + 1) as f64 * step)], c)));
+            }
+            if t[1] > t[0] {
+                out.push((t, c));
+            }
+            at = at.max(t[1]);
+        }
+    }
+    out
 }
 
 /// Shot lengths summed up: how many, how often they cut, the median and the spread
@@ -104,13 +147,29 @@ fn shot(p: &Value, bounds: [f64; 2], text: &[Value], words: &[Word], beats: &[f6
         music,
         level_db,
         off_beat: (!first && off_beat <= gap).then_some(r2(off_beat)),
+        layers: None,
     };
     (row, sig, clap)
 }
 
+/// A reference read before its layers were (VF8e), or before what they show was (VF9d): its layers read now on its
+/// kept shots, and its rows kept again. False when its rows can't be found or already have them.
+pub fn add_layers(picture: &Path, hash: &str, work: &Path, keep: &Path) -> Result<bool, String> {
+    let Some(mut rows) = Rows::load(keep, hash, SIG, CLAP) else { return Ok(false) };
+    if rows.shots.iter().all(|s| s.layers.as_ref().is_some_and(|l| l.iter().all(|l| l.kind.is_some()))) {
+        return Ok(false);
+    }
+    let bounds: Vec<[f64; 2]> = rows.shots.iter().map(|s| [s.start, s.end]).collect();
+    let read = readers::layers(picture, work, &bounds)?;
+    rows.shots.iter_mut().zip(read).for_each(|(s, l)| s.layers = Some(l));
+    rows.save(keep)?;
+    Ok(true)
+}
+
 /// One reference read: its readers run at once on the held files (`work` is the pass's scratch folder, dropped with
-/// it), its rows kept in the videoform's folder `keep`, and what's said of it returned
-pub fn read(picture: &Path, sound: Option<&Path>, hash: &str, enc: &mut Encoders, work: &Path, keep: &Path) -> Result<Value, String> {
+/// it), its rows kept in the videoform's folder `keep`, and what's said of it returned. Footage (`split`) keeps a row a
+/// piece (pieces) rather than a shot.
+pub fn read(picture: &Path, sound: Option<&Path>, hash: &str, enc: &mut Encoders, work: &Path, keep: &Path, split: bool) -> Result<Value, String> {
     let p = picture.to_string_lossy().into_owned();
     let probe = readers::raea(&["media", "probe", &p])?;
     let dur = probe["duration"].as_f64().filter(|d| *d > 0.0).ok_or_else(|| format!("{p}: no length raea can read"))?;
@@ -134,7 +193,17 @@ pub fn read(picture: &Path, sound: Option<&Path>, hash: &str, enc: &mut Encoders
     std::fs::create_dir_all(work).map_err(|e| e.to_string())?;
     let (facts, words, beats, loud, cols) = std::thread::scope(|s| {
         // the shots cut to cut, frame by frame, then perception on each
-        let facts = s.spawn(|| readers::shots(picture, dur).map(|b| (readers::perception(picture, &work.join("facts"), &b), b)));
+        // and how each shot is layered, on the same cuts, beside it (a reference's; raw footage is one picture)
+        let facts = s.spawn(|| {
+            readers::shots(picture, dur).map(|b| {
+                let (seen, layered) = std::thread::scope(|t| {
+                    let layered = t.spawn(|| if split { Ok(None) } else { readers::layers(picture, &work.join("layers"), &b).map(Some) });
+                    let seen = readers::perception(picture, &work.join("facts"), &b);
+                    (seen, layered.join().unwrap_or_else(|_| Err("stopped".into())))
+                });
+                (seen, layered, b)
+            })
+        });
         // the words, then the beats (a few seconds each), from the sound
         let said = s.spawn(|| match has_sound {
             true => (readers::words(heard_file, work), readers::beats(heard_file)),
@@ -148,22 +217,27 @@ pub fn read(picture: &Path, sound: Option<&Path>, hash: &str, enc: &mut Encoders
     let cols = cols?;
     // a reader that couldn't run is said, and the rest go on without it
     let mut missing = Vec::new();
-    let (facts, cut) = facts.unwrap_or_else(|_| Err("stopped".into()))?;
+    let (facts, layered, cut) = facts.unwrap_or_else(|_| Err("stopped".into()))?;
     let facts = facts.map_err(|e| missing.push(format!("perception: {e}"))).ok();
     let words = words.map_err(|e| missing.push(format!("words: {e}"))).unwrap_or_default();
     let beats = beats.unwrap_or_default();
     let loud = loud.ok().flatten();
+    let layered = layered.map_err(|e| missing.push(format!("layers: {e}"))).ok().flatten();
     // the shots cut to cut, each with what perception saw in it (nothing, where it couldn't run)
     let per: Vec<Value> = match facts.as_ref().and_then(|f| f["shots"].as_array()).filter(|sh| sh.len() == cut.len()) {
         Some(sh) => sh.clone(),
         None => vec![Value::Null; cut.len()],
     };
-    let bounds = cut;
+    let (bounds, per): (Vec<[f64; 2]>, Vec<Value>) = match split {
+        true => pieces(&cut, &words).into_iter().map(|(b, c)| (b, per[c].clone())).unzip(),
+        false => (cut, per),
+    };
     let text = facts.as_ref().and_then(|f| f["text"].as_array().cloned()).unwrap_or_default();
     let classes = if has_sound { enc.sound_classes(&raea_sys_columns::media::sound(heard_file, 16_000).map_err(|e| e.to_string())?).map_err(|e| format!("{e:#}"))? } else { Vec::new() };
     let mut kept = Rows { version: rows::VERSION, media: hash.into(), pins: enc.pins(), ..Default::default() };
     for (i, (b, pf)) in bounds.iter().zip(&per).enumerate() {
-        let (row, sig, clap) = shot(pf, *b, &text, &words, &beats, &cols, &classes, i == 0);
+        let (mut row, sig, clap) = shot(pf, *b, &text, &words, &beats, &cols, &classes, i == 0);
+        row.layers = layered.as_ref().and_then(|l| l.get(i).cloned());
         kept.shots.push(row);
         kept.sig.extend(sig);
         kept.clap.extend(clap);
@@ -172,7 +246,7 @@ pub fn read(picture: &Path, sound: Option<&Path>, hash: &str, enc: &mut Encoders
     // a still from each shot's middle, 160 px wide, for the contact sheets the person confirms rules on (VF8); the
     // list always has a comma, so one shot is a folder of one
     let mids: String = kept.shots.iter().map(|s| format!("{:.3},", (s.start + s.end) / 2.0)).collect();
-    let stills = rows::stills(keep, hash).to_string_lossy().into_owned();
+    let stills = keep.join(rows::STILLS).join(hash).to_string_lossy().into_owned();
     if readers::raea(&["media", "still", &p, "--at", &mids, "--width", "160", "-o", &stills]).is_err() {
         missing.push("stills: raea media still couldn't cut them".into());
     }
@@ -208,6 +282,15 @@ mod tests {
     fn near_cuts_are_one_and_shots_cover_the_video() {
         assert_eq!(shots_from_cuts(&[1.25, 1.292, 4.583, 8.917, 8.958, 9.99], 10.0), vec![[0.0, 1.25], [1.25, 4.583], [4.583, 8.917], [8.917, 10.0]]);
         assert_eq!(shots_from_cuts(&[], 30.0), vec![[0.0, 30.0]]);
+    }
+
+    #[test]
+    fn footage_is_cut_a_sentence_a_piece_and_its_silences_into_windows() {
+        let w = |t: &str, a: f64, b: f64| Word { text: t.into(), start: a, end: b };
+        // one 12 s take: silence to 2 s, two sentences, silence from 6.5 s to the end
+        let words = [w("Hi.", 2.0, 2.4), w("This", 2.6, 2.8), w("works", 2.9, 3.3), w("so", 4.0, 4.2), w("well", 4.3, 6.4)];
+        let p: Vec<[f64; 2]> = pieces(&[[0.0, 12.0]], &words).into_iter().map(|x| x.0).collect();
+        assert_eq!(p, vec![[0.0, 1.92], [1.92, 2.5], [2.52, 3.42], [3.92, 6.52], [6.52, 9.26], [9.26, 12.0]]);
     }
 
     #[test]

@@ -21,6 +21,6 @@ objc2 = "0.6"
 objc2-foundation = { version = "0.3", features = ["NSString", "NSURL", "NSError", "NSDictionary", "NSArray", "NSValue"] }
 objc2-core-ml = { version = "0.3", features = ["MLModel", "MLModelConfiguration", "MLFeatureProvider", "MLDictionaryFeatureProvider", "MLFeatureValue", "MLMultiArray", "MLModel_MLModelCompilation", "MLModelDescription", "MLFeatureDescription", "MLModelMetadataKeys", "objc2-core-video"] }
 objc2-core-video = { version = "0.3", features = ["CVPixelBuffer", "CVImageBuffer", "CVBuffer", "CVReturn"] }
-objc2-core-foundation = "0.3"
-objc2-core-graphics = { version = "0.3", features = ["CGImage", "CGColorSpace", "CGDataProvider"] }
+objc2-core-foundation = { version = "0.3", features = ["CFURL", "CFCGTypes"] }
+objc2-core-graphics = { version = "0.3", features = ["CGImage", "CGColorSpace", "CGDataProvider", "CGContext", "CGBitmapContext", "CGPDFDocument", "CGPDFPage"] }
 objc2-vision = { version = "0.3", features = ["VNRequestHandler", "VNRequest", "VNDetectFaceRectanglesRequest", "VNGeneratePersonSegmentationRequest", "VNRecognizeTextRequest", "VNDetectRectanglesRequest", "VNClassifyImageRequest", "VNDetectHumanRectanglesRequest", "VNGenerateAttentionBasedSaliencyImageRequest", "VNCalculateImageAestheticsScoresRequest", "VNGenerateImageFeaturePrintRequest", "VNGenerateOpticalFlowRequest", "VNTargetedImageRequest", "VNObservation", "VNTypes", "VNStatefulRequest", "objc2-core-video", "objc2-core-image", "objc2-core-graphics"] }

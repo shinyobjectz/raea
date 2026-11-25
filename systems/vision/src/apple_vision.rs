@@ -282,11 +282,18 @@ pub fn text_lines(rgba: &[u8], w: usize, h: usize) -> Result<Vec<(String, f32, [
 /// text_lines, or with Vision's fast recognition (`fast`): a tenth of the time, for a crop that holds one line of
 /// clean type, where reading it at all is the question (DR28's reading check reads fast first, accurately after).
 pub fn text_lines_at(rgba: &[u8], w: usize, h: usize, fast: bool) -> Result<Vec<(String, f32, [f64; 4])>, String> {
+    // lines at least 1.5% of the frame high
+    const LEAST: f32 = 0.015;
+    text_lines_from(rgba, w, h, fast, LEAST)
+}
+
+/// text_lines, reading lines down to `least` of the picture high: a document's page, whose body type is under 1.5%
+pub fn text_lines_from(rgba: &[u8], w: usize, h: usize, fast: bool, least: f32) -> Result<Vec<(String, f32, [f64; 4])>, String> {
     let image = cg_image(rgba, w, h)?;
     let text = VNRecognizeTextRequest::new();
     text.setRecognitionLevel(if fast { VNRequestTextRecognitionLevel::Fast } else { VNRequestTextRecognitionLevel::Accurate });
     text.setUsesLanguageCorrection(false);
-    text.setMinimumTextHeight(0.015);
+    text.setMinimumTextHeight(least);
     let handler = unsafe { VNImageRequestHandler::initWithCGImage_options(VNImageRequestHandler::alloc(), &image, &NSDictionary::new()) };
     let _ = handler.performRequests_error(&NSArray::from_slice(&[&*text as &VNRequest]));
     let mut out = Vec::new();

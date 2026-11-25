@@ -138,7 +138,9 @@ pub(crate) fn whole(name: &str, dir: &Path, section: &Videoform, eval: Eval, jso
         Some((text, ..)) => text,
         None => format!("No vocabulary yet: your AI writes {} from the context, the things, sections and feel it names (raea videoform vocab {name} starts one)", dir.join(crate::vocab::FILE).display()),
     };
-    Ok(format!("{}\n\n{tail}", report(name, &f)))
+    // what was asked, and how it was made (VF8f)
+    let asked = raea_app_videoform_docs::learn(dir, name, &section.ranked(), &kept(dir), eval)?;
+    Ok(format!("{}\n\n{tail}{}", report(name, &f), if asked.is_empty() { String::new() } else { format!("\n\n{asked}") }))
 }
 
 /// `raea videoform report NAME [--json]`

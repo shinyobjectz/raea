@@ -84,7 +84,7 @@ pub fn next(args: &[String]) -> R<String> {
     let l = spec::load_brief_ts(&brief_path)?;
     let dir = brief_path.parent().unwrap_or(Path::new(".")).to_path_buf();
     let stale = raea_app_workspace::doctor::findings(&dir, &tools::agent_skills::agents(), &skill::version()).len();
-    Ok(raea_app_workspace::next::text(&dir, &raea_app_workspace::next::Brief { needs: l.missing, modes: l.modes }, stale))
+    Ok(raea_app_workspace::next::text(&dir, &raea_app_workspace::next::Brief { needs: l.missing, modes: l.modes, approve: l.approve }, stale))
 }
 
 /// The brief.ts for a folder anywhere inside a project, or the file named.

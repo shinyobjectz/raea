@@ -40,7 +40,7 @@ pub fn declarations() -> String {
         script::Script, script::Scene, script::Beat, script::Line,
         taste::Taste, taste::TasteSection, taste::Rule, taste::RuleCheck, taste::RuleLevel, taste::Check,
         parts::Parts, parts::Concept, parts::Level, parts::Count, parts::Part,
-        videoform::Videoform,
+        videoform::Videoform, videoform::Context, videoform::Briefs, videoform::BriefRule,
         videoform::Correction,
         videoform::Vocabulary, videoform::Term, videoform::Pattern, videoform::Section, videoform::Feel,
         make::Make, make::Kind, make::Source, make::DialValue, make::Dial, make::Route, make::Origin, make::Pick, make::Object, make::Shot,

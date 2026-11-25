@@ -220,6 +220,9 @@ raea-app-double = "apps"
 raea-app-videoform = "apps"
 raea-sys-videoform = "systems"
 raea-sys-videoform-rules = "systems"
+raea-sys-videoform-follow = "systems"
+raea-sys-videoform-layers = "systems"
+raea-sys-videoform-kit = "systems"
 raea-app-solid = "apps"
 raea-app-media = "apps"
 raea-app-targets = "apps"
@@ -262,6 +265,8 @@ raea-hands-audit = "tools"
 [facility]
 # a videoform's kept rows, its vocabulary's report, shot kinds and structure (its rules build on them: VF8)
 raea-sys-videoform = true
+# a brand's kit and how an asset is known (following a videoform shows its assets: VF9b)
+raea-sys-videoform-kit = true
 # the frame's rows every pass reads (FrameRows, the edit, the clock, row helpers)
 raea-sys-frame = true
 # cuts between cameras: the frames that start a shot and the last cut drawn (raea-sys-frame re-exports it)

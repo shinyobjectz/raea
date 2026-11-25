@@ -15,8 +15,8 @@ use raea_sys_columns::cache::{f16s, f32s};
 use raea_sys_columns::{CLAP, Encoders, SIG};
 use raea_sys_fingerprint::taxonomy::{PICTURE_VOCAB, SOUND_VOCAB, prompt};
 use raea_sys_videoform::kinds::{Kinds, kinds, lines};
-use raea_sys_videoform::rows::{Rows, stills};
-use raea_sys_videoform_rules::{Rule, lines as rule_lines, rules, taste_ts};
+use raea_sys_videoform::rows::{Rows, STILLS};
+use raea_sys_videoform_rules::{Rule, lines as rule_lines, rules_at, slug, taste_ts, RULE};
 use raea_sys_videoform::structure::{lines as st_lines, script_ts, structure, template};
 use raea_sys_videoform::vocab::{Background, Head, Pat, Report, Space, fire, lines as did, report};
 use std::path::{Path, PathBuf};
@@ -175,11 +175,68 @@ fn patterns(v: &Vocabulary) -> Result<Vec<Pat>, String> {
     }).collect()
 }
 
+/// What following reads of a videoform (VF9): its references' rows, their shot kinds, their structure and the
+/// vocabulary's patterns, from the kept rows alone, nothing written
+pub(crate) fn understood(dir: &Path, v: &Vocabulary) -> Result<(Vec<Rows>, Kinds, raea_sys_videoform::structure::Structure, Vec<Pat>), String> {
+    let rows: Vec<Rows> = crate::found::kept(dir).into_iter().map(|k| k.1).collect();
+    let (heads, bg) = heads(dir, v)?;
+    let pats = patterns(v)?;
+    let rep = report(&rows, &heads, &bg, &pats, &v.sections);
+    let k = kinds(&rows, &heads, &bg);
+    let shows: Vec<Vec<String>> = v.sections.iter().map(|s| s.shows.clone()).collect();
+    let st = structure(&rows, &k, &rep.sections, &shows);
+    Ok((rows, k, st, pats))
+}
+
+/// The rules mined from these references alone (VF8), each holding in `bar` of them or more: their own report, shot
+/// kinds and structure
+fn mine(rows: &[Rows], heads: &[Head], bg: &Background, pats: &[Pat], v: &Vocabulary, said: &[Correction], bar: f64) -> Vec<Rule> {
+    let mut rep = report(rows, heads, bg, pats, &v.sections);
+    rep.kinds = kinds(rows, heads, bg);
+    let shows: Vec<Vec<String>> = v.sections.iter().map(|s| s.shows.clone()).collect();
+    rep.structure = structure(rows, &rep.kinds, &rep.sections, &shows);
+    let fired: Vec<_> = rows.iter().map(|r| fire(r, heads, bg, pats)).collect();
+    let places: Vec<(String, Vec<String>)> = v.places.iter().map(|p| (p.name.clone(), p.things.iter().map(|t| t.name.clone()).collect())).collect();
+    rules_at(rows, &fired, &rep, &places, said, bar)
+}
+
+/// A brand's own rule holds in RULE of its references and in under this share of the other brands'
+const OTHERS: f64 = 0.5;
+
+/// Each brand's own rules (the brand and format design, 11-24): mined from that brand's references alone, less what
+/// half or more of the other brands' references hold too (a rule is known across sets by its words, since kinds are
+/// numbered afresh in each); what holds across brands is the videoform's
+fn brand_rules(rows: &[Rows], brands: &[Option<String>], heads: &[Head], bg: &Background, pats: &[Pat], v: &Vocabulary) -> Vec<(String, Vec<Rule>, usize)> {
+    let mut names: Vec<&String> = brands.iter().flatten().collect();
+    names.sort();
+    names.dedup();
+    // another brand to hold it against is all it needs; each rule says how strongly it holds (VF8f: no count cuts it off)
+    if names.len() < 2 {
+        return Vec::new();
+    }
+    names.iter().filter_map(|b| {
+        let (mine_i, rest_i): (Vec<usize>, Vec<usize>) = (0..rows.len()).partition(|&i| brands[i].as_ref() == Some(*b));
+        let pick = |ix: &[usize]| ix.iter().map(|&i| rows[i].clone()).collect::<Vec<_>>();
+        let theirs: Vec<String> = mine(&pick(&rest_i), heads, bg, pats, v, &[], OTHERS).into_iter().map(|r| r.text).collect();
+        let (_, own): (Vec<Rule>, Vec<Rule>) = mine(&pick(&mine_i), heads, bg, pats, v, &[], RULE).into_iter().partition(|r| theirs.contains(&r.text));
+        (!own.is_empty()).then(|| ((*b).clone(), own, mine_i.len()))
+    }).collect()
+}
+
+/// A brand's fingerprint (brand-SLUG), made when there's none, with the rules its videos alone hold as SLUG.taste.ts
+fn to_brand(brand: &str, rules: &[Rule], n: usize, from: &str) -> Result<PathBuf, String> {
+    let f = crate::kit::brand_dir(brand)?.join(format!("{}.taste.ts", slug(brand)));
+    let ts = taste_ts(rules, brand, n).replace("The videoform's rules (docs/videoform.feature VF8), mined from its references", &format!("{brand}'s own rules, mined by raea videoform {from} from {brand}'s videos alone and not held by the other brands'"));
+    std::fs::write(&f, ts).map_err(|e| format!("{}: {e}", f.display()))?;
+    Ok(f)
+}
+
 /// The vocabulary against the references' kept rows: the person's AI's report, and its JSON
 pub(crate) fn found(dir: &Path, v: &Vocabulary, said: &[Correction]) -> Result<(String, Report, Vec<Rule>), String> {
     let kept = crate::found::kept(dir);
     let names: Vec<&str> = kept.iter().map(|k| k.0.as_str()).collect();
     let rows: Vec<_> = kept.iter().map(|k| k.1.clone()).collect();
+    let brands: Vec<Option<String>> = kept.iter().map(|k| k.2["source"]["brand"].as_str().map(str::to_string)).collect();
     let (heads, bg) = heads(dir, v)?;
     let pats = patterns(v)?;
     let mut rep = report(&rows, &heads, &bg, &pats, &v.sections);
@@ -198,15 +255,29 @@ pub(crate) fn found(dir: &Path, v: &Vocabulary, said: &[Correction]) -> Result<(
     out.extend(st_lines(&st, n));
     out.push(format!("The template, a scene a section and a beat a kind of shot: {} (raea spec checks it)", ts.display()));
     rep.structure = st;
-    let fired: Vec<_> = rows.iter().map(|r| fire(r, &heads, &bg, &pats)).collect();
-    let places: Vec<(String, Vec<String>)> = v.places.iter().map(|p| (p.name.clone(), p.things.iter().map(|t| t.name.clone()).collect())).collect();
-    let rules_found = rules(&rows, &fired, &rep, &places, said);
-    let kept = dir.join("videoform/rules.json");
-    std::fs::write(&kept, serde_json::to_vec_pretty(&rules_found).unwrap()).map_err(|e| format!("{}: {e}", kept.display()))?;
+    let rules_found = mine(&rows, &heads, &bg, &pats, v, said, RULE);
+    // each rule with the references it holds in by content hash, which stays when references come and go
+    let hashes: Vec<&str> = kept.iter().map(|k| k.1.media.as_str()).collect();
+    let with_refs: Vec<serde_json::Value> = rules_found.iter().map(|r| {
+        let mut j = serde_json::to_value(r).unwrap();
+        j["holds_in"] = r.holds.iter().map(|&i| hashes[i]).collect();
+        j["of_refs"] = r.of.iter().map(|&i| hashes[i]).collect();
+        j
+    }).collect();
+    let kept_rules = dir.join("videoform/rules.json");
+    std::fs::write(&kept_rules, serde_json::to_vec_pretty(&with_refs).unwrap()).map_err(|e| format!("{}: {e}", kept_rules.display()))?;
     let rf = dir.join(rules_file(&name));
     std::fs::write(&rf, taste_ts(&rules_found, &name, n)).map_err(|e| format!("{}: {e}", rf.display()))?;
     out.extend(rule_lines(&rules_found, &names, &name));
     out.push(format!("The rules, taste lines with their checks (raea spec checks it): {}", rf.display()));
+    for (brand, own, k) in brand_rules(&rows, &brands, &heads, &bg, &pats, v) {
+        out.push(format!("{brand}'s own rules ({} rules in its {k} references that the other brands' don't hold), not the videoform's:", own.len()));
+        out.extend(own.iter().map(|r| format!("  {:<5} {} ({} of {})", r.level, r.text, r.holds.len(), r.of.len())));
+        match to_brand(&brand, &own, k, &name) {
+            Ok(f) => out.push(format!("  written to {brand}'s fingerprint: {}", f.display())),
+            Err(e) => out.push(format!("  not written to {brand}'s fingerprint: {e}")),
+        }
+    }
     out.push(match sheets(dir, &rep.kinds, &rows) {
         Ok(d) => format!("Each shot kind's stills, to confirm the rules on (kind-N.jpg is the kind a rule's kind-N names): {}", d.display()),
         Err(e) => format!("No contact sheets: {e}"),
@@ -233,7 +304,7 @@ fn sheets(dir: &Path, kinds: &Kinds, rows: &[Rows]) -> Result<PathBuf, String> {
             (*k, r, s)
         }).collect();
         order.sort_unstable();
-        let files: Vec<PathBuf> = order.iter().map(|&(_, r, s)| stills(dir, &rows[r].media).join(format!("{s}.jpg"))).filter(|p| p.is_file()).take(TILES).collect();
+        let files: Vec<PathBuf> = order.iter().map(|&(_, r, s)| dir.join(STILLS).join(&rows[r].media).join(format!("{s}.jpg"))).filter(|p| p.is_file()).take(TILES).collect();
         let sheet = out.join(format!("kind-{k}.jpg"));
         // a sheet of one file is that file's frames, so one still is copied as it is
         let done = match files.as_slice() {
@@ -259,7 +330,7 @@ pub(crate) fn verb(args: &[String], eval: Eval) -> (String, i32) {
     let f = dir.dir.join(FILE);
     if !f.is_file() {
         let section = fp.videoform.as_mut().unwrap();
-        if let Err(e) = std::fs::write(&f, starter(&name, &section.context)) {
+        if let Err(e) = std::fs::write(&f, starter(&name, &section.ranked().iter().map(|c| if c.by == "person" { c.text.clone() } else { format!("(a document: {}, its passages in raea videoform docs {name})", c.text) }).collect::<Vec<_>>().join("\n"))) {
             return (format!("{}: {e}", f.display()), 1);
         }
         section.vocabulary = Some(FILE.into());

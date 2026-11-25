@@ -99,8 +99,8 @@ pub(crate) fn ls(args: &[String]) -> (String, i32) {
         return (serde_json::to_string_pretty(&serde_json::json!({"videoform": fp.videoform, "read": refs})).unwrap(), 0);
     }
     let mut out = vec![format!("{name}: {} references ({})", refs.len(), dir.dir.display())];
-    if let Some(v) = fp.videoform.as_ref().filter(|v| !v.context.is_empty()) {
-        out.push(format!("  context: {}", v.context));
+    if let Some(v) = fp.videoform.as_ref().filter(|v| !v.ranked().is_empty()) {
+        out.push(format!("  context: {}", v.ranked().iter().map(|c| c.text.as_str()).collect::<Vec<_>>().join("; ")));
     }
     out.extend(refs.iter().map(crate::ingest::line));
     (out.join("\n"), 0)
@@ -111,7 +111,7 @@ pub fn context(project: &Path) -> Option<(String, String)> {
     let chosen = raea_sys_fingerprint_use::which::which(project)?;
     let fp = Folder { dir: chosen.dir.clone() }.read(None).ok()?;
     let v = fp.videoform?;
-    let mut body = vec![format!("{} judges this project ({}).", fp.name, chosen.why), format!("Context: {}", if v.context.is_empty() { "(none yet)" } else { &v.context })];
+    let mut body = vec![format!("{} judges this project ({}).", fp.name, chosen.why), format!("Context: {}", if v.ranked().is_empty() { "(none yet)".to_string() } else { v.ranked().iter().map(|c| format!("{} ({})", c.text, c.group.as_deref().unwrap_or(&c.by))).collect::<Vec<_>>().join("; ") })];
     let refs = references(&chosen.dir);
     body.push(format!("References read: {}", refs.len()));
     body.extend(refs.iter().map(crate::ingest::line));

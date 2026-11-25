@@ -44,7 +44,7 @@ Feature: Videoform: the kind of video a person makes again and again, read once 
       Given the plan
         | crate              | file                              | lines | job                                                                    |
         | raea-app-videoform | apps/videoform/src/ingest.rs      | 220   | paths, folders and URLs to sources: content hash, source URL, title, creator, date; a source read before is recognised and not read again |
-        | raea-app-videoform | apps/videoform/src/rights.rs      | 80    | the rights prompt, once per account, and its answer kept with the account |
+        | raea-io-resolve    | io/resolve/src/rights.rs          | 80    | the rights prompt, once per account, and its answer kept with the account (with the resolver since VF8f) |
       When the person runs `raea videoform add NAME PATH|URL...`
       Then a file or a folder on the drive is read where it is, with no copy made
       And a direct link to a media file is decoded straight from the network, and a platform page, a playlist or a
@@ -329,17 +329,158 @@ Feature: Videoform: the kind of video a person makes again and again, read once 
       And a new encoder in raea leaves the videoform on its rows' pins, working as it was; the measures carry over; `raea
         videoform refresh NAME SOURCE...` reads the references again for the new encoder, the one time they're needed
 
+    @needs:VF8
+    Scenario: VF8d. Brand and format: what one brand's videos alone hold is that brand's, not the videoform's
+      Given the plan
+        | crate                    | file                               | lines | job                                                                    |
+        | raea-app-videoform       | apps/videoform/src/ingest.rs       | 10    | `add --brand B` tags the references read now with their brand          |
+        | raea-app-videoform       | apps/videoform/src/vocab.rs        | 80    | each brand's own rules mined from its references alone, written to its fingerprint (brand-SLUG, made when there's none); rules.json with each rule's references by content hash |
+        | raea-sys-videoform-rules | systems/videoform-rules/src/lib.rs | 10    | rules_at: the rules at another bar, to see what other references mostly hold |
+      # The person's design, 11-24 (Shane's cloud taxonomy has two kinds of fingerprint, a brand with its kit and a
+      # content type): a videoform is a content type; a finding that holds across brands is the videoform's, and one
+      # only a brand's videos hold is that brand's, filed in that brand's fingerprint, started when there's none.
+      # Every finding traces to its videos by content hash. Content types and brands are linked through the videos
+      # they share, not nested. All of it is to reach the cloud for teams (after the person's talk with Shane, 11-25).
+      Then each reference read with --brand carries its brand
+      And with two brands or more (VF8f: no count of brands or references cuts it off; each rule says how strongly it
+        holds), each brand has its own rules: those that hold in RULE of its references and in under half of the other
+        brands'
+      And those rules are written as SLUG.taste.ts in the brand's fingerprint, brand-SLUG, made when there's none
+
+    @needs:VF3,VF6,VF9
+    Scenario: VF8e. How it's layered is part of the videoform
+      Given the plan
+        | crate                     | file                                 | lines | job                                                                    |
+        | raea-sys-videoform-layers | systems/videoform-layers/src/lib.rs  | 400   | a shot's layers from small copies of its frames and what Vision sees in a few: a person cut out over another picture, a picture inset, a card laid over, a plain backdrop, a split frame, a screen shown |
+        | raea-perceive             | tools/perceive/src/layers.rs         | 110   | `raea-perceive layers VIDEO SHOTS.json` (the frames decoded, Vision run); `mattes` (a stretch's person cut out, as a Video's matte) |
+        | raea-sys-videoform        | systems/videoform/src/{rows,ranges,kinds}.rs | 60 | each shot's layers kept in its row; a share of the shots for each form in the profile; a kind's layer form in its measures and name |
+        | raea-sys-videoform-rules  | systems/videoform-rules/src/lib.rs   | 10    | each layer form as a thing a shot shows, so every sort of rule can be about it |
+        | raea-sys-videoform-follow | systems/videoform-follow/src/layered.rs | 80 | a layered kind made from two of the footage's pieces at once, the one under and the one over it in its form and place |
+        | raea-app-videoform        | apps/videoform/src/{readers,pass,ingest}.rs | 40 | layers read beside perception on the same cuts; a reference read before them gets only its layers read when added again |
+      # The person, 11-24: "the way a video is layered should ABSOLUTELY be part of a videoform". Kelly Rocklein's
+      # finals cut her out over B-roll (green screen), lay photos, testimonial cards and product shots over the
+      # speaker, put the product on a plain colour, and key captions over all of it; raea renders each of these (a
+      # Video's matte, a box, a chroma key), so what was missing was the videoform reading them and the plan saying them.
+      Then each reference shot keeps its layers: each one's form (cutout, inset, card, backdrop, split, screen), its
+        place in the frame and how much of the shot it's seen in; captions are words on screen, kept already
+      And the profile holds the share of shots in each form, the shot kinds tell a layered kind from the same shot
+        alone (Kelly cut out over hair B-roll is its own kind), and the rules can say where layers go (the close shows
+        the product on a backdrop)
+      And following makes a layered kind from two pieces of the footage: the speaker cut out over B-roll, or B-roll in
+        a box over the speaker, in the place the references put it; footage can't make a screen recording, so that's
+        said as lacking
+      And it's scored against the answer key read from Kelly's Premiere projects (tracks, Ultra Key, scale and position,
+        crop, mattes, stills and graphics), moment by moment, by what a viewer sees layered
+      And on 11-24 (progress, not done): on 31 of Kelly's finals traced to their timelines, by seconds, a backdrop is found
+        wherever there is one (precision 0.63), a card laid over 71% of the time it's there (precision 0.76), a person
+        cut out 22% (precision 0.56), an inset 19% (precision 0.19); Vision's screenshot flag is never right, so a
+        screen is said only where none was. What gives a layer away is how it moves against the rest: a part that holds
+        still with detail of its own while the picture moves, a cut confined to a box that holds before and after (a
+        moving thing goes on changing), and repeated swaps inside a long shot (the podcast's testimonial cards); Vision's
+        rectangles weren't used, since a sauna's light panel or a mirror is one too. Read into copies of Kelly's three
+        sets (about 14 s a reference, layers only): her UGC ads have a picture over another in a median 37% of shots,
+        talk to camera carries a card in 22% of its shots, and 310's ads hold "When the ask is said, the shot or the
+        next shows a plain backdrop" (4 of 5). Following lays over at each kind's own rate: ten of eleven plans now
+        layer (cards, insets, backdrops, a split), rendered with no new check findings
+      And not yet: what goes in a card. Kelly's cards are product photos, testimonials and screenshots, none of them in
+        the raw footage, so the plan freezes a frame of the footage's B-roll; they belong to the brand's kit (the brand
+        fingerprint, VF8d). A cut-out over a busy picture beside another person (Kelly over a dancer) isn't seen, the
+        place of a card is wherever the reader's box was (often wider than Kelly's), and speed (her 0.17x and 5x) isn't
+        read
+
+    @needs:VF5,VF8,VF8d
+    Scenario: VF8f. What was asked and how it was made: the briefs, guides and the person's words with each group
+      Given the plan
+        | crate                       | file                                  | lines | job                                                                    |
+        | raea-core-brief             | core/brief/src/videoform.rs           | 90    | the section's contexts, many, each with who said it (the person or a document), its group, brand and day; briefs.ts's rules |
+        | raea-sys-vision, raea-perceive | systems/vision/src/pdf.rs, tools/perceive/src/doc.rs | 80 | `raea-perceive read-doc FILE...`: a PDF's pages drawn by CoreGraphics and read by Vision (a page that's a picture reads too), a still the same, each line with its box and height |
+        | raea-sys-videoform-briefs   | systems/videoform-briefs/src/passages.rs | 260 | a document's lines, a Word document's paragraphs or plain text into passages: bullets, wrapped lines, headings over them, a table's cells on a row |
+        | raea-sys-videoform-briefs   | systems/videoform-briefs/src/link.rs  | 380   | each passage found where its group's shots carry it out (EmbeddingGemma 2 on what's said and shown, both standing out of their backgrounds) and how; passages that say the same across groups joined into asks, how they're made, with strength and how common it is |
+        | raea-sys-videoform-briefs   | systems/videoform-briefs/src/rules.rs | 200   | briefs.ts's rules (always, never, before, either, open, close over said, shown, layers, captions, faces, length) measured on each group's videos |
+        | raea-app-videoform-docs     | apps/videoform-docs/src/*.rs          | 420   | documents read once and kept by content hash with their vectors, the shots' words embedded once; learning on every add; `docs NAME [GROUP]`; `follow --brief` |
+        | raea-app-videoform          | apps/videoform/src/{ingest,found,follow,lib}.rs | 60 | `add --group G`, documents among the sources, `--context` kept as the person's; what was asked said after the report |
+      # The person, 11-25: a videoform read from the finished videos alone came out too thin to make a new brand's
+      # videos from. "Overall the context matters greatly and it should not be singular", and "learning the pattern
+      # across multiple similar groups of videos is paramount: this is all about inferring what is to be done with a
+      # new video given the entire workflow on others". What comes in differs every time, so the videoform does the
+      # best it can with all of it. The person's words as they give videos are from now and outrank every document;
+      # documents are from the past, the newest first. No count cuts a finding off: each says how strongly it holds.
+      # Embeddings do the reading; the person's AI only what a similarity can't tell (a never, an order, a choice).
+      Then `raea videoform add NAME --group G --brand B --context "…" SOURCE...` takes the videos as references and
+        each document among the sources (a brief, a brand's guide, notes: PDF, Word, text, a still named) as passages,
+        read once and kept by content hash with two EmbeddingGemma 2 vectors each; the document is never needed again
+      And the person's words are kept as theirs, with their group, over any document's
+      And every add finds each passage where its group's videos carry it out (the shot whose words said or shown stand
+        out for it, and it for them) and how: where it falls, what carries it, its layers, framing and sound
+      And a passage and another group's that are each other's nearest say the same thing: joined into one ask, whose
+        making across its groups is the videoform's pattern, each part with its strength and how common it is in
+        shots at large; what only one group asked and carried out is written to its brand's fingerprint (briefs.json)
+      And `raea videoform docs NAME [GROUP]` lists each passage with its id and where it was carried out, for the
+        person's AI to write briefs.ts: the rules a similarity can't tell, each measured on its group's videos, one
+        said alike in two groups or more the videoform's
+      And `raea videoform follow NAME FOOTAGE... --brief FILE,...` sets the new job's documents and the project's
+        brief.ts against what was learned: each passage with the ask it's like and how that's made, or new
+
   Rule: VF9-VF11. Following it, and checking it fast
 
     @needs:VF7,VF8
     Scenario: VF9. Following: the footage matched, what's missing said, the cut planned to the template
       Given the plan
         | crate              | file                              | lines | job                                                                    |
-        | raea-app-videoform | apps/videoform/src/follow.rs      | 200   | new footage read and matched to shot kinds; what the footage lacks; the plan slot by slot |
+        | raea-sys-videoform-follow | systems/videoform-follow/src/lib.rs | 440 | the kinds as footage is held to them; each piece matched; what the footage lacks; the plan: the voice, then the picture over it |
+        | raea-app-videoform | apps/videoform/src/follow.rs      | 120   | `raea videoform follow NAME FOOTAGE...`: the footage read once (kept by content hash in raea's caches), the plan said and written |
+        | raea-app-videoform | apps/videoform/src/pass.rs        | 55    | footage read a piece a row: a sentence said, or up to 3 s with no talk |
+      # Fixed in the plan (VF9, 11-24): the matching and planning are maths over kept rows, so they're a systems
+      # crate's, their own since raea-sys-videoform would pass its limit with them; the app reads the footage and says the plan. Raw takes are mostly one long shot, so footage is kept a
+      # piece a row rather than a shot a row. Talk isn't held against a kind: a finished video's B-roll plays under a
+      # voice its raw footage never had.
       Then new raw footage is read as references are, and each shot matched to a shot kind against the kept rows
       And before any cut the agent says what the footage lacks ("no close-up of the counters, which every kitchen in the
         references has"), a shot list for the person
       And the agent plans the cut from the template, slot by slot, and edits to the ranges
+
+    @needs:VF9,VF8e
+    Scenario: VF9b. A brand's kit: what a card shows
+      Given the plan
+        | crate                  | file                                  | lines | job                                                                    |
+        | raea-sys-videoform-kit | systems/videoform-kit/src/lib.rs      | 230   | an asset known by what's in it (a logo, a product, a person, a testimonial, a screenshot, a graphic, a clip); the one a layer shows chosen by what's said over it |
+        | raea-perceive          | tools/perceive/src/kit.rs             | 90    | `raea-perceive kit FILE...`: each asset's size, see-through share, faces, person, words and their width, screenshot or not, commonest colours |
+        | raea-app-videoform     | apps/videoform/src/kit.rs             | 170   | `raea videoform kit BRAND [FILE|DIR...]`: copied into the brand's fingerprint by content hash, read once, said by kind |
+        | raea-sys-videoform-follow | systems/videoform-follow/src/kit.rs | 90    | `follow --brand B`: each card, backdrop and inset shows the asset that fits; what the kit lacks said |
+      # Fixed in the design (11-24, the person): a videoform is the content type and says how a video is made; a brand
+      # says what's in it. Kelly's cards are product photos, customers' reviews and screenshots, none of them in the raw
+      # footage, so the plan froze a frame of B-roll (a dark clip, another take of her, a countdown card). The kit
+      # lives in the brand's fingerprint (brand-SLUG), beside the rules only its videos hold (VF8d), so a team that
+      # shares the brand shares its kit; its assets are copied in (a brand's own, unlike references, which are never
+      # kept), each known by its content hash.
+      Then `raea videoform kit BRAND FILE|DIR...` copies each still of a folder (its videos are footage) and each still
+        or clip named into brand-SLUG/kit/, once, and says what each is: words as wide as half the picture are what it
+        shows (a review with its stars or "verified" a testimonial, else a screenshot), a label's narrow words are the
+        product's, flat or see-through art with few words a logo, a person or a face a person, a clip a clip
+      And `raea videoform follow NAME FOOTAGE... --brand B` shows each card the asset that fits what's said over it (a
+        review over someone's word on the product, the product a line names), the least shown first; a backdrop the
+        product, else the logo; an inset a clip of the kit, else the footage's own
+      And a card the kit can't fill keeps its still of the footage, and the plan says what the kit lacks, as it says
+        what the footage lacks
+      And 11-24: on Thicc's raw folder, 23 stills read as 4 products, 12 people (customers' results), 6 testimonials
+        and 1 screenshot (the bundle page)
+
+    @needs:VF9b
+    Scenario: VF9c. A video made to a videoform and a brand, its script approved first
+      Given the person asks their agent for "a 45 second vertical video of this footage, in videoform X, with brand Y's
+        assets", in a project whose brief says approve: ["script"] (the project's choice; a pitch, explain or story
+        always plans first)
+      # Fixed in the design (11-24, the person): no verb turns a plan into an edit. The person talks to the agent, and
+      # the agent makes the edit from the videoform's plan as it makes any composition; the plan and the script are
+      # what raea gives it.
+      Then the agent runs `raea videoform follow X FOOTAGE... --seconds 45 --shape 9:16 --brand Y --plan plan.json
+        --script NAME.script.ts`, and says first what the footage and the kit lack
+      And the script is the plan beat by beat: each section a scene, each picture a beat with its file and seconds or
+        the kit's asset, what's laid over it and where, how long, and the lines said over it
+      And `raea next` says to show the script and edit nothing until the person approves it, while the project has a
+        script and no composition yet
+      And once it's approved, the agent writes the composition from plan.json (the kit's assets in the brand's
+        fingerprint, the footage where it is), renders, and holds it to `raea check` and the videoform's rules
 
     @needs:VF8
     Scenario: VF10. A videoform's rules checked on the composition, before any render

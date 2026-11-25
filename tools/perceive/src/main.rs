@@ -19,6 +19,10 @@
 //!   raea-perceive analyze VIDEO DIR                             a clip's facts (facts.json and a still per shot), as `ugc-perceive VIDEO DIR`
 //!   raea-perceive performance-video VIDEO [FPS]                 the creator's performance second by second, all in Rust
 //!   raea-perceive sound VIDEO                                   what's heard, in spans (YAMNet), as facts.json's sound
+//!   raea-perceive layers VIDEO SHOTS.json                      each shot's layers: cut out, inset, card, backdrop, split, screen
+//!   raea-perceive mattes VIDEO FROM TO OUTDIR [--every N]      the person cut out of a stretch, as a <Video>'s matte
+//!   raea-perceive kit FILE...                                  each of a brand's assets: its words, faces, person, colours
+//!   raea-perceive read-doc FILE...                             a document's words page by page (a PDF drawn, or a still), each line's box and height
 //!   raea-perceive see-layout IMAGE...                          each picture's layout end to end in Rust (Vision through objc2), one JSON line each
 //!   raea-perceive read-lines IMAGE... [--backend apple|ocrs]   every text line read in each picture (text, confidence, box), one JSON line each
 //!   raea-perceive see-coach IMAGE...                           the framing coach end to end in Rust, one JSON line each
@@ -41,6 +45,12 @@ use raea_sys_footage::shots;
 use serde_json::json;
 
 mod more;
+#[cfg(target_vendor = "apple")]
+mod layers;
+#[cfg(target_vendor = "apple")]
+mod kit;
+#[cfg(target_vendor = "apple")]
+mod doc;
 
 fn main() {
     let args: Vec<String> = std::env::args().skip(1).collect();
@@ -252,6 +262,23 @@ fn main() {
                 println!("{}", json!({"sound": spans}));
                 Ok(())
             }
+            #[cfg(target_vendor = "apple")]
+            Some("layers") => {
+                let (video, shots) = (args.get(1).ok_or("layers VIDEO SHOTS.json")?, args.get(2).ok_or("layers VIDEO SHOTS.json")?);
+                layers::run(video, shots)
+            }
+            #[cfg(target_vendor = "apple")]
+            Some("mattes") => {
+                let usage = "mattes VIDEO FROM TO OUTDIR [--every N]";
+                let pos: Vec<&String> = args[1..].iter().filter(|a| !a.starts_with("--") && Some(a.as_str()) != flag("--every").as_deref()).collect();
+                let [video, from, to, out] = pos[..] else { return Err(usage.into()) };
+                let num = |s: &str| s.parse::<f64>().map_err(|_| usage.to_string());
+                layers::mattes(video, num(from)?, num(to)?, out, flag("--every").and_then(|e| e.parse().ok()).unwrap_or(1))
+            }
+            #[cfg(target_vendor = "apple")]
+            Some("kit") => kit::run(&args[1..].iter().collect::<Vec<_>>()),
+            #[cfg(target_vendor = "apple")]
+            Some("read-doc") => doc::run(&args[1..].iter().collect::<Vec<_>>()),
             Some("see-layout") => {
                 // --backend apple (Vision, the default on Apple) | portable (open models, the vision-portable feature)
                 let v = vision_backend(flag("--backend"))?;

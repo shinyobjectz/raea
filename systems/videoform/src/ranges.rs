@@ -13,7 +13,7 @@ use std::collections::BTreeMap;
 pub type Measures = BTreeMap<String, f64>;
 
 /// Each measure, in words
-pub const NAMES: [(&str, &str); 21] = [
+pub const NAMES: [(&str, &str); 28] = [
     ("seconds", "the video's length (s)"),
     ("cuts_per_min", "cuts a minute"),
     ("median_shot", "a shot's median length (s)"),
@@ -35,10 +35,20 @@ pub const NAMES: [(&str, &str); 21] = [
     ("music", "shots where music is heard"),
     ("on_beat", "cuts within 0.1 s of a beat"),
     ("loudness", "loudness (LUFS)"),
+    ("layered", "shots with more than one picture at once (VF8e)"),
+    ("layer_cutout", "shots with a person cut out over another picture"),
+    ("layer_inset", "shots with a moving picture inset"),
+    ("layer_card", "shots with a still picture or card laid over"),
+    ("layer_backdrop", "shots on a plain backdrop"),
+    ("layer_split", "shots split between two pictures"),
+    ("layer_screen", "shots showing a screen or page"),
 ];
 
 /// Measures that are shares of the shots, 0 to 1
-const SHARES: [&str; 11] = ["close_up", "medium", "wide", "no_people", "moving", "text", "captions", "speech", "music", "on_beat", "caption_y"];
+const SHARES: [&str; 18] = [
+    "close_up", "medium", "wide", "no_people", "moving", "text", "captions", "speech", "music", "on_beat", "caption_y", "layered", "layer_cutout",
+    "layer_inset", "layer_card", "layer_backdrop", "layer_split", "layer_screen",
+];
 
 /// What raea's delivery floor sets for every cut (raea check's sound floor), so the references' range is only reported
 pub const FLOOR: [(&str, f64, &str); 2] = [
@@ -123,6 +133,13 @@ pub fn measures(rows: &Rows) -> Measures {
     m.insert("music".into(), count(&|x| x.heard.contains("music")));
     if n > 1 {
         m.insert("on_beat".into(), share(on_beat(s), n - 1));
+    }
+    // how it's layered, once its layers are read
+    if s.iter().all(|x| x.layers.is_some()) {
+        m.insert("layered".into(), count(&|x| x.layers.as_ref().is_some_and(|l| !l.is_empty())));
+        for f in crate::rows::FORMS {
+            m.insert(format!("layer_{f}"), count(&|x| x.has_layer(f)));
+        }
     }
     m
 }

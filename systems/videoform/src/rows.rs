@@ -47,11 +47,39 @@ pub struct Shot {
     pub level_db: f64,
     /// how far its cut is from the nearest beat, seconds (None: no beat near, or the first shot)
     pub off_beat: Option<f64>,
+    /// how it's layered (VF8e): each picture laid over or under the main one (None: not read yet)
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub layers: Option<Vec<Layer>>,
 }
+
+/// One layer of a shot (VF8e): what form it takes and where it sits
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+pub struct Layer {
+    /// cutout (a person cut out over another picture), inset (a moving picture inside the frame), card (a still picture
+    /// or graphic laid over), backdrop (a plain colour things sit on), split (two pictures sharing the frame), screen (a
+    /// screen or page shown)
+    pub form: String,
+    /// [x, y, w, h] of the frame, from the top left
+    pub at: [f64; 4],
+    /// the share of the shot's frames it's seen in
+    pub seen: f64,
+    /// what it shows, told as a brand kit's asset is (raea_sys_videoform_kit::KINDS: logo, product, person, testimonial,
+    /// screenshot, graphic), so a videoform knows a review card from a logo card without keeping the brand's pictures
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub kind: Option<String>,
+}
+
+/// The layer forms, in the order they're said
+pub const FORMS: [&str; 6] = ["cutout", "inset", "card", "backdrop", "split", "screen"];
 
 impl Shot {
     pub fn seconds(&self) -> f64 {
         self.end - self.start
+    }
+
+    /// Whether it has a layer of this form (VF8e)
+    pub fn has_layer(&self, form: &str) -> bool {
+        self.layers.as_ref().is_some_and(|l| l.iter().any(|l| l.form == form))
     }
 }
 
@@ -119,9 +147,8 @@ pub fn level(col: &[f32], step: f64, start: f64, end: f64) -> f64 {
 
 /// The folder of a reference's stills, one a shot from its middle (0.jpg, 1.jpg ...), for the contact sheets the
 /// person confirms rules on (VF8): a still is a reading, small, never the video
-pub fn stills(dir: &Path, media: &str) -> PathBuf {
-    dir.join("videoform/stills").join(media)
-}
+/// (a videoform's folder, then the reference's content hash)
+pub const STILLS: &str = "videoform/stills";
 
 fn paths(dir: &Path, media: &str) -> (PathBuf, PathBuf) {
     let d = dir.join("videoform/rows");

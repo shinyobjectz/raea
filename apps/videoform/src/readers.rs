@@ -2,7 +2,7 @@
 //! holds: footage perception (raea-perceive analyze: shots, framing, faces, the camera, brightness and look, scene
 //! labels, words on screen), Parakeet's words (parakeet-mlx, as `raea cut` hears a take), Beat This!'s beats
 //! (raea-perceive beats), loudness, and Fingerprint's columns (SigLIP 2, CLAP, YAMNet, levels), cached by content hash.
-//! Not read yet: stems (HTDemucs) and voice activity (Silero) aren't shipped in a release, nor depth; the words'
+//! Each shot's layers (raea-perceive layers, VF8e). Not read yet: stems (HTDemucs) and voice activity (Silero) aren't shipped in a release, nor depth; the words'
 //! gaps give the pauses, and perception's framing the shot scale.
 
 use raea_sys_columns::{Columns, Encoders, FPS, cache, media};
@@ -55,6 +55,21 @@ pub fn perception(picture: &Path, dir: &Path, shots: &[[f64; 2]]) -> Result<Valu
     std::fs::write(&file, Value::from(given).to_string()).map_err(|e| e.to_string())?;
     let bin = raea_io_assets::perceive_bin();
     json_of(Command::new(&bin).arg("analyze").arg(picture).arg(dir).arg("--shots").arg(&file), "raea-perceive analyze")
+}
+
+/// Each shot's layers (VF8e: a person cut out, a picture inset, a card, a backdrop, a split, a screen), by
+/// raea-perceive layers on the shots given; `dir` holds the shots' file
+pub fn layers(picture: &Path, dir: &Path, shots: &[[f64; 2]]) -> Result<Vec<Vec<raea_sys_videoform::rows::Layer>>, String> {
+    std::fs::create_dir_all(dir).map_err(|e| e.to_string())?;
+    let file = dir.join("layer-shots.json");
+    let given: Vec<Value> = shots.iter().map(|s| serde_json::json!({"start": s[0], "end": s[1]})).collect();
+    std::fs::write(&file, Value::from(given).to_string()).map_err(|e| e.to_string())?;
+    let v = json_of(Command::new(raea_io_assets::perceive_bin()).arg("layers").arg(picture).arg(&file), "raea-perceive layers")?;
+    let out: Vec<Vec<raea_sys_videoform::rows::Layer>> = serde_json::from_value(v).map_err(|e| format!("raea-perceive layers: {e}"))?;
+    if out.len() != shots.len() {
+        return Err(format!("raea-perceive layers: {} shots read of {}", out.len(), shots.len()));
+    }
+    Ok(out)
 }
 
 /// The shots, cut to cut, from every frame's change (raea media cuts)

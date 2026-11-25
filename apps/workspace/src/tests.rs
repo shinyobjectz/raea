@@ -30,8 +30,15 @@ fn next_walks_a_project_from_brief_to_show() {
     let d = scratch("next");
     std::fs::create_dir_all(d.join(".raea")).unwrap();
     std::fs::write(d.join(".raea/project"), "").unwrap();
-    let shaped = next::Brief { needs: vec![], modes: vec!["tool".into()] };
-    let unshaped = next::Brief { needs: vec!["who it's for (audience)".into()], modes: vec!["pitch".into()] };
+    let shaped = next::Brief { needs: vec![], modes: vec!["tool".into()], approve: vec![] };
+    let unshaped = next::Brief { needs: vec!["who it's for (audience)".into()], modes: vec!["pitch".into()], approve: vec![] };
+    // a project that approves its script first (the brief's approve), in any mode: the script, then nothing edited till yes
+    let approves = next::Brief { needs: vec![], modes: vec!["tool".into()], approve: vec!["script".into()] };
+    assert!(next::steps(&d, &approves, 0)[0].starts_with("plan it"));
+    std::fs::write(d.join("ad.script.ts"), "").unwrap();
+    assert!(next::steps(&d, &approves, 0)[0].starts_with("this project approves its script before anything is edited: show ad.script.ts"));
+    assert!(next::steps(&d, &shaped, 0).iter().all(|s| !s.contains("approves")));
+    std::fs::remove_file(d.join("ad.script.ts")).unwrap();
     let s = next::steps(&d, &unshaped, 0);
     assert!(s[0].starts_with("shape the brief: who it's for") && s[1].starts_with("plan it") && s[2].starts_with("make the first item"), "{s:?}");
     assert!(next::steps(&d, &shaped, 2)[0].starts_with("raea doctor: 2"));

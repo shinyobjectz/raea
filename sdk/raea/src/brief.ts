@@ -7,7 +7,7 @@
 //
 // The types are generated from the Rust schemas (core/brief, raea-core-brief) into brief.gen.ts, so what tsc checks is
 // what raea reads: `raea context` evaluates the module and Rust validates its default export again.
-import type { Brief, Make, Parts, Script, Taste, Vocabulary } from "./brief.gen";
+import type { Brief, Briefs, Make, Parts, Script, Taste, Vocabulary } from "./brief.gen";
 
 export type * from "./brief.gen";
 export { fingerprint } from "./fingerprint";
@@ -28,6 +28,9 @@ export const parts = (p: Parts): Parts => p;
 /** A videoform's vocabulary (vocabulary.ts, docs/videoform.feature VF5): what its context says to look for, written by
  *  the person's AI. `raea videoform report NAME` says what each term did on the references, to revise it from. */
 export const vocabulary = (v: Vocabulary): Vocabulary => v;
+/** What a videoform's documents say that measuring can't (briefs.ts, docs/videoform.feature VF8f): a constraint, a
+ *  negation, an order, a choice, written by the person's AI, each checked against its group's videos. */
+export const briefs = (b: Briefs): Briefs => b;
 
 /** A job made to a frozen plan and held to the review loop (docs/make.feature): `make: scene({...})` on brief.ts. Every
  *  object has its real size and whether it came from the reference or was invented; `raea make status` decides when

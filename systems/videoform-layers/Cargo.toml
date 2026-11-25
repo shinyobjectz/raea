@@ -1,0 +1,11 @@
+[package]
+name = "raea-sys-videoform-layers"
+version = "0.1.0"
+edition = "2024"
+license = "FSL-1.1-ALv2"
+publish = false
+description = "How a reference is layered (docs/videoform.feature VF8e): each shot's layers seen from its frames and what Vision saw in them: a person cut out over another picture, a picture inset, a card laid over, a plain backdrop, a split frame, a screen shown"
+
+[dependencies]
+# the kept rows a shot's layers go in
+raea-sys-videoform = { path = "../videoform" }

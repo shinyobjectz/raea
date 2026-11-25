@@ -17,6 +17,8 @@ pub mod depth;
 pub mod object;
 #[cfg(target_vendor = "apple")]
 pub mod flow;
+#[cfg(target_vendor = "apple")]
+pub mod pdf;
 pub mod vision;
 #[cfg(target_vendor = "apple")]
 mod apple_vision;

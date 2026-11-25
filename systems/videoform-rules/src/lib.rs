@@ -67,7 +67,8 @@ struct Feat {
     values: Map<String, Value>,
 }
 
-fn slug(s: &str) -> String {
+/// A name as an id: lower case, words joined by -
+pub fn slug(s: &str) -> String {
     s.to_lowercase().split(|c: char| !c.is_alphanumeric()).filter(|w| !w.is_empty()).collect::<Vec<_>>().join("-")
 }
 
@@ -133,6 +134,23 @@ fn features(refs: &[Rows], fired: &[Vec<Vec<bool>>], rep: &Report, kinds: &Kinds
     }
     feats.push(Feat { id: "words-on-screen".into(), words: "words on screen".into(), how: "shows", values: map(json!({"text": true})) });
     col.push(Box::new(|r, s| !refs[r].shots[s].text.is_empty()));
+    // how it's layered (VF8e), once the references' layers are read
+    if refs.iter().flat_map(|r| &r.shots).any(|s| s.layers.is_some()) {
+        for form in raea_sys_videoform::rows::FORMS {
+            let words = raea_sys_videoform::kinds::said(form).to_string();
+            feats.push(Feat { id: format!("layer-{form}"), words, how: "shows", values: map(json!({"layer": form})) });
+            col.push(Box::new(move |r, s| refs[r].shots[s].has_layer(form)));
+        }
+        // and what each layer shows (VF9d): a review card, a logo backdrop, a screenshot inset
+        let mut pairs: Vec<(String, String)> = refs.iter().flat_map(|r| r.shots.iter().flat_map(|s| s.layers.iter().flatten())).filter_map(|l| l.kind.clone().filter(|k| !k.is_empty()).map(|k| (l.form.clone(), k))).collect();
+        pairs.sort();
+        pairs.dedup();
+        for (form, kind) in pairs {
+            let words = raea_sys_videoform::kinds::said_showing(&form, &kind);
+            feats.push(Feat { id: format!("layer-{form}-{kind}"), words, how: "shows", values: map(json!({"layer": form, "shows": kind})) });
+            col.push(Box::new(move |r, s| refs[r].shots[s].layers.iter().flatten().any(|l| l.form == form && l.kind.as_deref() == Some(kind.as_str()))));
+        }
+    }
     let on = refs.iter().enumerate().map(|(r, rows)| (0..rows.shots.len()).map(|s| col.iter().map(|c| c(r, s)).collect()).collect()).collect();
     (feats, on)
 }
@@ -142,8 +160,10 @@ fn punched(rows: &Rows, s: usize) -> bool {
     s > 0 && matches!((tight(&rows.shots[s].framing), tight(&rows.shots[s - 1].framing)), (Some(a), Some(b)) if a > b)
 }
 
-/// The rules the references hold, strongest first, with the person's word on each (`ignore` leaves one out)
-pub fn rules(refs: &[Rows], fired: &[Vec<Vec<bool>>], rep: &Report, places: &[(String, Vec<String>)], said: &[Correction]) -> Vec<Rule> {
+/// The rules the references hold, strongest first, with the person's word on each (`ignore` leaves one out): those
+/// that hold in `bar` of the references they could or more, RULE for a videoform's own, lower to see what other
+/// references mostly hold (a brand's own rule is one the other brands' references mostly don't)
+pub fn rules_at(refs: &[Rows], fired: &[Vec<Vec<bool>>], rep: &Report, places: &[(String, Vec<String>)], said: &[Correction], bar: f64) -> Vec<Rule> {
     let n = refs.len();
     let kinds = &rep.kinds;
     let (feats, on) = features(refs, fired, rep, kinds);
@@ -152,7 +172,7 @@ pub fn rules(refs: &[Rows], fired: &[Vec<Vec<bool>>], rep: &Report, places: &[(S
     let mut out = Vec::new();
     let mut push = |sort: &str, id: String, text: String, check: &str, values: Map<String, Value>, holds: Vec<usize>, of: Vec<usize>, lift: Option<f64>| {
         let r = Rule { id: format!("{sort}:{id}"), sort: sort.into(), text, check: check.into(), values, holds, of, lift, level: String::new() };
-        if r.of.len() >= ENOUGH && r.strength() >= RULE {
+        if r.of.len() >= ENOUGH && r.strength() >= bar {
             out.push(r);
         }
     };
@@ -236,7 +256,7 @@ pub fn rules(refs: &[Rows], fired: &[Vec<Vec<bool>>], rep: &Report, places: &[(S
     for (t, tf) in triggers {
         // what's shown at the very start (the title card's words) is how it opens, said by the opens rules
         let at: Vec<(usize, usize)> = all.iter().flat_map(|&r| with(&on[r], t).into_iter().map(move |s| (r, s))).collect();
-        if at.iter().filter(|&&(r, s)| refs[r].shots[s].start < OPENING * refs[r].shots.last().map_or(0.0, |l| l.end)).count() as f64 >= at.len() as f64 * RULE {
+        if at.iter().filter(|&&(r, s)| refs[r].shots[s].start < OPENING * refs[r].shots.last().map_or(0.0, |l| l.end)).count() as f64 >= at.len() as f64 * bar {
             continue;
         }
         // words on screen follow words on screen by their making
@@ -262,7 +282,7 @@ pub fn rules(refs: &[Rows], fired: &[Vec<Vec<bool>>], rep: &Report, places: &[(S
                 hit * 2 >= at.len()
             }).collect();
             let lift = (after[0] as f64 / after[1].max(1) as f64) / (base[0] as f64 / base[1].max(1) as f64).max(1e-6);
-            if lift >= LIFT && of.len() >= ENOUGH && holds.len() as f64 >= of.len() as f64 * RULE {
+            if lift >= LIFT && of.len() >= ENOUGH && holds.len() as f64 >= of.len() as f64 * bar {
                 let when = match tf.how { "says" => format!("{} is said", tf.words), "has" => format!("{} is heard", tf.words), _ => format!("{} is on screen", tf.words) };
                 let values = map(json!({"when": tf.values["term"], "then": id, "within": 1}));
                 let text = format!("When {when}, the shot or the next {}", if f.is_none() { "punches in".to_string() } else { format!("shows {words}") });
@@ -359,7 +379,7 @@ mod tests {
             kinds: Kinds { kinds: vec![Kind { name: "a room".into(), ..Default::default() }], of: vec![vec![Some(0); 4]; 5] },
             ..Default::default()
         };
-        let got = rules(&refs, &fired, &rep, &[("the kitchen".into(), vec!["the counters".into()])], &[]);
+        let got = rules_at(&refs, &fired, &rep, &[("the kitchen".into(), vec!["the counters".into()])], &[], RULE);
         let find = |id: &str| got.iter().find(|r| r.id == id);
         let opens = find("opens:price").expect("opens on the price");
         assert_eq!((opens.holds.len(), opens.of.len(), opens.level.as_str()), (5, 5, "warn"));
@@ -372,7 +392,7 @@ mod tests {
         assert!(find("covers:kind-0").is_some() && find("covers:words-on-screen").is_none(), "words on screen are in any video");
         // the person's word: ignored is dropped, kept is an error
         let c = |m: &str, say: &str| Correction { measure: m.into(), say: say.into(), ..Default::default() };
-        let got = rules(&refs, &fired, &rep, &[], &[c("opens:price", "keep"), c("covers:the-kitchen", "ignore")]);
+        let got = rules_at(&refs, &fired, &rep, &[], &[c("opens:price", "keep"), c("covers:the-kitchen", "ignore")], RULE);
         assert_eq!(got.iter().find(|r| r.id == "opens:price").map(|r| r.level.as_str()), Some("error"));
         assert!(got.iter().all(|r| r.id != "covers:the-kitchen"));
         let ts = taste_ts(&got, "homes", 5);

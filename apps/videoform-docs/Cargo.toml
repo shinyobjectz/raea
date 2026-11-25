@@ -1,0 +1,25 @@
+[package]
+name = "raea-app-videoform-docs"
+version = "0.1.0"
+edition = "2024"
+license = "FSL-1.1-ALv2"
+publish = false
+description = "A videoform's documents and the person's words (docs/videoform.feature VF8f): a brief, a brand's guide or notes read once into passages (a PDF's pages or a still by Vision, a Word document's paragraphs, plain text), embedded by EmbeddingGemma 2 and kept by content hash; what each reference's shots say and show, embedded once; what was asked found where it was made, the asks across groups the videoform's and one group's its brand's, briefs.ts's rules measured; and a new job's documents planned from what was learned"
+
+[dependencies]
+raea-core-brief = { path = "../../core/brief" }
+raea-sys-videoform = { path = "../../systems/videoform" }
+raea-sys-videoform-briefs = { path = "../../systems/videoform-briefs" }
+# EmbeddingGemma 2, and the f16 files columns are kept in
+raea-sys-columns = { path = "../../systems/columns" }
+# raea-perceive, beside raea: read-doc
+raea-io-assets = { path = "../../io/assets" }
+# a brand's fingerprint (brand-SLUG), where only its group's asks are kept
+raea-sys-fingerprint = { path = "../../systems/fingerprint" }
+raea-sys-videoform-rules = { path = "../../systems/videoform-rules" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+regex = "1"
+sha2 = "0.10"
+# a Word document is a zip of XML
+zip = { version = "9", default-features = false, features = ["deflate-flate2"] }

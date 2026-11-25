@@ -39,6 +39,12 @@ not only what was corrected. Notes still matter. They teach what the numbers can
 - **A reference is read once, and never needed again.** Its embeddings and measures are what the videoform keeps, and
   they're enough to follow it and check against it forever after. Following and checking never open a reference, so
   they stay fast, and the references can be deleted, offline or behind a dead link without the videoform noticing.
+- **The context is everything said of the videos, never one line (VF8f).** References come in groups (a brand and its
+  round), each with the documents given with it (a brief, a brand's guides, notes) and the person's words as they gave
+  them. The person's words are from now and outrank every document; documents are from the past, the newest first.
+  Embeddings read them (EmbeddingGemma 2, against what each shot says and shows); the person's AI writes only what a
+  similarity can't tell (a never, an order, a choice). What two groups or more asked, and how it was made, is the
+  videoform's; what one group asked is its brand's. No count cuts a finding off: each says how strongly it holds.
 - **Checks start from the composition.** Most of a videoform's rules are measured on what raea knows it put where,
   before any render. Embeddings run only on shots that changed.
 
@@ -228,7 +234,17 @@ working as it was. This is the one time a reference is needed again, and it's th
 5. **The event rules.** How often one thing comes with another across the references ("a punch-in when a number is
    said", "a close-up of the counters in every kitchen"). Those that hold in most references become controller rules,
    each stating how strongly it holds.
-6. **The person confirms the strongest rules once,** on a contact sheet ("countertop close-up in every kitchen: 9 of
+6. **What was asked, and how it was made (VF8f).** Each document given with a group of references is read once into
+   passages (a PDF's pages by Vision, so a page that's a picture reads too; a Word document's paragraphs; text) and
+   kept by content hash with its EmbeddingGemma 2 vectors. Each passage is found where its group's videos carry it
+   out: the shot whose words said or shown stand out for it, and it for them. That shot's construction (where it
+   falls, what carries it, its layers, framing and sound) is how it was carried out. Passages of different groups
+   that are each other's nearest say the same thing (two briefs' calls to action) and are joined into one ask; what
+   their making shares, each part with its strength and how common it is in shots at large, is the videoform's
+   pattern, which a new job's brief is planned from (`follow --brief`). What only one group asked goes to its
+   brand's fingerprint. The person's AI reads the rest from `raea videoform docs NAME` into briefs.ts (a never, an
+   order, a choice), and each rule is measured on its group's videos.
+7. **The person confirms the strongest rules once,** on a contact sheet ("countertop close-up in every kitchen: 9 of
    10"). Each yes or no is evidence in the videoform, as any label is in a fingerprint.
 
 ## Following it
@@ -301,6 +317,7 @@ The sets, their answers and their verdicts are kept as fixtures, so each step of
 | | VF8 | event rules into controller rules, with strength, confirmed by the person | medium | co-occurrence is plain; telling habit from style needs the person |
 | | VF8b | when it doesn't hold together: too few, mixed kinds (split into videoforms), traits that vary, outliers | medium-high | groups and spreads come from the kept rows |
 | | VF8c | adding and removing references from kept rows; encoder pins and `refresh` | high | Fingerprint keeps evidence across upgrades the same way (FP8c) |
+| | VF8f | what was asked and how it was made: documents and the person's words with each group, found where they're carried out, joined across groups, briefs.ts's rules measured, a new brief planned from them | medium | finding a passage by what's said and shown is sound; one by what's seen only is weak (pooled pictures, VF5); two groups is a thin base for a pattern |
 | 3, use | VF9 | following: context, coverage gaps, planning to the template | medium-high | context and scripts exist |
 | | VF10 | composition-first checks for the videoform's rules | high | rules as `.ts` checks over the world exist (DR4) |
 | | VF11 | embedding checks on changed shots | medium | per-shot SigLIP is cheap; thresholds need the test sets |

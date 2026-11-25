@@ -38,6 +38,11 @@ notDoing?: Array<string>,
  */
 assumed?: Array<string>, 
 /**
+ * what the person approves before the work goes on, the project's choice: "script" (the script, before anything
+ * is edited or rendered)
+ */
+approve?: Array<string>, 
+/**
  * prose sections beyond the fields above (Goal, Background), in order
  */
 sections?: Array<Section>, deliver?: Array<Deliverable>, references?: Array<Reference>, agents?: Array<Agent>, 
@@ -201,10 +206,11 @@ near?: string, };
 
 export type Videoform = { 
 /**
- * What the videos are, in the person's words ("street interviews for a brand: the host, a stranger, the product in
- * hand"); the person's own AI expands it into the vocabulary
+ * Everything said of the videos, the person's words and the documents given with them (VF8f): each with who
+ * said it, the group of videos it's for, its brand, and when. The person's own words come first, then the
+ * documents, newest first (`ranked`); the person's AI writes the vocabulary and briefs.ts from all of it
  */
-context: string, 
+contexts?: Array<Context>, 
 /**
  * Each reference as a brief names one: its link or its path as the target, its title and creator as the note.
  * What was read of each is kept beside fingerprint.ts in videoform/references.jsonl, by content hash.
@@ -228,6 +234,36 @@ rules?: string,
  * added and read again, each with why
  */
 corrections?: Array<Correction>, };
+
+export type Context = { 
+/**
+ * person or document
+ */
+by: string, 
+/**
+ * the person's words; a document's title
+ */
+text: string, 
+/**
+ * the videos it's for, as `add --group` named them (a brand and its round, "Dutch R1"); none: all of them
+ */
+group?: string, brand?: string, 
+/**
+ * the day it was given
+ */
+at: string, 
+/**
+ * a document's content hash, and where it was read from
+ */
+document?: string, path?: string, };
+
+export type Briefs = { rules?: Array<BriefRule>, };
+
+export type BriefRule = { text: string, group?: string, 
+/**
+ * the passage's id (raea videoform docs NAME lists them)
+ */
+from?: string, kind: string, what: Array<string>, };
 
 export type Correction = { measure: string, say: string, range?: [number, number], why?: string, };
 

@@ -1,0 +1,15 @@
+[package]
+name = "raea-sys-videoform-briefs"
+version = "0.1.0"
+edition = "2024"
+license = "FSL-1.1-ALv2"
+publish = false
+description = "What was asked and how it was made (docs/videoform.feature VF8f): the documents given with a videoform's references (briefs, a brand's guides, notes) and the person's own words, as passages; each passage against its group's shots by what's said and shown, so what it asked is found where it was carried out and how; the passages that say the same thing across groups, and what their carrying out shares, the videoform's; what only one group asked, its brand's; and the rules the person's AI reads in them (briefs.ts), measured"
+
+[dependencies]
+raea-sys-videoform = { path = "../videoform" }
+raea-core-brief = { path = "../../core/brief" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+regex = "1"
+sha2 = "0.10"

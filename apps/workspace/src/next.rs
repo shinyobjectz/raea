@@ -12,6 +12,8 @@ pub struct Brief {
     /// what the brief still needs (empty when it's shaped)
     pub needs: Vec<String>,
     pub modes: Vec<String>,
+    /// what the person approves before the work goes on (the brief's approve)
+    pub approve: Vec<String>,
 }
 
 fn modified(p: &Path) -> SystemTime {
@@ -69,10 +71,14 @@ pub fn steps(dir: &Path, brief: &Brief, stale: usize) -> Vec<String> {
     if let Some(first) = brief.needs.first() {
         out.push(format!("shape the brief: {first} (ask the person, or write your best guess and add it to `assumed`)"));
     }
-    let boarded = brief.modes.iter().any(|m| ["pitch", "explain", "story"].contains(&m.as_str()));
+    // the project's choice (the brief's approve: ["script"]) or its modes': a script approved before anything is edited
+    let approves = brief.approve.iter().any(|a| a == "script");
+    let boarded = approves || brief.modes.iter().any(|m| ["pitch", "explain", "story"].contains(&m.as_str()));
     let scripts = files(dir, ".script.ts");
     if boarded && scripts.is_empty() {
         out.push("plan it: write the storyboard as NAME.script.ts beside the brief (`raea spec NAME.script.ts` checks it) and wait for the person's approval".into());
+    } else if approves && let Some(s) = scripts.first() && crate::registry::scan(dir).composition_files().is_empty() {
+        out.push(format!("this project approves its script before anything is edited: show {} (`raea show {}`) and edit nothing until the person approves it", name(s), name(s)));
     }
     // the compositions as raea's project system reads them (PJ8), newest first; what isn't connected is a step before
     let reg = crate::registry::scan(dir);

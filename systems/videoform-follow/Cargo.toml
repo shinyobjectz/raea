@@ -1,0 +1,16 @@
+[package]
+name = "raea-sys-videoform-follow"
+version = "0.1.0"
+edition = "2024"
+license = "FSL-1.1-ALv2"
+publish = false
+description = "Following a videoform (docs/videoform.feature VF9): new footage's pieces matched to the shot kinds from the kept rows, what the footage lacks, and the cut planned from the structure: the voice first, then the picture over it"
+
+[dependencies]
+# the kept rows, the shot kinds and the structure
+raea-sys-videoform = { path = "../videoform" }
+# a brand's kit, for the pictures laid over (VF9b)
+raea-sys-videoform-kit = { path = "../videoform-kit" }
+serde = { version = "1", features = ["derive"] }
+# the plan as a script (VF9c)
+serde_json = "1"

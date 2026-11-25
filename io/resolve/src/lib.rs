@@ -9,6 +9,7 @@
 
 pub mod fetch;
 pub mod formats;
+pub mod rights;
 
 use serde_json::Value;
 use std::path::{Path, PathBuf};

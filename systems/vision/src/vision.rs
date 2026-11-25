@@ -68,7 +68,7 @@ pub struct Read {
 
 // Apple Vision's implementation (apple_vision.rs), named here as before
 #[cfg(target_vendor = "apple")]
-pub use crate::apple_vision::{AppleVision, text_lines, text_lines_at};
+pub use crate::apple_vision::{AppleVision, text_lines, text_lines_at, text_lines_from};
 
 /// The layout reader's grey copy: the picture 240 px wide, luma, averaged down then sampled bilinearly.
 pub fn grey(rgba: &[u8], w: usize, h: usize) -> raea_sys_layout::layout::Grey {

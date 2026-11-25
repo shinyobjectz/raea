@@ -14040,6 +14040,7 @@ name = "raea-app-videoform"
 version = "0.1.0"
 dependencies = [
  "dunce",
+ "raea-app-videoform-docs",
  "raea-core-brief",
  "raea-io-assets",
  "raea-io-home",
@@ -14048,10 +14049,30 @@ dependencies = [
  "raea-sys-fingerprint",
  "raea-sys-fingerprint-use",
  "raea-sys-videoform",
+ "raea-sys-videoform-follow",
+ "raea-sys-videoform-kit",
  "raea-sys-videoform-rules",
  "regex",
  "serde_json",
  "sha2 0.10.9",
+]
+
+[[package]]
+name = "raea-app-videoform-docs"
+version = "0.1.0"
+dependencies = [
+ "raea-core-brief",
+ "raea-io-assets",
+ "raea-sys-columns",
+ "raea-sys-fingerprint",
+ "raea-sys-videoform",
+ "raea-sys-videoform-briefs",
+ "raea-sys-videoform-rules",
+ "regex",
+ "serde",
+ "serde_json",
+ "sha2 0.10.9",
+ "zip",
 ]
 
 [[package]]
@@ -14981,6 +15002,9 @@ dependencies = [
  "raea-sys-layout",
  "raea-sys-perceive",
  "raea-sys-song",
+ "raea-sys-videoform",
+ "raea-sys-videoform-kit",
+ "raea-sys-videoform-layers",
  "raea-sys-vision",
  "serde_json",
 ]
@@ -16724,6 +16748,43 @@ dependencies = [
  "regex",
  "serde",
  "serde_json",
+]
+
+[[package]]
+name = "raea-sys-videoform-briefs"
+version = "0.1.0"
+dependencies = [
+ "raea-core-brief",
+ "raea-sys-videoform",
+ "regex",
+ "serde",
+ "serde_json",
+ "sha2 0.10.9",
+]
+
+[[package]]
+name = "raea-sys-videoform-follow"
+version = "0.1.0"
+dependencies = [
+ "raea-sys-videoform",
+ "raea-sys-videoform-kit",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "raea-sys-videoform-kit"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "raea-sys-videoform-layers"
+version = "0.1.0"
+dependencies = [
+ "raea-sys-videoform",
 ]
 
 [[package]]

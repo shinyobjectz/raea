@@ -17,7 +17,7 @@ pub mod cache;
 mod clap;
 mod clap_text;
 pub mod damage;
-mod gemma;
+pub mod gemma;
 pub mod pieces;
 pub mod look;
 pub mod media;

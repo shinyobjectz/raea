@@ -12,9 +12,17 @@ use ts_rs::TS;
 #[serde(deny_unknown_fields)]
 #[ts(optional_fields)]
 pub struct Videoform {
-    /// What the videos are, in the person's words ("street interviews for a brand: the host, a stranger, the product in
-    /// hand"); the person's own AI expands it into the vocabulary
+    /// What the videos are, in the person's words, as a videoform made before VF8f kept it: one line. It's read into
+    /// `contexts` as the person's first, and never written again
+    #[serde(default, skip_serializing)]
+    #[ts(skip)]
     pub context: String,
+    /// Everything said of the videos, the person's words and the documents given with them (VF8f): each with who
+    /// said it, the group of videos it's for, its brand, and when. The person's own words come first, then the
+    /// documents, newest first (`ranked`); the person's AI writes the vocabulary and briefs.ts from all of it
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[ts(as = "Option<Vec<Context>>", optional)]
+    pub contexts: Vec<Context>,
     /// Each reference as a brief names one: its link or its path as the target, its title and creator as the note.
     /// What was read of each is kept beside fingerprint.ts in videoform/references.jsonl, by content hash.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
@@ -36,6 +44,69 @@ pub struct Videoform {
     #[ts(as = "Option<Vec<Correction>>", optional)]
     pub corrections: Vec<Correction>,
 }
+
+/// One thing said of a videoform's videos (VF8f): the person's words as they gave videos (`by: "person"`), or a
+/// document given with them (`by: "document"`: a brief, a brand's guide, notes), whose passages are kept by its content
+/// hash in videoform/documents/HASH.json
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize, TS)]
+#[serde(deny_unknown_fields)]
+#[ts(optional_fields)]
+pub struct Context {
+    /// person or document
+    pub by: String,
+    /// the person's words; a document's title
+    pub text: String,
+    /// the videos it's for, as `add --group` named them (a brand and its round, "Dutch R1"); none: all of them
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub group: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub brand: Option<String>,
+    /// the day it was given
+    pub at: String,
+    /// a document's content hash, and where it was read from
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub document: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub path: Option<String>,
+}
+
+/// What `by` can say
+pub const BYS: [&str; 2] = ["person", "document"];
+
+/// briefs.ts (VF8f): what the person's AI reads in the documents that measuring can't: a constraint, a negation, an
+/// order, a choice ("never put text on a face", "Gift Exchange before Wishlist", "captions or a text hook, never
+/// both"). Each is checked against its group's videos by measurement, and one that holds in several groups is the
+/// videoform's
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize, TS)]
+#[serde(deny_unknown_fields)]
+#[ts(optional_fields)]
+pub struct Briefs {
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[ts(as = "Option<Vec<BriefRule>>", optional)]
+    pub rules: Vec<BriefRule>,
+}
+
+/// One rule read in a document: what it says, the passage it's from, and how it's measured. `kind` is always (each
+/// of `what` is in the video), never (none is), before (the first of `what` comes before the second), either (not
+/// both), open or close (each of `what` is in the first or last fifth). `what` names measured things: `said:REGEX`,
+/// `shown:REGEX` (words on screen), `layer:FORM` or `layer:FORM-KIND` (layer:screen-screenshot), `captions`, `faces:N`,
+/// `seconds:LO-HI` (the video's length)
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize, TS)]
+#[serde(deny_unknown_fields)]
+#[ts(optional_fields)]
+pub struct BriefRule {
+    pub text: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub group: Option<String>,
+    /// the passage's id (raea videoform docs NAME lists them)
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub from: Option<String>,
+    pub kind: String,
+    pub what: Vec<String>,
+}
+
+/// What a brief rule's `kind` can be
+pub const RULE_KINDS: [&str; 6] = ["always", "never", "before", "either", "open", "close"];
 
 /// One correction: `ignore` (the references' range isn't the videoform's, nothing's checked), `free` (it varies,
 /// reported but not checked), `keep` (checked though it varies) or `target` (checked against `range`, not theirs)
@@ -159,6 +230,42 @@ pub const HOWS: [&str; 2] = ["always", "usually"];
 pub const ATS: [&str; 3] = ["open", "middle", "close"];
 
 impl Videoform {
+    /// What's been said, the person's words first (the latest first), then the documents, newest first; a videoform
+    /// made before VF8f has its one line as the person's
+    pub fn ranked(&self) -> Vec<Context> {
+        let mut all = self.contexts.clone();
+        if !self.context.is_empty() && !all.iter().any(|c| c.by == "person" && c.text == self.context) {
+            all.push(Context { by: "person".into(), text: self.context.clone(), ..Default::default() });
+        }
+        all.sort_by(|a, b| (a.by != "person").cmp(&(b.by != "person")).then(b.at.cmp(&a.at)));
+        all
+    }
+
+    /// The person's words, all of them, as one passage the vocabulary is started from (the latest first)
+    pub fn said(&self) -> String {
+        self.ranked().iter().filter(|c| c.by == "person").map(|c| match &c.group {
+            Some(g) => format!("({g}) {}", c.text),
+            None => c.text.clone(),
+        }).collect::<Vec<_>>().join("\n")
+    }
+
+    /// A context kept once: the same words for the same group, or the same document, aren't kept twice
+    pub fn tell(&mut self, c: Context) -> bool {
+        if !self.context.is_empty() {
+            let old = std::mem::take(&mut self.context);
+            self.tell(Context { by: "person".into(), text: old, ..Default::default() });
+        }
+        let same = |x: &Context| match (&x.document, &c.document) {
+            (Some(a), Some(b)) => a == b && x.group == c.group,
+            _ => x.by == c.by && x.text == c.text && x.group == c.group,
+        };
+        if self.contexts.iter().any(same) {
+            return false;
+        }
+        self.contexts.push(c);
+        true
+    }
+
     /// A reference added once: the same target isn't listed twice
     pub fn add(&mut self, target: &str, note: Option<String>) -> bool {
         if self.references.iter().any(|r| r.target == target) {
@@ -184,8 +291,14 @@ mod tests {
         let mut v: Videoform = crate::read("videoform", r#"{"context": "street interviews"}"#).unwrap();
         assert!(v.add("https://example.com/a", Some("A, by B".into())));
         assert!(!v.add("https://example.com/a", None));
+        assert_eq!(v.ranked()[0].text, "street interviews", "a videoform's one line is the person's");
+        let doc = Context { by: "document".into(), text: "Brief".into(), group: Some("Dutch R1".into()), at: "2026-11-25".into(), document: Some("ab".into()), ..Default::default() };
+        assert!(v.tell(doc.clone()) && !v.tell(doc));
+        assert!(v.tell(Context { by: "person".into(), text: "watch the hooks".into(), at: "2026-11-25".into(), ..Default::default() }));
+        let r = v.ranked();
+        assert_eq!((r[0].text.as_str(), r[2].by.as_str()), ("watch the hooks", "document"), "the person's latest first, documents after");
         let back = serde_json::to_string(&v).unwrap();
-        assert_eq!(back, r#"{"context":"street interviews","references":[{"target":"https://example.com/a","note":"A, by B"}]}"#);
+        assert!(back.starts_with(r#"{"contexts":[{"by":"person","text":"street interviews","at":""},"#), "{back}");
         assert!(crate::read::<Videoform>("videoform", r#"{"context": "x", "refs": []}"#).is_err());
         let c = |say: &str| Correction { measure: "loudness".into(), say: say.into(), ..Default::default() };
         v.correct("loudness", Some(c("free")));

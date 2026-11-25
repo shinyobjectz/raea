@@ -20,6 +20,11 @@ raea-core-brief = { path = "../../core/brief" }
 raea-sys-videoform = { path = "../../systems/videoform" }
 # the rules mined from them (VF8)
 raea-sys-videoform-rules = { path = "../../systems/videoform-rules" }
+raea-sys-videoform-follow = { path = "../../systems/videoform-follow" }
+# what was asked and how it was made: the documents and the person's words (VF8f)
+raea-app-videoform-docs = { path = "../videoform-docs" }
+# a brand's kit (VF9b)
+raea-sys-videoform-kit = { path = "../../systems/videoform-kit" }
 # raea-perceive, beside raea
 raea-io-assets = { path = "../../io/assets" }
 raea-sys-fingerprint = { path = "../../systems/fingerprint" }

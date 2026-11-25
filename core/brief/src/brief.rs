@@ -38,6 +38,11 @@ pub struct Brief {
     #[serde(default)]
     #[ts(as = "Option<Vec<String>>", optional)]
     pub assumed: Vec<String>,
+    /// what the person approves before the work goes on, the project's choice: "script" (the script, before anything
+    /// is edited or rendered)
+    #[serde(default)]
+    #[ts(as = "Option<Vec<String>>", optional)]
+    pub approve: Vec<String>,
     /// prose sections beyond the fields above (Goal, Background), in order
     #[serde(default)]
     #[ts(as = "Option<Vec<Section>>", optional)]

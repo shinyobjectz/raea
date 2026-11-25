@@ -178,6 +178,11 @@ fn commit_touched(paths: &[PathBuf]) {
 /// `raea doctor [--fix] [DIR]`: what it found and, with --fix, what it fixed. `reinstall` puts an agent's skills back
 /// (the raea CLI's `skills install`).
 pub fn doctor(args: &[String], skills: &[(&str, PathBuf)], version: &str, reinstall: &dyn Fn(&str) -> R<String>) -> R<String> {
+    // and the page resolver raea fetches (docs/videoform.feature VF1b): its yt-dlp, its date, the last site that failed
+    checked(args, skills, version, reinstall).map(|s| format!("{s}\n{}", raea_io_resolve::fetch::doctor()))
+}
+
+fn checked(args: &[String], skills: &[(&str, PathBuf)], version: &str, reinstall: &dyn Fn(&str) -> R<String>) -> R<String> {
     let fix = args.iter().any(|a| a == "--fix");
     let from = PathBuf::from(args.iter().find(|a| !a.starts_with("--")).map(String::as_str).unwrap_or("."));
     let mut found = findings(&from, skills, version);

@@ -1,0 +1,9 @@
+[package]
+name = "raea-io-mp4"
+version = "0.1.0"
+edition = "2024"
+license = "FSL-1.1-ALv2"
+publish = false
+description = "An MP4's or QuickTime file's boxes read directly: a box's children, its big-endian fields, and a fragmented MP4's frame timing (the DASH streams platforms serve)"
+
+[dependencies]

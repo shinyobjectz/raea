@@ -78,10 +78,15 @@ fn words(k: &str) -> &str {
 
 fn num(k: &str, v: f64) -> String {
     match k {
-        "close_up" | "medium" | "wide" | "no_people" | "moving" | "text" | "captions" | "speech" | "music" | "on_beat" => format!("{:.0}%", v * 100.0),
+        "close_up" | "medium" | "wide" | "no_people" | "moving" | "text" | "captions" | "speech" | "music" | "on_beat" | "caption_size" | "sentence_cuts" | "music_under" | "talking" => format!("{:.0}%", v * 100.0),
         _ if v.abs() < 10.0 => format!("{v:.2}"),
         _ => format!("{v:.1}"),
     }
+}
+
+/// References by their names, as a list
+fn named(f: &Found, ix: &[usize]) -> String {
+    ix.iter().map(|&j| f.references[j].as_str()).collect::<Vec<_>>().join(", ")
 }
 
 /// What's found, for the person to read and correct
@@ -102,8 +107,7 @@ pub(crate) fn report(name: &str, f: &Found) -> String {
             line += &r.checked.map(|c| format!(", checked {} to {}", num(k, c[0]), num(k, c[1]))).unwrap_or_default();
         }
         if r.groups.len() == 2 {
-            let g = |i: usize| r.groups[i].iter().map(|j| f.references[*j].as_str()).collect::<Vec<_>>().join(", ");
-            line += &format!("; two groups: {} | {}", g(0), g(1));
+            line += &format!("; two groups: {} | {}", named(f, &r.groups[0]), named(f, &r.groups[1]));
         }
         if let Some(fl) = raea_sys_videoform::ranges::FLOOR.iter().find(|fl| fl.0 == k.as_str() && r.by != "you") {
             let off: Vec<&str> = r.values.iter().enumerate().filter(|(_, v)| v.is_some_and(|v| (v - fl.1).abs() > 5.0)).map(|(i, _)| f.references[i].as_str()).collect();
@@ -118,6 +122,12 @@ pub(crate) fn report(name: &str, f: &Found) -> String {
     }
     for (i, ks) in &f.outliers {
         out.push(format!("  {} is far from the others on {}: keep it, or take it out of the videoform", f.references[*i], ks.join(", ")));
+    }
+    // two kinds of video read as one (VF8b): a videoform offered for each, never averaged
+    if let Some(s) = &f.sets {
+        let g = |i: usize| named(f, &s.groups[i]);
+        let on: Vec<String> = s.on.iter().take(4).map(|(k, a, b)| format!("{} {} against {}", words(k), num(k, *a), num(k, *b))).collect();
+        out.push(format!("  The references fall in two groups across the measures ({:.0}% apart): {} | {}; they differ on {}. raea videoform split {name} makes a videoform of each, or keep them as one", s.clear * 100.0, g(0), g(1), if on.is_empty() { "many measures a little".into() } else { on.join("; ") }));
     }
     out.join("\n")
 }
@@ -140,7 +150,9 @@ pub(crate) fn whole(name: &str, dir: &Path, section: &Videoform, eval: Eval, jso
     };
     // what was asked, and how it was made (VF8f)
     let asked = raea_app_videoform_docs::learn(dir, name, &section.ranked(), &kept(dir), eval)?;
-    Ok(format!("{}\n\n{tail}{}", report(name, &f), if asked.is_empty() { String::new() } else { format!("\n\n{asked}") }))
+    // references read with other encoders than this raea's (VF8c)
+    let pins = raea_app_videoform_refs::behind(dir, name).map(|l| format!("\n  {l}")).unwrap_or_default();
+    Ok(format!("{}{pins}\n\n{tail}{}", report(name, &f), if asked.is_empty() { String::new() } else { format!("\n\n{asked}") }))
 }
 
 /// `raea videoform report NAME [--json]`

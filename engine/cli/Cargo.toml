@@ -79,6 +79,8 @@ raea-app-scene = { path = "../../apps/scene" }
 raea-app-voice = { path = "../../apps/voice" }
 raea-app-ask = { path = "../../apps/ask" }
 raea-app-videoform = { path = "../../apps/videoform" }
+# a videoform's rules held on a composition, for raea check (VF10)
+raea-app-videoform-checks = { path = "../../apps/videoform-checks" }
 # raea bake light (docs/bake.feature)
 raea-app-lightbake = { path = "../../apps/lightbake" }
 raea-app-make = { path = "../../apps/make" }

@@ -7,6 +7,8 @@ publish = false
 description = "`raea media|ffmpeg|ffprobe`: the agent's media work on raea-media (probe, stills, sheets, audio, loudness, motion, cuts, freezes, proxies, trims, concats), ffmpeg's command lines read as those verbs, and an HTML page's render and shots"
 
 [dependencies]
+# an MP4's boxes and a fragmented file's frame timing
+raea-io-mp4 = { path = "../../io/mp4" }
 raea-sys-frame = { path = "../../systems/frame" }
 raea-io-home = { path = "../../io/home" }
 raea-render = { path = "../../engine/render", default-features = false, features = ["native"] }

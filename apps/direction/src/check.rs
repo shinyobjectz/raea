@@ -28,6 +28,15 @@ const TAKES: [&str; 10] = ["--composition", "--only", "--taste", "--render", "--
 pub struct Host {
     pub ts: ts::Host,
     pub kinds: fn(&str) -> &'static [&'static str],
+    /// the videoform that judges a project (docs/videoform.feature VF10): its rules file, and its checks run over a
+    /// composition's worlds (what they find, and what each that can't tell yet waits for)
+    pub videoform: Videoform,
+}
+
+/// What the CLI lends raea check of the videoform that judges a project
+pub struct Videoform {
+    pub taste: fn(&Path) -> Option<PathBuf>,
+    pub check: fn(&Path, &[&Rule], &[Facts], fn(&Path) -> Result<String, String>) -> R<(Vec<Finding>, Vec<(String, String)>)>,
 }
 
 /// The person's taste folder: RAEA_TASTE, else ~/.raea/taste.
@@ -71,8 +80,9 @@ fn tastes(project: &Path, given: Vec<PathBuf>, host: &Host) -> Vec<PathBuf> {
             }
         }
     }
-    // the workspace's, then the project's own (the same file when the project is the workspace's folder)
-    for f in record::up(project, ".raea/workspace").map(|ws| ws.join("taste.ts")).into_iter().chain([project.join("taste.ts")]) {
+    // the workspace's, then the project's own (the same file when the project is the workspace's folder), then the
+    // rules of the videoform that judges it (VF10)
+    for f in record::up(project, ".raea/workspace").map(|ws| ws.join("taste.ts")).into_iter().chain([project.join("taste.ts")]).chain((host.videoform.taste)(project)) {
         if f.is_file() && !out.contains(&f) {
             out.push(f);
         }
@@ -208,6 +218,7 @@ fn check_one(tsx: &Path, id: Option<String>, rules: &[Rule], args: &[String], wh
     // the forms the floor measures on the video (each its form, value and line), and where each was written
     let (mut held, mut bys) = (Vec::new(), Vec::new());
     let mut floor = false;
+    let mut forms: Vec<&Rule> = Vec::new();
     for (r, h) in &hows {
         let How::Named(n) = h else { continue };
         match n.name {
@@ -218,8 +229,15 @@ fn check_one(tsx: &Path, id: Option<String>, rules: &[Rule], args: &[String], wh
             }
             "text-read" if rendered.is_none() => needs(&mut waits, r),
             "text-read" => found.extend(crate::read::read(r, &worlds)),
+            n if n.starts_with("videoform-") => forms.push(*r),
             _ => found.extend(systems::text(r, &worlds)),
         }
+    }
+    if !forms.is_empty() {
+        let project = tsx.parent().unwrap_or(Path::new("."));
+        let (f, w) = (host.videoform.check)(project, &forms, &worlds, host.ts.eval)?;
+        found.extend(f);
+        waits.extend(w);
     }
     if floor || !held.is_empty() {
         match &rendered {

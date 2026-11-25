@@ -19,6 +19,9 @@ use raea_core_brief::videoform::Correction;
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value, json};
 
+mod hold;
+pub use hold::{Held, hold};
+
 /// A rule holds in this share of the references it could hold in, or more
 pub const RULE: f64 = 0.7;
 /// and it could hold in this many or more
@@ -59,7 +62,7 @@ impl Rule {
 }
 
 /// Something a shot has: a term or pattern firing, a kind, a framing, words on screen
-struct Feat {
+pub(crate) struct Feat {
     id: String,
     words: String,
     /// shows, has (heard), says, or "on screen"
@@ -96,7 +99,7 @@ fn map(v: Value) -> Map<String, Value> {
 }
 
 /// The shots a feature is on, in one reference
-fn with(shots: &[Vec<bool>], f: usize) -> Vec<usize> {
+pub(crate) fn with(shots: &[Vec<bool>], f: usize) -> Vec<usize> {
     (0..shots.len()).filter(|&s| shots[s][f]).collect()
 }
 
@@ -106,7 +109,7 @@ fn tight(f: &str) -> Option<u8> {
 }
 
 /// What's looked for on each shot, and where each is: [ref][shot][feature]
-fn features(refs: &[Rows], fired: &[Vec<Vec<bool>>], rep: &Report, kinds: &Kinds) -> (Vec<Feat>, Vec<Vec<Vec<bool>>>) {
+pub(crate) fn features(refs: &[Rows], fired: &[Vec<Vec<bool>>], rep: &Report, kinds: &Kinds) -> (Vec<Feat>, Vec<Vec<Vec<bool>>>) {
     let mut feats = Vec::new();
     let mut col: Vec<Box<dyn Fn(usize, usize) -> bool + '_>> = Vec::new();
     for (t, term) in rep.terms.iter().enumerate() {
@@ -155,8 +158,16 @@ fn features(refs: &[Rows], fired: &[Vec<Vec<bool>>], rep: &Report, kinds: &Kinds
     (feats, on)
 }
 
+/// Whether the shot `s` or the next has the feature `f` (None: punches in), as an event rule asks after its trigger
+pub(crate) fn answered(rows: &Rows, on: &[Vec<bool>], s: usize, f: Option<usize>) -> bool {
+    (s..(s + 2).min(on.len())).any(|j| match f {
+        Some(f) => on[j][f],
+        None => punched(rows, j),
+    })
+}
+
 /// What a shot can do after a trigger: punch in (tighter than the shot before), or have a feature
-fn punched(rows: &Rows, s: usize) -> bool {
+pub(crate) fn punched(rows: &Rows, s: usize) -> bool {
     s > 0 && matches!((tight(&rows.shots[s].framing), tight(&rows.shots[s - 1].framing)), (Some(a), Some(b)) if a > b)
 }
 
@@ -263,7 +274,7 @@ pub fn rules_at(refs: &[Rows], fired: &[Vec<Vec<bool>>], rep: &Report, places: &
         let shown = tf.how == "on screen";
         let responses = feats.iter().enumerate().filter(|(f, ft)| *f != t && (ft.how == "shows" || ft.how == "on screen") && !(shown && (ft.how == "on screen" || ft.values.contains_key("text")))).map(|(f, ft)| (Some(f), ft.id.clone(), ft.words.clone()));
         for (f, id, words) in responses.chain([(None, "punch-in".to_string(), "a punch-in".to_string())]) {
-            let does = |r: usize, s: usize| (s..(s + 2).min(on[r].len())).any(|j| f.map_or(punched(&refs[r], j), |f| on[r][j][f]));
+            let does = |r: usize, s: usize| answered(&refs[r], &on[r], s, f);
             let (mut after, mut base) = ([0usize; 2], [0usize; 2]);
             let mut of = Vec::new();
             let holds: Vec<usize> = all.iter().copied().filter(|&r| {

@@ -80,7 +80,7 @@ Feature: Videoform: the kind of video a person makes again and again, read once 
         yt-dlp from a home connection; raea doesn't get round a site's refusal, and the file saved from the app is
         added from the drive
 
-    @needs:VF1
+    @needs:VF1 @done
     Scenario: VF1b. The resolver: yt-dlp, kept current by raea
       Given the plan
         | crate           | file                       | lines | job                                                                    |
@@ -95,6 +95,13 @@ Feature: Videoform: the kind of video a person makes again and again, read once 
         fails where the old one worked, it goes back and says which site failed
       And a site that needs JavaScript run (YouTube) gets a runtime raea ships or fetches, named to yt-dlp
       And `raea doctor` prints the yt-dlp in use, its date and the last site that failed
+      And on 11-25: built. Between releases the latest yt-dlp is tried at most once a day when a link is read (its sums
+        checked, the one in use kept to go back to; a check that can't reach GitHub leaves it as it is); `raea doctor`
+        ends with the yt-dlp in use, when it was fetched and the last site that failed ("yt-dlp: 2026.10.26 (this raea's
+        pin), fetched 2026-11-20; the last site that failed: tiktok.com on 2026-11-21 (... Your IP address is blocked
+        ...)"); and a YouTube link on a machine with no JavaScript runtime gets Deno v2.5.6, fetched once into
+        ~/.raea/bin and checked against its release's sha256 sum, named to yt-dlp with --js-runtimes (one on the PATH,
+        deno, node or bun, is used first)
 
   Rule: VF2. A videoform is a kind of fingerprint
 
@@ -124,7 +131,7 @@ Feature: Videoform: the kind of video a person makes again and again, read once 
 
   Rule: VF3. Each reference read once, into the rows a videoform keeps
 
-    @needs:VF1
+    @needs:VF1 @done
     Scenario: VF3. One pass, every reader on its share
       Given the plan
         | crate              | file                            | lines | job                                                                    |
@@ -156,18 +163,27 @@ Feature: Videoform: the kind of video a person makes again and again, read once 
         On the debug build (no release build on hand), with nothing else running, a reading took 1.9 times the
         reel's length for the 2-3 minute reels and 3.4 times for StreetTalk's 40 s ads; not comparable with the
         release build's 0.71 above, and not measured again on one
+      And on 11-25: each shot keeps the voice's silences between its words, each with whether a sentence ended before it
+        (Shot.gaps; rows read before it have none until `refresh`), which VF4's pauses inside a line and between lines
+        are measured from. Done with what ships: stems (HTDemucs) and voice activity (Silero) wait for their models in a
+        release (Deferred, below); the words' gaps give the pauses and perception's framing the scale, so depth isn't
+        read; and the readers stay side by side, each decoding the held file itself, since a shared decode measured
+        little faster (11-21)
 
-    @needs:VF3
+    @needs:VF3 @done
     Scenario: VF3b. What's kept is enough
       Then a videoform keeps its per-shot rows, its vocabulary's vectors, its profile, its structure and rules, a small
         still for each shot kind, and the person's evidence, and no reference video
       And ten one-minute references come to about 1.5 MB, small enough to load at once and keep in git
       And every test on the test sets (VF12) reads a set's references once, then runs on the kept files alone, with the
         references moved away, and passes the same
+      And on 11-25: st2's 20 references (31 to 50 s each) keep 2.0 MB of rows and 10 MB of 160 px stills a shot, with
+        the vocabulary's vectors and documents beside them; `report`, `follow` and `raea check` read only these. Reading
+        every test set from the kept files alone, with the references moved away, is the bench's (VF12)
 
   Rule: VF4-VF8. Writing the videoform from the kept rows
 
-    @needs:VF3
+    @needs:VF3 @done
     Scenario: VF4. The ranges, in the videoform's profile
       Given the plan
         | crate                    | file                                     | lines | job                                                                    |
@@ -186,6 +202,12 @@ Feature: Videoform: the kind of video a person makes again and again, read once 
       And not measured yet: pauses inside a line, between lines and between sections; cuts against sentence ends; music
         under the voice (only whether it's heard); caption size and words at once; talking head against cutaway (VF6's
         shot kinds will say)
+      And on 11-25: the measures not taken before are: the voice's pause inside a line and between lines (from VF3's gaps,
+        once the references are read again), cuts where a sentence ends, music under the voice (of the shots with
+        speech), a caption's height and its words at once, and talking on camera against cutting away (the shots with
+        words said that show someone). On st2: captions 3% to 5% of the frame high with about 3 words at once, 37% to 76%
+        of cuts at a sentence's end, 81% to 100% of the spoken shots on camera. The pause between sections is left to the
+        structure (VF7), which knows where sections are
 
     @needs:VF3 @done
     Scenario: VF4b. What it found, said to the person, and their corrections kept
@@ -306,7 +328,7 @@ Feature: Videoform: the kind of video a person makes again and again, read once 
         counters, the kitchen" is bathrooms, closets and a laundry, named by weak scores (VF6's naming), which is what
         the person's look at the sheet is for
 
-    @needs:VF4,VF6
+    @needs:VF4,VF6 @done
     Scenario: VF8b. When it doesn't hold together
       Given the plan
         | crate              | file                              | lines | job                                                                    |
@@ -318,8 +340,14 @@ Feature: Videoform: the kind of video a person makes again and again, read once 
       Then under five references every rule and range is weak, and nothing gates on it
       And references that fall into clear groups are reported, with a videoform offered for each, never averaged
       And one reference far from the others on several measures is named, for the person to keep or drop
+      And on 11-25: built (systems/videoform groups.rs). Each measure every reference has is set on one scale (its median
+        and spread), the references split in two from their two farthest, and the split said when it's clear (each
+        reference nearer its own group than the other, a mean silhouette of 0.5 or more), with the measures they differ
+        on (each group's mean apart by twice their own spread or more); `raea videoform split NAME` then makes NAME-a and
+        NAME-b, copying each group's rows, stills, vocabulary.ts and briefs.ts, and keeps NAME as it is. st2's Dutch
+        and Body Shop videos hold together as one format, as they should
 
-    @needs:VF3
+    @needs:VF3 @done
     Scenario: VF8c. References added and removed; encoders upgraded
       Given the plan
         | crate              | file                              | lines | job                                                                    |
@@ -328,8 +356,13 @@ Feature: Videoform: the kind of video a person makes again and again, read once 
         drops its rows; the person's evidence stays through both
       And a new encoder in raea leaves the videoform on its rows' pins, working as it was; the measures carry over; `raea
         videoform refresh NAME SOURCE...` reads the references again for the new encoder, the one time they're needed
+      And on 11-25: built (apps/videoform-refs). `raea videoform remove NAME REF...` drops references (by title, file
+        name, link or path, or a hash's start; the rows aren't read any more, the person's corrections stay); the report
+        names the references read with other encoders than this raea's, and `raea videoform refresh NAME [REF...]` reads
+        those (or the ones named) again past every kept column, putting a reference back as it was when it can't be
+        reached now. Until then the videoform works on its rows as they were read
 
-    @needs:VF8
+    @needs:VF8 @done
     Scenario: VF8d. Brand and format: what one brand's videos alone hold is that brand's, not the videoform's
       Given the plan
         | crate                    | file                               | lines | job                                                                    |
@@ -346,8 +379,10 @@ Feature: Videoform: the kind of video a person makes again and again, read once 
         holds), each brand has its own rules: those that hold in RULE of its references and in under half of the other
         brands'
       And those rules are written as SLUG.taste.ts in the brand's fingerprint, brand-SLUG, made when there's none
+      And on 11-25: a brand's fingerprint no longer becomes the account's default when it's made (st2's brand-dutch did,
+        and judged every piece nothing else applied to)
 
-    @needs:VF3,VF6,VF9
+    @needs:VF3,VF6,VF9 @done
     Scenario: VF8e. How it's layered is part of the videoform
       Given the plan
         | crate                     | file                                 | lines | job                                                                    |
@@ -388,7 +423,7 @@ Feature: Videoform: the kind of video a person makes again and again, read once 
         place of a card is wherever the reader's box was (often wider than Kelly's), and speed (her 0.17x and 5x) isn't
         read
 
-    @needs:VF5,VF8,VF8d
+    @needs:VF5,VF8,VF8d @done
     Scenario: VF8f. What was asked and how it was made: the briefs, guides and the person's words with each group
       Given the plan
         | crate                       | file                                  | lines | job                                                                    |
@@ -423,7 +458,7 @@ Feature: Videoform: the kind of video a person makes again and again, read once 
 
   Rule: VF9-VF11. Following it, and checking it fast
 
-    @needs:VF7,VF8
+    @needs:VF7,VF8 @done
     Scenario: VF9. Following: the footage matched, what's missing said, the cut planned to the template
       Given the plan
         | crate              | file                              | lines | job                                                                    |
@@ -439,7 +474,7 @@ Feature: Videoform: the kind of video a person makes again and again, read once 
         references has"), a shot list for the person
       And the agent plans the cut from the template, slot by slot, and edits to the ranges
 
-    @needs:VF9,VF8e
+    @needs:VF9,VF8e @done
     Scenario: VF9b. A brand's kit: what a card shows
       Given the plan
         | crate                  | file                                  | lines | job                                                                    |
@@ -465,7 +500,7 @@ Feature: Videoform: the kind of video a person makes again and again, read once 
       And 11-24: on Thicc's raw folder, 23 stills read as 4 products, 12 people (customers' results), 6 testimonials
         and 1 screenshot (the bundle page)
 
-    @needs:VF9b
+    @needs:VF9b @done
     Scenario: VF9c. A video made to a videoform and a brand, its script approved first
       Given the person asks their agent for "a 45 second vertical video of this footage, in videoform X, with brand Y's
         assets", in a project whose brief says approve: ["script"] (the project's choice; a pitch, explain or story
@@ -482,7 +517,7 @@ Feature: Videoform: the kind of video a person makes again and again, read once 
       And once it's approved, the agent writes the composition from plan.json (the kit's assets in the brand's
         fingerprint, the footage where it is), renders, and holds it to `raea check` and the videoform's rules
 
-    @needs:VF8
+    @needs:VF8 @done
     Scenario: VF10. A videoform's rules checked on the composition, before any render
       Given the plan
         | crate              | file                              | lines | job                                                                    |
@@ -493,12 +528,27 @@ Feature: Videoform: the kind of video a person makes again and again, read once 
       # milliseconds and needs none of that, so they're a crate of their own that apps/direction calls.
       Then `raea check PROJECT` runs the videoform's rules with raea's floor and the person's taste, in milliseconds
       And each finding is routed as raea-app-check-cause routes any: a footage's own fault a note, a carried one said
+      And on 11-25: built (apps/videoform-checks, with raea-sys-videoform-rules hold.rs). `raea check PROJECT` reads the
+        NAME.taste.ts of the videoform that judges the project with the person's taste, and runs its seven checks
+        (videoform-covers, -opens, -closes, -slot, -order, -together, -event) over the composition's worlds with no
+        render: the composition is read as a reference is (a cut wherever the footage under everything changes; its
+        picture from its footage's kept columns at the seconds it shows, and what's laid over it seen too; its words on
+        screen from the world's text; its words said, scale, people and camera from the footage's own reading), set
+        last among the references, and each rule tested by the test that mined it. A rule that can't apply (its trigger
+        never comes, its section isn't found) is left out; the rules on how it's layered wait for a render, then read
+        its layers. On st2's Elfster "fake face" cut: 6 warnings and 4 notes, among them every reference's laughing
+        reaction nowhere in it and the product named a shot before the app is shown, in 40 s with no render (most of it
+        reading the composition's frames), and with its render the two layer rules (the product shows a screen,
+        showing a screenshot) held
 
-    @needs:VF6,VF10
+    @needs:VF6,VF10 @done
     Scenario: VF11. Embedding checks, only for shots that changed
       Then each changed shot is held against its slot's shot kind, one SigLIP 2 frame a shot, and the run of shots
         against the structure
       And a shot that didn't change since the last check is not embedded again
+      And on 11-25: done by VF10's reading. A cut's picture is its footage's columns at the seconds it shows, kept by the
+        footage's content hash, so nothing is embedded when a shot is checked, moved or recut: only footage new to raea is
+        read, once (raea videoform follow's reading, which `raea check` shares)
 
   Rule: VF12-VF13. Judged on the person's test sets
     (The bench is its own crate, raea-app-videoform-bench, 11-21: raea-app-videoform with following and checking
@@ -529,6 +579,8 @@ Feature: Videoform: the kind of video a person makes again and again, read once 
 
   Rule: Deferred
     Scenario: Not in this file yet
-      Then an automatic judge for the test bench (a video-capable language model, paid by the person, in the bench only,
+      Then stems (HTDemucs) and voice activity (Silero) in VF3's reading, once their models ship in a release
+      And the pause between sections, measured where the structure (VF7) cuts each reference
+      And an automatic judge for the test bench (a video-capable language model, paid by the person, in the bench only,
         never shipped: fidelity, pairs, and gaps between what the references show and what the videoform holds)
       And the order of the test sets

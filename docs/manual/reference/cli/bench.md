@@ -1,7 +1,7 @@
 ---
 title: "raea bench"
 summary: "Each case on each denoiser against its converged truth: FLIP, RMSE, bias, flicker, blotches, lag after a disocclusion or a light going out, a frame's cost, and how many of MetalFX's numbers each meets."
-order: 49
+order: 50
 sources: ["engine/cli/src/cli.rs", "engine/render/denoise/bench/src/lib.rs", "engine/render/denoise/bench/src/metrics.rs", "engine/render/denoise/bench/src/report.rs"]
 ---
 

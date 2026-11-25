@@ -102,7 +102,7 @@ pub fn traces(args: &[String]) -> R<String> {
 }
 
 /// `raea check`'s host (the TS evaluator, the bundle runner, taste's kinds), which runs the notes' asks too (DR6).
-const CHECK: raea_app_direction::check::Host = raea_app_direction::check::Host { ts: raea_app_direction::ts::Host { eval: spec::spec_json, run: run_bundle }, kinds: taste_kinds };
+const CHECK: raea_app_direction::check::Host = raea_app_direction::check::Host { ts: raea_app_direction::ts::Host { eval: spec::spec_json, run: run_bundle }, kinds: taste_kinds, videoform: raea_app_direction::check::Videoform { taste: raea_app_videoform_checks::taste, check: raea_app_videoform_checks::check } };
 fn notes_run(project: &Path, rules: &[raea_app_notes::check::Rule], args: &[String], whole: bool) -> R<Vec<raea_app_notes::check::Ran>> {
     raea_app_direction::check::run(project, rules, args, whole, &CHECK)
 }
@@ -215,8 +215,7 @@ pub fn run(args: &[String]) -> R<String> {
     if args[0] == "world" { std::process::exit(raea_app_direction::cli(&args[1..])); } // a frame as one world of facts (docs/direction.feature DR1)
     if args[0] == "findings" { return raea_app_direction::findings::cli(args); } // the project's record read back (DR3)
     if args[0] == "notes" { std::process::exit(raea_app_notes::cli(&args[1..], spec::spec_json, notes_run)); } // a person's notes as files, restated as asks, each with a check (DR5, DR6)
-    if args[0] == "fingerprint" { std::process::exit(raea_app_fingerprint::cli(&args[1..], spec::spec_json)); } // a person's sense of good work as axes over on-device encoders (docs/fingerprint.feature FP3a, FP14a)
-    if args[0] == "videoform" { std::process::exit(raea_app_videoform::cli(&args[1..], spec::spec_json)); } // a kind of video read once from its references (docs/videoform.feature VF1)
+    if args[0] == "fingerprint" || args[0] == "videoform" { std::process::exit(if args[0] == "videoform" { raea_app_videoform::cli(&args[1..], spec::spec_json) } else { raea_app_fingerprint::cli(&args[1..], spec::spec_json) }); } // a person's sense of good work as axes over on-device encoders (docs/fingerprint.feature FP3a, FP14a); a kind of video read once from its references (docs/videoform.feature VF1)
     if args[0] == "index" { std::process::exit(raea_sys_index::cli::cli(&args[1..])); } // every picture on a folder or a drive searchable by words, embedded on the Neural Engine (docs/index.feature IX13)
     if args[0] == "traces" { return traces(args); }
     if args.first().map(String::as_str) == Some("play") {

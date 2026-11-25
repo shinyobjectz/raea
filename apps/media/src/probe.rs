@@ -1,6 +1,7 @@
 //! `media probe`: what a file is (duration, size, fps, codec, audio), with the MP4 boxes read directly for a track's own timing.
 
 use super::*;
+use raea_io_mp4::{be32, be64, boxes, child};
 
 pub(crate) fn round3(x: f64) -> f64 {
     (x * 1000.0).round() / 1000.0
@@ -125,41 +126,6 @@ impl Track {
     }
 }
 
-/// The boxes inside `b` (a box's payload): (type, payload).
-pub(crate) fn boxes(b: &[u8]) -> Vec<([u8; 4], &[u8])> {
-    let mut out = Vec::new();
-    let mut i = 0usize;
-    while i + 8 <= b.len() {
-        let mut size = u32::from_be_bytes(b[i..i + 4].try_into().unwrap()) as usize;
-        let kind: [u8; 4] = b[i + 4..i + 8].try_into().unwrap();
-        let mut hdr = 8;
-        if size == 1 && i + 16 <= b.len() {
-            size = u64::from_be_bytes(b[i + 8..i + 16].try_into().unwrap()) as usize;
-            hdr = 16;
-        } else if size == 0 {
-            size = b.len() - i;
-        }
-        if size < hdr || i + size > b.len() {
-            break;
-        }
-        out.push((kind, &b[i + hdr..i + size]));
-        i += size;
-    }
-    out
-}
-
-pub(crate) fn child<'a>(b: &'a [u8], kind: &[u8; 4]) -> Option<&'a [u8]> {
-    boxes(b).into_iter().find(|(k, _)| k == kind).map(|(_, p)| p)
-}
-
-pub(crate) fn be32(b: &[u8], at: usize) -> Option<u32> {
-    Some(u32::from_be_bytes(b.get(at..at + 4)?.try_into().ok()?))
-}
-
-pub(crate) fn be64(b: &[u8], at: usize) -> Option<u64> {
-    Some(u64::from_be_bytes(b.get(at..at + 8)?.try_into().ok()?))
-}
-
 /// The first video track's timing, for MP4 and QuickTime files.
 pub fn video_track(path: &Path) -> Option<Track> {
     use std::io::{Read, Seek, SeekFrom};
@@ -224,7 +190,7 @@ pub fn video_track(path: &Path) -> Option<Track> {
         // a fragmented file's samples are in its moofs, not here
         let fragmented = deltas.is_empty();
         if fragmented {
-            (deltas, times) = super::fragments::samples(path, &moov, super::fragments::track_id(trak)?)?;
+            (deltas, times) = raea_io_mp4::fragments::samples(path, &moov, raea_io_mp4::fragments::track_id(trak)?)?;
         }
         if let (false, Some(ctts)) = (fragmented, child(stbl, b"ctts")) {
             let mut i = 0usize;

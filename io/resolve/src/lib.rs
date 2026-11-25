@@ -35,18 +35,35 @@ fn final_refusal(err: &str) -> bool {
 
 /// yt-dlp with what every run needs: no config of the person's, its cache under raea's, and a JavaScript runtime for
 /// the sites that make it run one (YouTube), from those on this machine
-fn ytdlp(bin: &Path) -> Command {
+fn ytdlp(bin: &Path, needs_js: bool) -> Command {
     let mut c = Command::new(bin);
     c.args(["--ignore-config", "--no-warnings"]);
     if let Some(cache) = raea_io_home::caches() {
         c.arg("--cache-dir").arg(cache.join("yt-dlp"));
     }
+    let mut any = false;
     for rt in ["deno", "node", "bun"] {
         if let Some(p) = on_path(rt) {
             c.arg("--js-runtimes").arg(format!("{rt}:{}", p.display()));
+            any = true;
+        }
+    }
+    // none here: the Deno raea fetches, for the sites that need one
+    if !any && needs_js {
+        match fetch::deno() {
+            Ok(p) => {
+                c.arg("--js-runtimes").arg(format!("deno:{}", p.display()));
+            }
+            Err(e) => eprintln!("raea: {e}; a site that runs JavaScript may not resolve"),
         }
     }
     c
+}
+
+/// Whether a link's site makes yt-dlp run its JavaScript
+fn js_site(url: &str) -> bool {
+    let s = site(url);
+    ["youtube.com", "youtu.be", "m.youtube.com", "music.youtube.com"].iter().any(|y| s == *y || s.ends_with(&format!(".{y}")))
 }
 
 fn on_path(name: &str) -> Option<PathBuf> {
@@ -56,7 +73,8 @@ fn on_path(name: &str) -> Option<PathBuf> {
 
 /// One yt-dlp run's JSON, or its error line
 fn run_json(bin: &Path, args: &[&str]) -> Result<Vec<Value>, String> {
-    let out = ytdlp(bin).args(args).output().map_err(|e| format!("resolve: running {}: {e}", bin.display()))?;
+    let js = args.iter().any(|a| is_url(a) && js_site(a));
+    let out = ytdlp(bin, js).args(args).output().map_err(|e| format!("resolve: running {}: {e}", bin.display()))?;
     let text = String::from_utf8_lossy(&out.stdout);
     let infos: Vec<Value> = text.lines().filter_map(|l| serde_json::from_str(l).ok()).collect();
     if out.status.success() && !infos.is_empty() {
@@ -69,6 +87,7 @@ fn run_json(bin: &Path, args: &[&str]) -> Result<Vec<Value>, String> {
 
 /// A run, with the latest yt-dlp tried once when the extractor fails, and the one before kept when that fails too
 fn with_resolver(url: &str, args: &[&str]) -> Result<Vec<Value>, String> {
+    fetch::daily();
     let (bin, _) = fetch::current()?;
     match run_json(&bin, args) {
         Ok(v) => Ok(v),
@@ -144,7 +163,8 @@ pub fn spool(info: &Value, pick: &Pick, dir: &Path) -> Result<(PathBuf, Option<P
     };
     let template = dir.join("%(format_id)s.%(ext)s");
     let (bin, _) = fetch::current()?;
-    let out = ytdlp(&bin)
+    let js = info["webpage_url"].as_str().or(info["original_url"].as_str()).is_some_and(js_site);
+    let out = ytdlp(&bin, js)
         .arg("--load-info-json")
         .arg(&json)
         .args(["-f", &ids, "--no-part", "--no-mtime", "--quiet", "--no-progress", "--concurrent-fragments", "4", "-o"])

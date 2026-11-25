@@ -79,6 +79,14 @@ pub fn named() -> Vec<Named> {
         n("still-max", true, Frames::Once, "the picture is never still for too long"),
         n("floor", true, Frames::Once, "raea's floor: what every finished piece must meet"),
         n("text-read", true, Frames::All, "text on screen can be read for as long as it needs, and OCR reads what can be read (read.rs)"),
+        // a videoform's rules (docs/videoform.feature VF10), over the composition's cuts with no render
+        n("videoform-covers", false, Frames::All, "every video has it"),
+        n("videoform-opens", false, Frames::All, "the first shot has it"),
+        n("videoform-closes", false, Frames::All, "the last shot has it"),
+        n("videoform-slot", false, Frames::All, "the section has it"),
+        n("videoform-order", false, Frames::All, "one section comes before another"),
+        n("videoform-together", false, Frames::All, "where a place is shown, its thing is shown with it"),
+        n("videoform-event", false, Frames::All, "what follows a word said or shown"),
     ]
 }
 

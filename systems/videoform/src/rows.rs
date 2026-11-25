@@ -38,6 +38,10 @@ pub struct Shot {
     /// how long the voice is silent at its start and its end, seconds (None: no voice near that edge)
     pub pause_before: Option<f64>,
     pub pause_after: Option<f64>,
+    /// the voice's silences between its words inside the shot, seconds, each with whether a sentence ended before it
+    /// (a pause between lines) or not (a pause inside one); none in rows read before they were kept
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub gaps: Vec<(f64, bool)>,
     /// what's heard most: speech, music, speech and music, quiet (from the two scores below)
     pub heard: String,
     /// how strongly its sound is speech and music: YAMNet's AudioSet scores, the shot's mean (0 to 1)

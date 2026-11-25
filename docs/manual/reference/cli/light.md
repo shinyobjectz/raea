@@ -1,7 +1,7 @@
 ---
 title: "raea light"
 summary: "Measure a scene's light on each light path against its path-traced reference: distance in stops, the worst tile, flicker and cost."
-order: 48
+order: 49
 sources: ["engine/light/src/lib.rs", "engine/light/src/metric.rs", "engine/render/raytrace/src/force.rs"]
 ---
 

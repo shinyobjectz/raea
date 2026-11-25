@@ -34,7 +34,6 @@ mod command;
 pub use command::command;
 /// a model at a lower level of detail (docs/preview.feature PV3c)
 mod lod;
-mod fragments;
 mod probe;
 use probe::*;
 mod picture;

@@ -1,7 +1,7 @@
 ---
 title: "raea scene"
 summary: "Find floating, sunk and clipping 3D parts, say what each part rests on, meter a shot's light, hold every frame to the stage checks a render runs, and list each part's planned detail beside how large the frames show it."
-order: 47
+order: 48
 sources: ["apps/scene/src/lib.rs", "apps/scene/src/light.rs", "apps/scene/src/stage.rs", "apps/scene/src/lod.rs", "runtime/lod-plan/src/lib.rs", "runtime/lod-plan/src/report.rs", "runtime/lod-plan/src/plan.rs", "systems/stage/src/lib.rs", "systems/stage/src/clearance.rs", "systems/contact/src/lint.rs", "systems/contact/src/zfight.rs"]
 ---
 

@@ -167,3 +167,80 @@ pub(crate) fn failed(site: &str, why: &str) {
     s["failed"] = json!({"site": site, "at": today(), "why": why});
     let _ = save(&s);
 }
+
+/// Between releases, the latest yt-dlp tried at most once a day when a link is read (its sums checked as any fetch's,
+/// the one in use kept to go back to); a check that can't reach GitHub leaves the one in use as it is
+pub(crate) fn daily() {
+    let mut s = state();
+    if std::env::var_os("RAEA_YTDLP").is_some() || s["checked"].as_str() == Some(today().as_str()) {
+        return;
+    }
+    s["checked"] = json!(today());
+    let _ = save(&s);
+    if let Err(e) = forward() {
+        eprintln!("raea: yt-dlp kept as it is (the day's check for a newer one: {e})");
+    }
+}
+
+/// What `raea doctor` says of the resolver: the yt-dlp in use, when it was fetched, and the last site that failed
+pub fn doctor() -> String {
+    if let Some(p) = std::env::var_os("RAEA_YTDLP") {
+        return format!("yt-dlp: {} (RAEA_YTDLP)", std::path::Path::new(&p).display());
+    }
+    let s = state();
+    let version = s["version"].as_str().unwrap_or(PIN);
+    let here = if path_of(version).is_file() { s["fetched"].as_str().map(|d| format!(", fetched {d}")).unwrap_or_default() } else { ", fetched on the first link read".into() };
+    let pinned = if version == PIN { " (this raea's pin)".to_string() } else { format!(" (this raea pins {PIN})") };
+    let failed = match &s["failed"] {
+        Value::Null => String::new(),
+        f => format!("; the last site that failed: {} on {} ({})", f["site"].as_str().unwrap_or("?"), f["at"].as_str().unwrap_or("?"), f["why"].as_str().unwrap_or("")),
+    };
+    format!("yt-dlp: {version}{pinned}{here}{failed}")
+}
+
+/// The Deno raea fetches for a site that makes yt-dlp run JavaScript (YouTube), when this machine has no runtime: the
+/// version pinned here, checked against its release's sha256 sum, kept in ~/.raea/bin
+pub const DENO: &str = "v2.5.6";
+
+fn deno_asset() -> Option<&'static str> {
+    Some(match (std::env::consts::OS, std::env::consts::ARCH) {
+        ("macos", "aarch64") => "deno-aarch64-apple-darwin.zip",
+        ("macos", "x86_64") => "deno-x86_64-apple-darwin.zip",
+        ("linux", "x86_64") => "deno-x86_64-unknown-linux-gnu.zip",
+        ("linux", "aarch64") => "deno-aarch64-unknown-linux-gnu.zip",
+        ("windows", "x86_64") => "deno-x86_64-pc-windows-msvc.zip",
+        _ => return None,
+    })
+}
+
+/// Deno for yt-dlp: kept from before, else fetched once and checked
+pub fn deno() -> Result<PathBuf, String> {
+    let exe = dir().join(format!("deno-{DENO}{}", if cfg!(windows) { ".exe" } else { "" }));
+    if exe.is_file() {
+        return Ok(exe);
+    }
+    let Some(asset) = deno_asset() else { return Err(format!("resolve: Deno has no build for {} {}", std::env::consts::OS, std::env::consts::ARCH)) };
+    let base = format!("https://github.com/denoland/deno/releases/download/{DENO}");
+    let sum = String::from_utf8_lossy(&get(&format!("{base}/{asset}.sha256sum"))?).into_owned();
+    let want = sum.split_whitespace().find(|w| w.len() == 64).ok_or_else(|| format!("resolve: Deno {DENO}'s sum for {asset} isn't one"))?.to_ascii_lowercase();
+    eprintln!("raea: fetching Deno {DENO} (yt-dlp runs YouTube's JavaScript on it, once) into {}", dir().display());
+    let body = get(&format!("{base}/{asset}"))?;
+    let got: String = Sha256::digest(&body).iter().map(|b| format!("{b:02x}")).collect();
+    if got != want {
+        return Err(format!("resolve: Deno {DENO} ({asset}) has sha256 {got}, not the release's {want}: not run"));
+    }
+    let mut zip = zip::ZipArchive::new(std::io::Cursor::new(body)).map_err(|e| format!("resolve: Deno's zip: {e}"))?;
+    let mut inner = zip.by_index(0).map_err(|e| format!("resolve: Deno's zip: {e}"))?;
+    let mut bytes = Vec::new();
+    inner.read_to_end(&mut bytes).map_err(|e| e.to_string())?;
+    std::fs::create_dir_all(dir()).map_err(|e| e.to_string())?;
+    let part = exe.with_extension("part");
+    std::fs::write(&part, bytes).map_err(|e| format!("{}: {e}", part.display()))?;
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        std::fs::set_permissions(&part, std::fs::Permissions::from_mode(0o755)).map_err(|e| e.to_string())?;
+    }
+    std::fs::rename(&part, &exe).map_err(|e| e.to_string())?;
+    Ok(exe)
+}

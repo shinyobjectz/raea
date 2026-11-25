@@ -150,7 +150,8 @@ pub fn words(sound: &Path, dir: &Path) -> Result<Vec<Word>, String> {
 
 /// Fingerprint's columns for this content: from the cache, else read now and cached
 pub fn columns(picture: &Path, sound: Option<&Path>, hash: &str, dur: f64, enc: &mut Encoders) -> Result<Columns, String> {
-    if let Some(c) = cache::load(hash) {
+    // refresh reads a reference again with this raea's encoders, past what's kept (VF8c)
+    if std::env::var_os("RAEA_COLUMNS_FRESH").is_none() && let Some(c) = cache::load(hash) {
         return Ok(c);
     }
     let frames = media::frames(picture, FPS, 0.0, dur).map_err(|e| e.to_string())?;

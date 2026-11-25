@@ -142,6 +142,8 @@ fn shot(p: &Value, bounds: [f64; 2], text: &[Value], words: &[Word], beats: &[f6
         words_per_minute: r2(said.len() as f64 / (end - start).max(1e-3) * 60.0),
         pause_before,
         pause_after,
+        // the silences between its words over a twentieth of a second, a sentence's end before or not
+        gaps: said.windows(2).map(|w| (r2(w[1].start - w[0].end), w[0].text.ends_with(['.', '?', '!']))).filter(|g| g.0 >= 0.05).collect(),
         heard: heard.into(),
         speech,
         music,

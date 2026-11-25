@@ -47,6 +47,11 @@ pub fn brand_dir(brand: &str) -> Result<PathBuf, String> {
         if !out.status.success() {
             return Err(format!("making {name}: {}", String::from_utf8_lossy(&out.stderr).trim()));
         }
+        // fingerprint new makes the account's first fingerprint its default; a brand's judges only what's tagged with it
+        let default = raea_sys_fingerprint::folder::root().join("default");
+        if std::fs::read_to_string(&default).is_ok_and(|d| d.trim() == name) {
+            let _ = std::fs::remove_file(&default);
+        }
     }
     Ok(dir.dir)
 }

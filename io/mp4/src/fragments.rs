@@ -2,11 +2,11 @@
 //! moof's traf says its own, with its decode start (tfdt), each sample's duration and composition offset (trun), and
 //! the defaults those fall back to (tfhd, then the moov's trex).
 
-use super::probe::{be32, be64, boxes, child};
+use crate::{be32, be64, boxes, child};
 use std::path::Path;
 
 /// A track's own id (tkhd)
-pub(crate) fn track_id(trak: &[u8]) -> Option<u32> {
+pub fn track_id(trak: &[u8]) -> Option<u32> {
     let tkhd = child(trak, b"tkhd")?;
     be32(tkhd, if tkhd.first() == Some(&1) { 20 } else { 12 })
 }
@@ -56,7 +56,7 @@ fn moofs(path: &Path) -> Vec<Vec<u8>> {
 }
 
 /// The track's samples across the file's fragments: each one's duration, and its presentation time in media units
-pub(crate) fn samples(path: &Path, moov: &[u8], id: u32) -> Option<(Vec<u32>, Vec<i64>)> {
+pub fn samples(path: &Path, moov: &[u8], id: u32) -> Option<(Vec<u32>, Vec<i64>)> {
     let fallback = trex_duration(moov, id).unwrap_or(0);
     let (mut deltas, mut times) = (Vec::new(), Vec::new());
     let mut next = 0i64;

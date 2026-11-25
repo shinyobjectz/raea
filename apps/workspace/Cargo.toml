@@ -9,6 +9,8 @@ description = "`raea workspace` and `raea project`: a workspace's folders and pr
 [dependencies]
 dunce = "1"
 raea-io-home = { path = "../../io/home" }
+# the page resolver raea fetches, for raea doctor (VF1b)
+raea-io-resolve = { path = "../../io/resolve" }
 # git, which a workspace is: the PATH's, else on Windows the app's or raea's own (raea_io_assets::git)
 raea-io-assets = { path = "../../io/assets" }
 serde_json = "1"

@@ -200,7 +200,12 @@ pub fn report(refs: &[Rows], heads: &[Head], bg: &Background, pats: &[Pat], sect
     }
     let sections = sections.iter().map(|sec| {
         let idx: Vec<usize> = (0..names.len()).filter(|&i| sec.shows.iter().any(|n| n == names[i])).collect();
-        let unknown = sec.shows.iter().filter(|n| names.iter().all(|x| x != n)).cloned().collect();
+        let mut unknown = Vec::new();
+        for n in &sec.shows {
+            if !names.contains(&n.as_str()) {
+                unknown.push(n.clone());
+            }
+        }
         let hits: Vec<Vec<usize>> = refs.iter().zip(&fired).map(|(r, f)| {
             let dur = r.shots.last().map_or(0.0, |s| s.end);
             (0..r.shots.len()).filter(|&i| inside(sec.at.as_deref(), r.shots[i].start, r.shots[i].end, dur) && idx.iter().any(|&t| f[i][t])).collect()

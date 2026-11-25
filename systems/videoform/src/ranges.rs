@@ -13,7 +13,7 @@ use std::collections::BTreeMap;
 pub type Measures = BTreeMap<String, f64>;
 
 /// Each measure, in words
-pub const NAMES: [(&str, &str); 28] = [
+pub const NAMES: [(&str, &str); 35] = [
     ("seconds", "the video's length (s)"),
     ("cuts_per_min", "cuts a minute"),
     ("median_shot", "a shot's median length (s)"),
@@ -21,6 +21,8 @@ pub const NAMES: [(&str, &str); 28] = [
     ("first_shot", "the first shot's length (s)"),
     ("words_per_min", "words a minute while someone speaks"),
     ("pause", "the voice's pause at a cut, median (s)"),
+    ("pause_in_line", "the voice's pause inside a line, median (s)"),
+    ("pause_between_lines", "the voice's pause between lines, median (s)"),
     ("close_up", "shots that are close-ups"),
     ("medium", "shots that are medium"),
     ("wide", "shots that are wide"),
@@ -42,12 +44,17 @@ pub const NAMES: [(&str, &str); 28] = [
     ("layer_backdrop", "shots on a plain backdrop"),
     ("layer_split", "shots split between two pictures"),
     ("layer_screen", "shots showing a screen or page"),
+    ("caption_size", "a caption's height, of the frame's"),
+    ("caption_words", "words in a caption at once, on average"),
+    ("sentence_cuts", "cuts where a sentence ends"),
+    ("music_under", "shots with music under the voice, of those with speech"),
+    ("talking", "shots of someone talking on camera, of those with words said (the rest cut away)"),
 ];
 
 /// Measures that are shares of the shots, 0 to 1
-const SHARES: [&str; 18] = [
+const SHARES: [&str; 22] = [
     "close_up", "medium", "wide", "no_people", "moving", "text", "captions", "speech", "music", "on_beat", "caption_y", "layered", "layer_cutout",
-    "layer_inset", "layer_card", "layer_backdrop", "layer_split", "layer_screen",
+    "layer_inset", "layer_card", "layer_backdrop", "layer_split", "layer_screen", "caption_size", "sentence_cuts", "music_under", "talking",
 ];
 
 /// What raea's delivery floor sets for every cut (raea check's sound floor), so the references' range is only reported
@@ -89,6 +96,15 @@ pub fn on_beat(shots: &[crate::Shot]) -> usize {
     shots.iter().skip(1).filter(|x| x.off_beat.is_some_and(|d| d <= 0.1)).count()
 }
 
+/// How many words a run of text has: its runs of letters or digits between spaces
+fn words_in(t: &str) -> usize {
+    let mut n = 0;
+    for w in t.split_ascii_whitespace() {
+        n += usize::from(w.chars().any(char::is_alphanumeric));
+    }
+    n
+}
+
 /// A reference's measures from its rows (loudness and true peak come from its reading, not its rows)
 pub fn measures(rows: &Rows) -> Measures {
     let s = &rows.shots;
@@ -104,7 +120,7 @@ pub fn measures(rows: &Rows) -> Measures {
     m.insert("median_shot".into(), median(&lens));
     m.insert("long_shot".into(), sorted[((n - 1) as f64 * 0.9).round() as usize]);
     m.insert("first_shot".into(), lens[0]);
-    let said: f64 = s.iter().map(|x| x.words.split_whitespace().count() as f64).sum();
+    let said: f64 = s.iter().map(|x| words_in(&x.words) as f64).sum();
     let spoken: f64 = s.iter().filter(|x| x.words_per_minute > 0.0).map(|x| x.words.split_whitespace().count() as f64 / x.words_per_minute).sum();
     if spoken > 0.0 {
         m.insert("words_per_min".into(), said / spoken);
@@ -113,6 +129,13 @@ pub fn measures(rows: &Rows) -> Measures {
     if !pauses.is_empty() {
         m.insert("pause".into(), median(&pauses));
     }
+    // the voice's silences between words, inside a line and between lines (rows read since they were kept)
+    for (k, between) in [("pause_in_line", false), ("pause_between_lines", true)] {
+        let g: Vec<f64> = s.iter().flat_map(|x| x.gaps.iter().filter(|g| g.1 == between).map(|g| g.0)).collect();
+        if !g.is_empty() {
+            m.insert(k.into(), median(&g));
+        }
+    }
     for (k, f) in [("close_up", "close-up"), ("medium", "medium"), ("wide", "wide"), ("no_people", "no people")] {
         m.insert(k.into(), count(&|x| x.framing == f));
     }
@@ -120,14 +143,33 @@ pub fn measures(rows: &Rows) -> Measures {
     m.insert("moving".into(), count(&|x| x.motion == "moving"));
     m.insert("brightness".into(), s.iter().map(|x| x.brightness).sum::<f64>() / n as f64);
     m.insert("text".into(), count(&|x| !x.text.is_empty()));
-    let captions: Vec<Vec<f64>> = s.iter().map(|x| {
+    let boxes: Vec<Vec<(&str, [f64; 4])>> = s.iter().map(|x| {
         let said = tokens(&x.words);
-        x.text.iter().filter(|(t, _)| caption(t, &said)).map(|(_, b)| b[1] + b[3] / 2.0).collect()
+        x.text.iter().filter(|(t, _)| caption(t, &said)).map(|(t, b)| (t.as_str(), *b)).collect()
     }).collect();
-    m.insert("captions".into(), share(captions.iter().filter(|c| !c.is_empty()).count(), n));
-    let ys: Vec<f64> = captions.concat();
-    if !ys.is_empty() {
-        m.insert("caption_y".into(), median(&ys));
+    m.insert("captions".into(), share(boxes.iter().filter(|c| !c.is_empty()).count(), n));
+    let caps: Vec<(&str, [f64; 4])> = boxes.concat();
+    if !caps.is_empty() {
+        let of = |f: &dyn Fn(&(&str, [f64; 4])) -> f64| median(&caps.iter().map(f).collect::<Vec<_>>());
+        m.insert("caption_y".into(), of(&|c| c.1[1] + c.1[3] / 2.0));
+        // a caption's height, and its words, as one box of text reads (a box of two lines is twice the height)
+        m.insert("caption_size".into(), of(&|c| c.1[3]));
+        // a mean: a median of whole words is the same for most videos, and a word apart reads as far
+        let words: usize = caps.iter().map(|c| words_in(c.0)).sum();
+        m.insert("caption_words".into(), words as f64 / caps.len() as f64);
+    }
+    // the cuts that fall where a sentence ends: the shot before ends on its full stop
+    let ends: Vec<bool> = s.windows(2).filter(|w| !w[0].words.trim().is_empty()).map(|w| w[0].words.trim_end().ends_with(['.', '?', '!'])).collect();
+    if !ends.is_empty() {
+        m.insert("sentence_cuts".into(), share(ends.iter().filter(|e| **e).count(), ends.len()));
+    }
+    let speaking: Vec<&crate::Shot> = s.iter().filter(|x| x.heard.contains("speech")).collect();
+    if !speaking.is_empty() {
+        m.insert("music_under".into(), share(speaking.iter().filter(|x| x.heard.contains("music")).count(), speaking.len()));
+    }
+    let said_over: Vec<&crate::Shot> = s.iter().filter(|x| words_in(&x.words) != 0).collect();
+    if !said_over.is_empty() {
+        m.insert("talking".into(), share(said_over.iter().filter(|x| x.faces > 0 && x.framing != "no people").count(), said_over.len()));
     }
     m.insert("speech".into(), count(&|x| x.heard.contains("speech")));
     m.insert("music".into(), count(&|x| x.heard.contains("music")));
@@ -179,6 +221,9 @@ pub struct Found {
     pub outliers: Vec<(usize, Vec<String>)>,
     /// fewer than FEW references: nothing gates
     pub weak: bool,
+    /// the references in two clear groups across the measures, a videoform offered for each (VF8b)
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub sets: Option<crate::groups::Sets>,
 }
 
 /// lo-hi widened by a tenth of its width each way
@@ -254,6 +299,7 @@ pub fn found(refs: &[(String, Measures)], corrections: &[Correction], feel: &[Fe
         out.measures.insert(k.to_string(), r);
     }
     out.outliers = outliers(&out);
+    out.sets = crate::groups::sets(&refs.iter().map(|r| r.1.clone()).collect::<Vec<_>>());
     out
 }
 

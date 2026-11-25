@@ -1,0 +1,13 @@
+[package]
+name = "raea-app-videoform-refs"
+version = "0.1.0"
+edition = "2024"
+license = "FSL-1.1-ALv2"
+publish = false
+description = "A videoform's references over time (docs/videoform.feature VF8b, VF8c): remove drops references, refresh reads them again with this raea's encoders (the one time a reference is needed after it's read), split makes a videoform of each of the two groups its references fall in; the report's line on references read with other encoders"
+
+[dependencies]
+raea-sys-fingerprint = { path = "../../systems/fingerprint" }
+# this raea's encoders' pins
+raea-sys-columns = { path = "../../systems/columns" }
+serde_json = "1"

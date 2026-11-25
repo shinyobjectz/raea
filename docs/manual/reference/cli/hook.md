@@ -1,7 +1,7 @@
 ---
 title: "raea hook"
 summary: "Every agent's tool hooks: media opened in the Mac's viewer goes to raea show, and the quick check after a composition is saved."
-order: 54
+order: 55
 sources: ["apps/check/src/hook.rs", "apps/tools/src/agent_hooks.rs"]
 ---
 

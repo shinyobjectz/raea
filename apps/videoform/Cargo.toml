@@ -33,3 +33,5 @@ serde_json = "1"
 # vocabulary.ts's patterns
 regex = "1"
 sha2 = "0.10"
+# remove, refresh and split, and the report's line on encoders (VF8b, VF8c)
+raea-app-videoform-refs = { path = "../videoform-refs" }

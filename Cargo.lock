@@ -13908,6 +13908,7 @@ dependencies = [
  "meshopt",
  "raea-io-home",
  "raea-io-media",
+ "raea-io-mp4",
  "raea-page",
  "raea-render",
  "raea-runtime-encode",
@@ -14043,6 +14044,7 @@ version = "0.1.0"
 dependencies = [
  "dunce",
  "raea-app-videoform-docs",
+ "raea-app-videoform-refs",
  "raea-core-brief",
  "raea-io-assets",
  "raea-io-home",
@@ -14057,6 +14059,22 @@ dependencies = [
  "regex",
  "serde_json",
  "sha2 0.10.9",
+]
+
+[[package]]
+name = "raea-app-videoform-checks"
+version = "0.1.0"
+dependencies = [
+ "raea-app-videoform",
+ "raea-core-facts",
+ "raea-io-home",
+ "raea-sys-columns",
+ "raea-sys-fingerprint",
+ "raea-sys-fingerprint-use",
+ "raea-sys-videoform",
+ "raea-sys-videoform-follow",
+ "raea-sys-videoform-rules",
+ "serde_json",
 ]
 
 [[package]]
@@ -14075,6 +14093,15 @@ dependencies = [
  "serde_json",
  "sha2 0.10.9",
  "zip",
+]
+
+[[package]]
+name = "raea-app-videoform-refs"
+version = "0.1.0"
+dependencies = [
+ "raea-sys-columns",
+ "raea-sys-fingerprint",
+ "serde_json",
 ]
 
 [[package]]
@@ -14099,6 +14126,7 @@ dependencies = [
  "raea-core-facts",
  "raea-io-assets",
  "raea-io-home",
+ "raea-io-resolve",
  "serde_json",
 ]
 
@@ -14337,6 +14365,7 @@ dependencies = [
  "raea-app-targets",
  "raea-app-tools",
  "raea-app-videoform",
+ "raea-app-videoform-checks",
  "raea-app-voice",
  "raea-app-workspace",
  "raea-bevy-plugins",
@@ -14745,6 +14774,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "raea-io-mp4"
+version = "0.1.0"
+
+[[package]]
 name = "raea-io-net"
 version = "0.1.0"
 dependencies = [
@@ -14810,6 +14843,7 @@ dependencies = [
  "serde_json",
  "sha2 0.10.9",
  "ureq 2.12.1",
+ "zip",
 ]
 
 [[package]]

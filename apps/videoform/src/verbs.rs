@@ -115,8 +115,11 @@ pub fn context(project: &Path) -> Option<(String, String)> {
     let refs = references(&chosen.dir);
     body.push(format!("References read: {}", refs.len()));
     body.extend(refs.iter().map(crate::ingest::line));
-    for (what, file) in [("Vocabulary", &v.vocabulary), ("Template", &v.template), ("Rules", &v.rules)] {
-        if let Some(f) = file {
+    // the section names them once `vocab` starts the vocabulary; ones written by hand are there by their usual names
+    let usual = [crate::vocab::FILE.to_string(), crate::vocab::template_file(&fp.name), crate::vocab::rules_file(&fp.name)];
+    for ((what, file), usual) in [("Vocabulary", &v.vocabulary), ("Template", &v.template), ("Rules", &v.rules)].into_iter().zip(usual) {
+        let f = file.clone().unwrap_or(usual);
+        if chosen.dir.join(&f).is_file() {
             body.push(format!("{what}: {f}"));
         }
     }

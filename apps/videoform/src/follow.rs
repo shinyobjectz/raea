@@ -33,6 +33,11 @@ fn files(args: &[String]) -> Result<Vec<PathBuf>, String> {
     Ok(out)
 }
 
+/// A footage file's rows, a piece a row: kept from before, else read now and kept (its columns too, by content hash)
+pub fn footage(p: &Path) -> Result<Rows, String> {
+    rows_of(p, &mut None)
+}
+
 /// A footage file's rows: kept from before, else read now (its pieces) and kept
 fn rows_of(p: &Path, enc: &mut Option<Encoders>) -> Result<Rows, String> {
     let hash = readers::hash(p, None)?;

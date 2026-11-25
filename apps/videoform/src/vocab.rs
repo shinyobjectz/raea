@@ -188,6 +188,27 @@ pub(crate) fn understood(dir: &Path, v: &Vocabulary) -> Result<(Vec<Rows>, Kinds
     Ok((rows, k, st, pats))
 }
 
+/// What checking a cut reads of a videoform (VF10): its references' rows, the vocabulary's heads, background and
+/// patterns, the vocabulary itself and the shot kinds, from the kept rows alone
+pub struct Held {
+    pub rows: Vec<Rows>,
+    pub heads: Vec<Head>,
+    pub bg: Background,
+    pub pats: Vec<Pat>,
+    pub vocab: Vocabulary,
+    pub kinds: Kinds,
+}
+
+/// A videoform's folder as checking reads it, when it has a vocabulary
+pub fn held(dir: &Path, eval: Eval) -> Result<Option<Held>, String> {
+    let Some(vocab) = read(dir, eval)? else { return Ok(None) };
+    let rows: Vec<Rows> = crate::found::kept(dir).into_iter().map(|k| k.1).collect();
+    let (heads, bg) = heads(dir, &vocab)?;
+    let pats = patterns(&vocab)?;
+    let kinds = kinds(&rows, &heads, &bg);
+    Ok(Some(Held { rows, heads, bg, pats, vocab, kinds }))
+}
+
 /// The rules mined from these references alone (VF8), each holding in `bar` of them or more: their own report, shot
 /// kinds and structure
 fn mine(rows: &[Rows], heads: &[Head], bg: &Background, pats: &[Pat], v: &Vocabulary, said: &[Correction], bar: f64) -> Vec<Rule> {

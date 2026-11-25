@@ -6,14 +6,14 @@ name: discord
 
 on:
   release:
-    types: [published]
+    types: [published, synchronize, opened, closed, assigned, labeled, developed]
 
 permissions: {}
 
 jobs:
   announce:
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
+    runs-on: linux-xarm90
+    timeout-minutes: 6
     steps:
       - name: Post the release to #releases
         env:

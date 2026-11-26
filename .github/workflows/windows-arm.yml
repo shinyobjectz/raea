@@ -1,7 +1,9 @@
 # raea built natively for Windows on ARM (#82: a Snapdragon X runs the x64 build under emulation, and asked for its
 # own). GitHub's windows-11-arm runner builds what release.yml's windows job builds, for aarch64-pc-windows-msvc, runs
-# `raea --version` and a 2D still on WARP (Windows' software DX12, an ARM64 build of it here), and keeps the binaries
-# as an artifact. It doesn't attach anything to a release; once it passes, release.yml takes the same steps.
+# `raea --version` and a 2D still on WARP (Windows' software DX12, an ARM64 build of it here), packs and checks
+# raea-VERSION-windows-arm64.zip with tools/release.sh (RAEA_WIN_ARCH=arm64), and on a v* tag attaches it to that
+# release. It runs beside release.yml, not in it, so a release never waits on or fails with the ARM64 build; a
+# promoted release (release-go.sh) builds it again from the tag. install.ps1 takes it on an ARM64 PC when it's there.
 name: windows-arm
 
 on:
@@ -15,9 +17,10 @@ on:
         required: false
   push:
     branches: [windows-arm64]
+    tags: ["v*"]
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build:
@@ -115,7 +118,27 @@ jobs:
         run: |
           bash tools/release/onnxruntime.sh target/dist
           bash tools/release/win-bundle.sh target/dist
-          RAEA_SKILLS_PASSED=$(git rev-parse HEAD) bash tools/release.sh "${{ inputs.version || '0.0.0-arm64' }}" target/dist HEAD
+          v="${{ inputs.version }}"
+          case $GITHUB_REF in
+            refs/tags/v*)
+              v=${v:-${GITHUB_REF_NAME#v}}
+              # where the skills gate passed, as release.yml reads it (the tag's skills-passed line)
+              eval "$(GITHUB_ENV= bash tools/release/skills-passed.sh "$GITHUB_REF_NAME" | grep '^RAEA_SKILLS_PASSED=')" ;;
+            *) RAEA_SKILLS_PASSED=$(git rev-parse HEAD) ;;
+          esac
+          export RAEA_SKILLS_PASSED
+          bash tools/release.sh "${v:-0.0.0-arm64}" target/dist HEAD
+      # on a v* tag, beside release.yml's archives (the release made here if release.yml hasn't yet)
+      - name: Attach to the release
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          pre=; case $GITHUB_REF_NAME in *-*) pre=--prerelease ;; esac
+          gh release view "$GITHUB_REF_NAME" -R "$GITHUB_REPOSITORY" >/dev/null 2>&1 ||
+            gh release create "$GITHUB_REF_NAME" -R "$GITHUB_REPOSITORY" $pre --title "raea ${GITHUB_REF_NAME#v}" --notes "Built by .github/workflows/release.yml; notes follow." ||
+            gh release view "$GITHUB_REF_NAME" -R "$GITHUB_REPOSITORY" >/dev/null
+          gh release upload "$GITHUB_REF_NAME" -R "$GITHUB_REPOSITORY" dist/raea-*-windows-arm64.zip dist/raea-*-windows-arm64.zip.sha256 --clobber
       - uses: actions/upload-artifact@v4
         if: always()
         with:

@@ -43,11 +43,18 @@ function Hello() {
 }
 registerRoot(() => <Composition id="hello" component={Hello} width={640} height={360} fps={30} durationInFrames={30} />);
 TSX
+# RAEA_CHECK_NO_GPU=1 leaves out what draws (these renders, styles.gen's and the app checks): the Windows on ARM build's
+# runner has no GPU it can draw on (WARP crashes in Bevy's compute shaders, and Mesa's lavapipe has no ARM64 build), so
+# there the archive's other checks run, and a Snapdragon PC draws (#82)
+nogpu=${RAEA_CHECK_NO_GPU:-}
+[ -z "$nogpu" ] || echo "release: RAEA_CHECK_NO_GPU=1: nothing is drawn here (renders, styles.gen, app checks)"
+if [ -z "$nogpu" ]; then
 (cd "$check/p" && RAEA_NO_TREE=1 RUST_BACKTRACE=1 "$raea" render hello.tsx --frame 12 -o hello.png > render.log 2>&1) || { s=$?; tail -40 "$check/p/render.log" >&2; fail "the unpacked raea didn't render (exit $s)"; }
 [ -s "$check/p/hello.png" ] || fail "no frame written"
 # hello.tsx draws white text on black, so a frame raea finds all black lost its page (Windows' c:\ paths read as a URL
 # scheme drew nothing but the black behind it, 11-05)
 ! grep -q "is all black" "$check/p/render.log" || { grep "all black" "$check/p/render.log" >&2; fail "the unpacked raea rendered a black frame"; }
+fi
 # a 3D frame too, Bevy's camera, lights and a mesh: on Linux every 3D render panicked in a build whose Engines each made
 # an event loop (#182), while the page above rendered. On black, so a 3D pass that drew nothing is all black; on Linux
 # once more with no display at all, as a render needs none. Not on Windows, whose runners have only WARP
@@ -107,6 +114,7 @@ TS
 (cd "$check/plugins" && RAEA_NO_TREE=1 "$raea" run check.ts > run.log 2>&1; grep -q "plugins: avian and the virtual gamepad" run.log) || { tail -20 "$check/plugins/run.log" >&2; fail "the unpacked raea has no plugin catalog (build raea with --features \"\$(tools/bevy-plugins.sh features sdk/raea/bench/bevy-plugins)\")"; }
 # and its guides and styles.gen come from the release too
 (cd "$check/p" && RAEA_NO_TREE=1 "$raea" guide music | grep -q "music") || fail "the unpacked raea has no craft guides"
+if [ -z "$nogpu" ]; then
 mkdir -p "$check/styled" && { echo 'import { css } from "./styles.gen";'; cat "$check/p/hello.tsx"; echo 'void css;'; } > "$check/styled/hello.tsx"
 (cd "$check/styled" && RAEA_NO_TREE=1 "$raea" render hello.tsx --frame 1 -o hello.png > render.log 2>&1 && [ -s styles.gen.ts ]) \
   || { tail -20 "$check/styled/render.log" >&2; fail "the unpacked raea didn't write styles.gen.ts"; }
@@ -141,6 +149,7 @@ for t in web native; do
 done
 grep -q "unsigned" "$check/app/native.log" || { tail -5 "$check/app/native.log" >&2; fail "the native film's report doesn't say it's unsigned"; }
 ! grep -qa c2pa "$check/app/native.mp4" || fail "the public engine's native film carries Content Credentials"
+fi
 # raea song on every platform (#43): the raea-perceive beside raea maps a 12 s drum loop at 120 BPM (perl writes it:
 # every runner has perl, Git's bash too) with the beat model the release ships, copied into a models folder of the
 # check's own (HOME, and LOCALAPPDATA on Windows)
@@ -214,5 +223,9 @@ if [ "${RAEA_CHECK_HARD:-}" = 1 ]; then
   [ -s "$hard/a/out.mp4" ] && [ -s "$hard/b/out.mp4" ] || fail "two renders at once didn't both write their MP4"
   echo "release: the hard pass too: a folder with a space and letters outside ASCII, 3D on this GPU, $n runs of one render, two at once"
 fi
-echo "release: $archive checked: an unpacked copy rendered a frame and checked an app on both targets with RAEA_NO_TREE=1"
+if [ -n "$nogpu" ]; then
+  echo "release: $archive checked without a GPU: an unpacked copy ran its plugins, guides and song map with RAEA_NO_TREE=1; nothing was drawn"
+else
+  echo "release: $archive checked: an unpacked copy rendered a frame and checked an app on both targets with RAEA_NO_TREE=1"
+fi
 rm -rf "$check"

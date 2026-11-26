@@ -1,7 +1,8 @@
 # raea built natively for Windows on ARM (#82: a Snapdragon X runs the x64 build under emulation, and asked for its
 # own). GitHub's windows-11-arm runner builds what release.yml's windows job builds, for aarch64-pc-windows-msvc, runs
-# `raea --version` and a 2D still on WARP (Windows' software DX12, an ARM64 build of it here), packs and checks
-# raea-VERSION-windows-arm64.zip with tools/release.sh (RAEA_WIN_ARCH=arm64), and on a v* tag attaches it to that
+# `raea --version`, packs and checks raea-VERSION-windows-arm64.zip with tools/release.sh (RAEA_WIN_ARCH=arm64)
+# without drawing (RAEA_CHECK_NO_GPU=1: WARP segfaults in Bevy's compute shaders here as on x64, and Mesa's lavapipe has
+# no ARM64 build; a Snapdragon PC is what draws, #82), and on a v* tag attaches it to that
 # release. It runs beside release.yml, not in it, so a release never waits on or fails with the ARM64 build; a
 # promoted release (release-go.sh) builds it again from the tag. install.ps1 takes it on an ARM64 PC when it's there.
 name: windows-arm
@@ -26,6 +27,11 @@ jobs:
   build:
     runs-on: windows-11-arm
     timeout-minutes: 350
+    env:
+      # the release builds' compile cache (tools/release/compile-cache.sh), under this OS and architecture's own prefix
+      RELEASE_CACHE_ENDPOINT: ${{ secrets.RELEASE_CACHE_ENDPOINT }}
+      AWS_ACCESS_KEY_ID: ${{ secrets.RELEASE_CACHE_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.RELEASE_CACHE_SECRET }}
     defaults:
       run:
         shell: bash
@@ -66,6 +72,14 @@ jobs:
           bun-version: 1.4.2
       - name: The runtime's packages
         run: for d in sdk/react/js sdk/react/tw; do (cd "$d" && bun install --frozen-lockfile); done
+      # (an sccache the action can't fetch for ARM64 Windows leaves the build uncached, as compile-cache.sh does)
+      - name: Compile cache (sccache, as release.yml's)
+        if: env.AWS_ACCESS_KEY_ID != ''
+        continue-on-error: true
+        uses: mozilla-actions/sccache-action@v0.0.9
+      - name: Use the compile cache
+        if: env.AWS_ACCESS_KEY_ID != ''
+        run: bash tools/release/compile-cache.sh
       - name: Build
         run: |
           feat=$(bash tools/bevy-plugins.sh features sdk/raea/bench/bevy-plugins)
@@ -80,25 +94,6 @@ jobs:
           dumpbin=$(ls "/c/Program Files/Microsoft Visual Studio"/*/*/VC/Tools/MSVC/*/bin/Hostarm64/arm64/dumpbin.exe 2>/dev/null | head -1)
           [ -n "$dumpbin" ] && "$dumpbin" -nologo -headers -dependents target/dist/raea.exe | grep -iE 'machine|\.dll$' | sed 's/^ *//' | tee -a "$GITHUB_STEP_SUMMARY" || true
           target/dist/raea.exe --version | tee -a "$GITHUB_STEP_SUMMARY"
-      # a 2D still on WARP: Vello's pages and the encoder's kernels, the parts #82's stripes were in
-      - name: A still on WARP
-        env:
-          WGPU_BACKEND: dx12
-          WGPU_ADAPTER_NAME: Microsoft Basic Render Driver
-        run: |
-          d="$RUNNER_TEMP/still"; mkdir -p "$d"
-          cat > "$d/still.tsx" <<'TSX'
-          import { AbsoluteFill } from "raea"
-          export default function Still() {
-            return (
-              <AbsoluteFill style={{ background: "#111", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <div style={{ color: "white", fontSize: 120, fontWeight: 700 }}>raea on ARM64</div>
-              </AbsoluteFill>
-            )
-          }
-          TSX
-          (cd "$d" && "$GITHUB_WORKSPACE/target/dist/raea.exe" render still.tsx -o still.png --frame 0 --w 1280 --h 720) 2>&1 | tail -20
-          ls -la "$d"/still.png
       - name: Models (pinned by URL and sha256 in tools/release/models.tsv)
         run: |
           while IFS=$'\t' read -r path url sha; do
@@ -109,12 +104,12 @@ jobs:
           done < <(tr -d '\r' < tools/release/models.tsv)
       # bin\ as release.yml's windows job fills it, with the ARM64 runtime, uv and DXC (RAEA_WIN_ARCH=arm64), then the
       # zip packed and checked by tools/release.sh as raea-VERSION-windows-arm64.zip. The skills gate is this commit's
-      # (public raea has no feed app; cli.md is still checked against this build's help); renders run on WARP
+      # (public raea has no feed app; cli.md is still checked against this build's help); nothing is drawn
       - name: Pack and check (tools/release.sh)
         env:
           RAEA_WIN_ARCH: arm64
           RAEA_CHECK_DIR: ${{ runner.temp }}/release-check
-          WGPU_BACKEND: dx12
+          RAEA_CHECK_NO_GPU: "1"
         run: |
           bash tools/release/onnxruntime.sh target/dist
           bash tools/release/win-bundle.sh target/dist
@@ -157,7 +152,6 @@ jobs:
             target/dist/raea-rune-host.exe
             target/dist/raea-page-host.exe
             target/dist/raea-perceive.exe
-            ${{ runner.temp }}/still/still.png
           retention-days: 7
           if-no-files-found: ignore
 

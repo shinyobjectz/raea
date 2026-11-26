@@ -11,5 +11,11 @@ raea-io-codec = { path = "../codec", features = ["mux"] }
 raea-io-soft = { path = "../soft" }
 muxide = "0.2"
 # from the v1.1.0 tag: the crates.io package leaves out src/arm/asm-offsets.h, which its arm assembly includes
-rav1d = { git = "https://github.com/memorysafety/rav1d", tag = "v1.1.0" }
+rav1d = { git = "https://github.com/memorysafety/rav1d", tag = "v1.1.0", default-features = false, features = ["bitdepth_8", "bitdepth_16"] }
 rav1e = { version = "0.8", default-features = false, features = ["threading"] }
+
+# rav1d's assembly everywhere but Windows on ARM (#82): there its arm64 .S files are GNU syntax, which MSVC's cl.exe
+# skips (the link then fails), and building them with clang-cl instead breaks metis-sys's GKlib headers. The Rust and
+# C paths decode the same frames, slower.
+[target.'cfg(not(all(windows, target_arch = "aarch64")))'.dependencies]
+rav1d = { git = "https://github.com/memorysafety/rav1d", tag = "v1.1.0", features = ["asm", "asm_arm64_dotprod", "asm_arm64_i8mm", "asm_arm64_sve2"] }

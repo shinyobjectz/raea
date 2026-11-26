@@ -10,6 +10,9 @@ on:
       ref:
         description: "commit, branch or tag to build"
         required: false
+      version:
+        description: "the version the zip is named for (raea-VERSION-windows-arm64.zip)"
+        required: false
   push:
     branches: [windows-arm64]
 
@@ -93,6 +96,34 @@ jobs:
           TSX
           (cd "$d" && "$GITHUB_WORKSPACE/target/dist/raea.exe" render still.tsx -o still.png --frame 0 --w 1280 --h 720) 2>&1 | tail -20
           ls -la "$d"/still.png
+      - name: Models (pinned by URL and sha256 in tools/release/models.tsv)
+        run: |
+          while IFS=$'\t' read -r path url sha; do
+            case $path in ''|'#'*) continue ;; esac
+            mkdir -p "$HOME/.local/share/raea-models/$(dirname "$path")"
+            curl -fsSL "$url" -o "$HOME/.local/share/raea-models/$path"
+            echo "$sha  $HOME/.local/share/raea-models/$path" | sha256sum -c -
+          done < <(tr -d '\r' < tools/release/models.tsv)
+      # bin\ as release.yml's windows job fills it, with the ARM64 runtime, uv and DXC (RAEA_WIN_ARCH=arm64), then the
+      # zip packed and checked by tools/release.sh as raea-VERSION-windows-arm64.zip. The skills gate is this commit's
+      # (public raea has no feed app; cli.md is still checked against this build's help); renders run on WARP
+      - name: Pack and check (tools/release.sh)
+        env:
+          RAEA_WIN_ARCH: arm64
+          RAEA_CHECK_DIR: ${{ runner.temp }}/release-check
+          WGPU_BACKEND: dx12
+        run: |
+          bash tools/release/onnxruntime.sh target/dist
+          bash tools/release/win-bundle.sh target/dist
+          RAEA_SKILLS_PASSED=$(git rev-parse HEAD) bash tools/release.sh "${{ inputs.version || '0.0.0-arm64' }}" target/dist HEAD
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: windows-arm64-zip
+          path: dist/raea-*-windows-arm64.zip*
+          retention-days: 7
+          compression-level: 0
+          if-no-files-found: ignore
       - uses: actions/upload-artifact@v4
         if: always()
         with:

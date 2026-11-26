@@ -1,5 +1,5 @@
 #!/bin/bash
-# A release of the raea engine for macOS on Apple Silicon, Linux on x86_64 or Windows on x86_64 (whichever machine runs
+# A release of the raea engine for macOS on Apple Silicon, Linux on x86_64 or Windows on x86_64 or ARM64 (whichever machine runs
 # it; .github/workflows/release.yml builds all three on GitHub's runners for a tag, Windows in Git's bash): raea and
 # its bundler, with raea's own files beside them (share/raea: the raea SDK's TypeScript, the lite runtime and its
 # packages, the shell's sources, the tools that install the local music and foley models, and the agent skills), laid
@@ -24,7 +24,7 @@
 # tools/cpu-heartbeat.sh (a line while rustc's CPU grows) and keep `--stall 25m`; a raised stall would only wait longer
 # on a real hang.
 #
-# Writes dist/raea-VERSION-macos-arm64.tar.gz (-linux-x86_64.tar.gz, or -windows-x86_64.zip) and its .sha256, then
+# Writes dist/raea-VERSION-macos-arm64.tar.gz (-linux-x86_64.tar.gz, -windows-x86_64.zip or -windows-arm64.zip) and its .sha256, then
 # checks the archive with tools/release-check.sh: unpacked into a fresh folder, its raea renders a frame with
 # RAEA_NO_TREE=1 (so it can't be reading this checkout), has the plugin catalog, names none of raea's API and holds
 # nothing key-shaped (on Windows, no Microsoft file). Nothing is published.
@@ -37,7 +37,9 @@ cd "$root"
 out=$root/dist
 case $(uname -s) in
   Linux) platform=linux-x86_64 ;;
-  MINGW*|MSYS*|CYGWIN*) platform=windows-x86_64 ;;
+  # RAEA_WIN_ARCH=arm64: the Windows on ARM build (#82), whose bin\ tools/release/onnxruntime.sh and win-bundle.sh fill
+  # with the same variable; Git's bash on that runner may be x64 itself, so uname -m can't say
+  MINGW*|MSYS*|CYGWIN*) [ "${RAEA_WIN_ARCH:-x64}" = arm64 ] && platform=windows-arm64 || platform=windows-x86_64 ;;
   *) platform=macos-arm64 ;;
 esac
 name=raea-$version-$platform
@@ -52,7 +54,7 @@ untar() {
   local err rc=0
   err=$(tar -x -C "$1" 2>&1 >/dev/null) || rc=$?
   [ $rc -eq 0 ] && return 0
-  if [ "$platform" = windows-x86_64 ] && ! grep -v -e "Cannot create symlink" -e "Exiting with failure status" <<< "$err" | grep -q .; then
+  if [ "${platform%%-*}" = windows ] && ! grep -v -e "Cannot create symlink" -e "Exiting with failure status" <<< "$err" | grep -q .; then
     echo "release.sh: note: the skills gate left out $(grep -c "Cannot create symlink" <<< "$err") symlinks (Windows makes none)"
     return 0
   fi
@@ -129,7 +131,7 @@ Install a CJK font for Japanese, Chinese and Korean text (Debian and Ubuntu: apt
 An app's window, on either target (raea app run, raea-rune-host and raea-page-host), needs a display (X11 or
 Wayland; Xvfb on a server, as raea app check does there too), libxkbcommon-x11, the X client libraries and the Vulkan
 loader (Debian and Ubuntu: apt install libxkbcommon-x11-0 libxcursor1 libxi6 libxrandr2 libx11-xcb1 libvulkan1)." > "$stage/README" ;;
-  windows-x86_64)
+  windows-*)
     cp "$bin/raea.exe" "$bin/raea_bundle.dll" "$bin/raea-perceive.exe" "$bin/raea-rune-host.exe" "$bin/raea-page-host.exe" "$stage/bin/"
     # ONNX Runtime as Microsoft builds it (MIT), which raea.exe and raea-perceive.exe load when a model first runs (#110),
     # with its licence and notices; tools/release/onnxruntime.sh put them beside the build
@@ -144,7 +146,7 @@ loader (Debian and Ubuntu: apt install libxkbcommon-x11-0 libxcursor1 libxi6 lib
       [ -f "$bin/$f" ] || { echo "release.sh: $bin has no $f (tools/release/win-bundle.sh $bin)" >&2; exit 1; }
       cp "$bin/$f" "$stage/bin/"
     done
-    printf '%s\r\n' "raea $version for Windows x86_64 (Windows 10 or 11, a DirectX 12 or Vulkan GPU driver; with no GPU, Mesa's lavapipe and WGPU_BACKEND=vulkan)." \
+    printf '%s\r\n' "raea $version for Windows ${platform#windows-} (Windows 10 or 11, a DirectX 12 or Vulkan GPU driver; with no GPU, Mesa's lavapipe and WGPU_BACKEND=vulkan)." \
       "bin\\ carries what raea needs from outside it: Microsoft's Visual C++ runtime, ONNX Runtime and DXC, FFmpeg (LGPL) and uv," \
       "each with its licence beside it (ffmpeg-README.txt says where FFmpeg's source is)." > "$stage/README.txt" ;;
   *) cp "$bin/raea" "$bin/libraea_bundle.dylib" "$bin/raea-perceive" "$bin/raea-rune-host" "$bin/raea-page-host" "$stage/bin/"
@@ -205,7 +207,7 @@ printf '%s\n' "$version" > "$stage/share/raea/VERSION"
 for md in "$stage"/share/raea/skills/*/SKILL.md; do
   perl -0pi -e 's/\A---\n(.*?)\n---\n/"---\n" . join("\n", grep { !\/^version:\/ } split(\/\n\/, $1)) . "\nversion: '"$version"'\n---\n"/se' "$md"
 done
-if [ $platform = windows-x86_64 ]; then
+if [ "${platform%%-*}" = windows ]; then
   # RAEA_WIN_SIGN=1: raea's own programs signed before they're zipped (tools/release/win-sign.sh, #221). Off, the zip is
   # as it was: unsigned, which Smart App Control blocks on a PC that has it on
   if [ "${RAEA_WIN_SIGN:-}" = 1 ]; then

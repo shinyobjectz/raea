@@ -13,11 +13,19 @@
 #     three licences: wgpu compiles DX12's shaders with it when it sits beside raea.exe, else with the old FXC, which cost
 #     6 to 13 s of hitches at start and as new 3D appeared on every PC DX12 is chosen for: Intel, AMD and Arc (#215; the
 #     chat page 17.7 s with FXC, 12.0 s with DXC on the test PC)
-# The pins are setup.rs's, so what ships and what's fetched are the same build.
+# The pins are setup.rs's, so what ships and what's fetched are the same build. RAEA_WIN_ARCH=arm64 (raea's Windows on
+# ARM build, #82) takes the ARM64 runtime, uv and DXC; FFmpeg stays x64, which Windows on ARM runs emulated in its own
+# process, as setup.rs fetches it there.
 #   tools/release/win-bundle.sh DEST          (on the Windows runner, in Git's bash)
 set -euo pipefail
 die() { echo "win-bundle: $*" >&2; exit 1; }
 dest=${1:?DEST}
+arch=${RAEA_WIN_ARCH:-x64}
+case $arch in
+  x64) vc=x86.x64 uvt=x86_64-pc-windows-msvc ;;
+  arm64) vc=ARM64 uvt=aarch64-pc-windows-msvc ;;
+  *) die "RAEA_WIN_ARCH is $arch: x64 or arm64" ;;
+esac
 root=$(cd "$(dirname "$0")/../.." && pwd)
 setup=$root/io/assets/src/setup.rs
 const() { sed -n "s/^const $1: &str = \"\\(.*\\)\";$/\\1/p" "$setup"; }
@@ -30,10 +38,10 @@ mkdir -p "$dest"
 # the VC++ runtime, from the newest Visual Studio with the C++ tools
 vswhere="/c/Program Files (x86)/Microsoft Visual Studio/Installer/vswhere.exe"
 [ -x "$vswhere" ] || die "no vswhere at $vswhere: the C runtime comes from the runner's Visual Studio"
-vs=$(cygpath -u "$("$vswhere" -latest -products '*' -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath | tr -d '\r')")
+vs=$(cygpath -u "$("$vswhere" -latest -products '*' -requires Microsoft.VisualStudio.Component.VC.Tools.$vc -property installationPath | tr -d '\r')")
 ver=$(tr -d '\r\n ' < "$vs/VC/Auxiliary/Build/Microsoft.VCRedistVersion.default.txt")
-crt=$(ls -d "$vs/VC/Redist/MSVC/$ver/x64"/Microsoft.VC14*.CRT 2>/dev/null | tail -1)
-[ -n "$crt" ] || die "no Microsoft.VC14*.CRT under $vs/VC/Redist/MSVC/$ver/x64"
+crt=$(ls -d "$vs/VC/Redist/MSVC/$ver/$arch"/Microsoft.VC14*.CRT 2>/dev/null | tail -1)
+[ -n "$crt" ] || die "no Microsoft.VC14*.CRT under $vs/VC/Redist/MSVC/$ver/$arch"
 for f in vcruntime140.dll vcruntime140_1.dll msvcp140.dll msvcp140_1.dll; do
   [ -f "$crt/$f" ] || die "$crt has no $f"
   cp "$crt/$f" "$dest/$f"
@@ -55,18 +63,18 @@ cp "$tmp/ff/$top/libvpx-PATENTS" "$dest/libvpx-PATENTS.txt"
 
 # uv, and its licences from its source at the same tag
 uv=$(const UV)
-uvsum=$(sed -n 's/^ *("x86_64-pc-windows-msvc", "\([0-9a-f]*\)"),$/\1/p' "$setup")
-[ -n "$uv" ] && [ -n "$uvsum" ] || die "no UV and its x86_64-pc-windows-msvc sha256 in $setup"
-fetch "https://github.com/astral-sh/uv/releases/download/$uv/uv-x86_64-pc-windows-msvc.zip" "$tmp/uv.zip" "$uvsum"
+uvsum=$(sed -n 's/^ *("'"$uvt"'", "\([0-9a-f]*\)"),$/\1/p' "$setup")
+[ -n "$uv" ] && [ -n "$uvsum" ] || die "no UV and its $uvt sha256 in $setup"
+fetch "https://github.com/astral-sh/uv/releases/download/$uv/uv-$uvt.zip" "$tmp/uv.zip" "$uvsum"
 unzip -q -o "$tmp/uv.zip" uv.exe -d "$dest"
 [ "$uv" = 0.12.24 ] || die "uv is $uv: pin its LICENSE-MIT and LICENSE-APACHE here for that tag"
 fetch "https://raw.githubusercontent.com/astral-sh/uv/$uv/LICENSE-MIT" "$dest/uv-LICENSE-MIT.txt" 860e3d7a86b84e6a7012c7a635fc64df475cebc6cce34dfeb73a5982ec58176c
 fetch "https://raw.githubusercontent.com/astral-sh/uv/$uv/LICENSE-APACHE" "$dest/uv-LICENSE-APACHE.txt" c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4
 
-# DXC: Microsoft's distributable dxcompiler.dll and dxil.dll (LICENSE-MS.txt), the x64 ones, and the release's licences
+# DXC: Microsoft's distributable dxcompiler.dll and dxil.dll (LICENSE-MS.txt), the architecture's, and the release's licences
 dxc=v1.8.2502
 fetch "https://github.com/microsoft/DirectXShaderCompiler/releases/download/$dxc/dxc_2025_02_20.zip" "$tmp/dxc.zip" 70b1913a1bfce4a3e1a5311d16246f4ecdf3a3e613abec8aa529e57668426f85
-unzip -q -o -j "$tmp/dxc.zip" bin/x64/dxcompiler.dll bin/x64/dxil.dll -d "$dest"
+unzip -q -o -j "$tmp/dxc.zip" bin/$arch/dxcompiler.dll bin/$arch/dxil.dll -d "$dest"
 for l in MS LLVM MIT; do unzip -p "$tmp/dxc.zip" "LICENSE-$l.txt" > "$dest/dxc-LICENSE-$l.txt"; done
 
-echo "win-bundle: in $dest: the VC++ runtime $ver, FFmpeg ($top), uv $uv, DXC $dxc, with their licences"
+echo "win-bundle: in $dest ($arch): the VC++ runtime $ver, FFmpeg ($top), uv $uv, DXC $dxc, with their licences"

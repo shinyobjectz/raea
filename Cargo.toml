@@ -346,6 +346,10 @@ split-debuginfo = "packed"
 [patch.crates-io]
 # the MP4 muxer, vendored
 muxide = { path = "vendor/muxide" }
+# metis-sys 0.3.2 (bevy_pbr's meshlets) with GKlib's own stdint.h and inttypes.h stand-ins used only before Visual
+# Studio 2013: Visual Studio 18's stdint.h types int_fast16_t differently, and every C file failed (raea#82; the change
+# is marked "raea:" in vendor/GKlib/gk_arch.h). Its test graphs, manual and programs are left out
+metis-sys = { path = "vendor/metis-sys" }
 # usvg 0.48.1 spacing a chunk's last letter as Chrome does (changes marked "raea:", docs/layout-reads.feature LR10)
 usvg = { path = "vendor/usvg" }
 # bevy_seedling 0.8.0 without its cpal 0.18 paths, ported to Bevy 0.20 (changes marked "raea:")

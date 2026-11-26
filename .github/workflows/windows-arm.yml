@@ -137,3 +137,22 @@ jobs:
             ${{ runner.temp }}/still/still.png
           retention-days: 7
           if-no-files-found: ignore
+
+  # vendor/metis-sys's header change reaches release.yml's x64 build too (windows-latest's Visual Studio): metis-sys
+  # alone, in a scratch crate, compiled there
+  metis-x64:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref || github.sha }}
+          sparse-checkout: vendor/metis-sys
+      - name: metis-sys on x64 MSVC
+        run: |
+          c="$RUNNER_TEMP/metis-x64"; mkdir -p "$c/src" && : > "$c/src/lib.rs"
+          printf '[package]\nname = "metis-x64"\nversion = "0.0.0"\nedition = "2021"\n[dependencies]\nmetis-sys = { path = "%s" }\n[workspace]\n' "$(cygpath -m "$GITHUB_WORKSPACE/vendor/metis-sys")" > "$c/Cargo.toml"
+          cl 2>&1 | head -1 || true
+          cd "$c" && cargo build

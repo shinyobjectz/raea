@@ -882,13 +882,15 @@ impl<'dom, 'a> BlitzDomPainter<'dom, 'a> {
         // The root element's overflow is propagated to the viewport (which is clipped by the
         // window/surface bounds), so the root element must not clip its own overflow.
         let is_root_element = self.root_element_id == Some(node_id);
+        // raea: an inline <svg>'s overflow clip is drawn by draw_svg, and only when its drawing spills past its
+        // viewport: the UA sheet's `overflow: clip` on every svg would otherwise be a clip layer for every icon (#251)
+        let is_inline_svg = node.element_data().is_some_and(|e| &*e.name.local == "svg" && matches!(e.image_data(), Some(blitz_dom::node::ImageData::Svg(_))));
         let should_clip = !is_root_element
             && (is_image
                 || is_sub_doc
                 || is_text_input
                 || contain_paint
-                || !matches!(overflow_x, Overflow::Visible)
-                || !matches!(overflow_y, Overflow::Visible));
+                || (!is_inline_svg && (!matches!(overflow_x, Overflow::Visible) || !matches!(overflow_y, Overflow::Visible))));
 
         // Apply padding/border offset to inline root
         let taffy::Layout {
@@ -1167,6 +1169,11 @@ impl<'dom, 'a> BlitzDomPainter<'dom, 'a> {
 
         // Compute clip-path (if any) and wrap all rendering in a clip layer
         let clip_path_shape = cx.clip_path_shape();
+        // raea: a clip-path with no area (an inset that clips everything, a circle(0)) hides the element and all it
+        // draws, its shadows and outline included, as `clip: rect()` of no area does below (raea #250)
+        if clip_path_shape.as_ref().is_some_and(|(p, _)| p.bounding_box().is_zero_area()) {
+            return;
+        }
         let has_clip_path = clip_path_shape.is_some();
         let clip_fill = clip_path_shape.as_ref().map_or(peniko::Fill::NonZero, |s| s.1);
         let default_clip = cx.frame.border_box_path();
@@ -1865,12 +1872,30 @@ impl ElementCx<'_, '_> {
                     (pos.y - text_layout.block_offset as f64 - (layout.padding.top + layout.border.top) as f64) * self.scale,
                 ))
                 * Affine::scale(self.scale);
+            // raea: an inline element's background images (#248), drawn by an ElementCx whose box is `at` (its
+            // fragments side by side, in CSS px from the root's border box), with its own borders and padding (an
+            // inline box has no Taffy layout of its own; a percentage padding is of the root's content width)
+            let content_width = CSSPixelLength::new(layout.content_box_width());
+            let images = |scene: &mut _, id: NodeId, at: Rect| {
+                let Some(node) = self.context.dom.get_node(id) else { return };
+                let Some(st) = node.primary_styles() else { return };
+                let (b, p) = (st.get_border(), st.get_padding());
+                let pad = |v: &style::values::computed::NonNegativeLengthPercentage| v.0.resolve(content_width).px();
+                let mut l = taffy::Layout::new();
+                l.size = taffy::Size { width: at.width() as f32, height: at.height() as f32 };
+                l.border = taffy::Rect { left: b.border_left_width.0.to_f32_px(), right: b.border_right_width.0.to_f32_px(), top: b.border_top_width.0.to_f32_px(), bottom: b.border_bottom_width.0.to_f32_px() };
+                l.padding = taffy::Rect { left: pad(&p.padding_left), right: pad(&p.padding_right), top: pad(&p.padding_top), bottom: pad(&p.padding_bottom) };
+                // the box's corner at device scale: border_box is in CSS px, an ElementCx's transform in device px
+                let t = border_box * Affine::translate((at.x0, at.y0)) * Affine::scale(1.0 / self.scale);
+                self.context.element_cx(node, l, t, None).draw_inline_background_images(scene);
+            };
             crate::text::draw_inline_backgrounds(
                 scene,
                 text_layout.layout.lines(),
                 self.context.dom,
                 border_box,
                 self.node.id,
+                images,
             );
 
             // Render text selection highlight (if any) using cached selection ranges
@@ -2372,6 +2397,15 @@ impl ElementCx<'_, '_> {
         let b = tree.root().abs_stroke_bounding_box();
         let (sw, sh) = (svg_size.width(), svg_size.height());
         let spills = b.left() < -0.01 || b.top() < -0.01 || b.right() > sw + 0.01 || b.bottom() > sh + 0.01;
+        // raea: an inline <svg>'s clip is its `overflow` (the UA sheet's `svg|svg:not(:root) { overflow: clip }`), so
+        // `overflow: visible` draws what reaches past its viewport, as Chrome does: a 1x1 svg drawing particles in page
+        // coordinates drew nothing (raea #251). An SVG image (<img>) is always clipped to its box.
+        let b = self.style.get_box();
+        let clips = !inline || !matches!(b.overflow_x, Overflow::Visible) || !matches!(b.overflow_y, Overflow::Visible);
+        if spills && !clips {
+            anyrender_svg::render_svg_tree_in(scene, &tree, transform, host, in_css);
+            return;
+        }
         if spills {
             self.context.layer_manager.maybe_with_layer(scene, true, 1.0, self.transform, &self.frame.content_box_path(), None, None, |scene| {
                 anyrender_svg::render_svg_tree_in(scene, &tree, transform, host, in_css);

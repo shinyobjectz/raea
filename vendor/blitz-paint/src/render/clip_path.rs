@@ -174,8 +174,10 @@ impl ElementCx<'_, '_> {
                 let x1 = ox + w - right;
                 let y1 = oy + h - bottom;
 
+                // raea: an inset that meets or crosses itself clips everything (an empty clip region), not nothing:
+                // None meant no clip-path, so `inset(0 0 0 100%)` drew the whole element (raea #250)
                 if x1 <= x0 || y1 <= y0 {
-                    return None;
+                    return Some(BezPath::new());
                 }
 
                 // TODO: Support border-radius on inset()

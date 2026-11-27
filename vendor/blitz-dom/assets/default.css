@@ -11,6 +11,12 @@
 svg|*:not(svg|svg), svg|*:not(svg|foreignObject) > svg|svg {
     transform-origin: 0 0;
 }
+/* raea: Chrome's svg.css clips an inner <svg> to its viewport (`svg:not(:root) { overflow: hidden }`), which
+ * `overflow: visible` lifts (raea #251). `clip` rather than `hidden`, so an svg is no scroll container and lays out
+ * as it did (a flex item keeps its automatic minimum size); blitz-paint's draw_svg reads it */
+svg|svg:not(:root) {
+    overflow: clip;
+}
 
 @font-face {
     font-family: -moz-bullet-font;

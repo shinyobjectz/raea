@@ -115,12 +115,18 @@ fn snap_glyph(x: f32, y: f32, at: Affine) -> (f32, f32) {
 ///
 /// The inline root's own background is painted separately (as a normal block box). `transform` is the root's
 /// border box at device scale.
-pub(crate) fn draw_inline_backgrounds<'a>(
-    scene: &mut impl PaintScene,
+///
+/// raea: its background images too (raea #248: a highlighter's `linear-gradient` on a phrase drew nothing, its colour
+/// alone did), by `images` (the element, and the box they're laid out in, in the root's CSS px): each fragment clipped
+/// to itself from one box as wide as all its fragments side by side, as Chrome's `box-decoration-break: slice` lays a
+/// background out, so a `background-size` of 0% to 100% sweeps across the lines in turn.
+pub(crate) fn draw_inline_backgrounds<'a, S: PaintScene>(
+    scene: &mut S,
     lines: impl Iterator<Item = Line<'a, TextBrush>>,
     doc: &BaseDocument,
     transform: Affine,
     inline_root_id: NodeId,
+    mut images: impl FnMut(&mut S, NodeId, Rect),
 ) {
     let mut seen: Vec<(usize, NodeId)> = Vec::new();
     let mut add = |mut id: NodeId| {
@@ -169,12 +175,15 @@ pub(crate) fn draw_inline_backgrounds<'a>(
             side(&border.border_bottom_width, &border.border_bottom_color, border.border_bottom_style),
             side(&border.border_left_width, &border.border_left_color, border.border_left_style),
         ];
-        if bg == Color::TRANSPARENT && [top, right, bottom, left].iter().all(Option::is_none) {
+        let has_images = styles.get_background().background_image.0.iter().any(|i| !matches!(i, style::values::generics::image::GenericImage::None));
+        if bg == Color::TRANSPARENT && !has_images && [top, right, bottom, left].iter().all(Option::is_none) {
             continue;
         }
         let Some(frags) = node.inline_fragment_boxes() else { continue };
         let frags: Vec<_> = frags.collect();
         let n = frags.len();
+        let slices = frags.iter().map(|f| (f.right - f.left) as f64).sum::<f64>();
+        let mut before = 0.0;
         for (i, f) in frags.into_iter().enumerate() {
             let r = Rect::new(f.left as f64, f.top as f64, f.right as f64, f.bottom as f64);
             let (first, last) = (i == 0, i + 1 == n);
@@ -196,6 +205,12 @@ pub(crate) fn draw_inline_backgrounds<'a>(
             if bg != Color::TRANSPARENT {
                 scene.fill(Fill::NonZero, transform, bg, None, &shape);
             }
+            if has_images {
+                scene.push_clip_layer(Fill::NonZero, transform, &shape);
+                images(scene, id, Rect::new(r.x0 - before, r.y0, r.x0 - before + slices, r.y1));
+                scene.pop_layer();
+            }
+            before += r.width();
             if rounded {
                 scene.push_clip_layer(Fill::NonZero, transform, &shape);
             }

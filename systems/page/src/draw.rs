@@ -159,6 +159,9 @@ pub fn draw(mut scenes: ResMut<Scenes>, mut vello: ResMut<Vello>, device: Res<Re
         }
         // the image atlas (each filtered element is an image in it) as large as the device can make, not Vello's 8192
         vello::low_level::vello_encoding::set_max_atlas_size(device.limits().max_texture_dimension_2d);
+        // and the blend spill, grown for a scene whose layers nest past four (raea #247), within what the device binds
+        let limits = device.limits();
+        vello::low_level::vello_encoding::set_max_buffer_size((limits.max_storage_buffer_binding_size as u64).min(limits.max_buffer_size));
         // and an image larger than the atlas (16384 at most, whatever the device allows) decoded at a size that fits it
         // (raea#245: an M5's GPU allows 32768, and a 1080x18000 picture was kept whole and refused)
         blitz_dom::net::set_max_image_side(vello::low_level::vello_encoding::max_atlas_size());

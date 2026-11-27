@@ -54,6 +54,7 @@ pub use clip::{Clip, ClipBbox, ClipBic, ClipElement};
 pub use config::{
     BufferSize, BufferSizes, BumpAllocationSizes, BumpAllocatorMemory, BumpAllocators, ConfigUniform, IndirectCount,
     PTCL_INITIAL_ALLOC, RenderConfig, WorkgroupCounts, WorkgroupSize, bump_sizes_for, set_bump_allocation_sizes, set_bump_full, set_blend_linear,
+    BLEND_STACK_SPLIT, blend_spill_for, set_max_buffer_size,
 };
 pub use draw::{
     DRAW_INFO_FLAGS_FILL_RULE_BIT, DrawBbox, DrawBeginClip, DrawBlurRoundedRect, DrawColor,
@@ -69,7 +70,7 @@ pub use path::{
     PathTag, SegmentCount, Style, Tile,
 };
 pub use ramp_cache::Ramps;
-pub use resolve::{Layout, Patch, Resolver, resolve_solid_paths_only, take_images_left_out};
+pub use resolve::{Layout, Patch, Resolver, layer_depth, resolve_solid_paths_only, take_images_left_out};
 
 #[cfg(feature = "bump_estimate")]
 pub use estimate::BumpEstimator;

@@ -185,6 +185,8 @@ impl Resolver {
         encoding: &Encoding,
         packed: &mut Vec<u8>,
     ) -> (Layout, Ramps<'a>, Images<'a>) {
+        // raea: the scene's layer nesting, which sizes its blend spill (config.rs `blend_spill_for`)
+        crate::config::set_layer_depth(layer_depth(&encoding.draw_tags));
         let resources = &encoding.resources;
         if resources.patches.is_empty() {
             let layout = resolve_solid_paths_only(encoding, packed);
@@ -563,6 +565,21 @@ impl Resolver {
     }
 }
 
+/// raea: how deep the scene's layers (begin clips, a clip layer or a blended one alike) nest at most: a tile's blend
+/// stack is never deeper, as coarse.wgsl counts a begin clip that touches the tile into its `max_blend_depth`.
+pub fn layer_depth(tags: &[DrawTag]) -> u32 {
+    let (mut depth, mut deepest) = (0u32, 0u32);
+    for tag in tags {
+        if *tag == DrawTag::BEGIN_CLIP {
+            depth += 1;
+            deepest = deepest.max(depth);
+        } else if *tag == DrawTag::END_CLIP {
+            depth = depth.saturating_sub(1);
+        }
+    }
+    deepest
+}
+
 static IMAGES_LEFT_OUT: std::sync::atomic::AtomicU32 = std::sync::atomic::AtomicU32::new(0);
 
 /// raea: how many images the resolves since the last call left out, the atlas having no room for them at its largest
@@ -687,6 +704,33 @@ fn align_up(len: usize, alignment: u32) -> usize {
 mod tests {
     use super::*;
     use peniko::{Blob, ImageAlphaType, ImageFormat};
+
+    /// raea #247: the resolve measures how deep the scene's layers nest, and the render's config made after it gives
+    /// the blend spill room for every tile to spill that deep: here layers six deep beside a lone one, two past the
+    /// fine stage's four on each of a 1080x1920 page's 8160 tiles
+    #[test]
+    fn a_resolve_sizes_the_blend_spill_by_how_deep_its_layers_nest() {
+        use crate::{DrawBeginClip, RenderConfig};
+        let mut encoding = Encoding::new();
+        let layer = DrawBeginClip::new(peniko::Mix::Normal.into(), 0.9);
+        for _ in 0..6 {
+            encoding.encode_begin_clip(layer);
+        }
+        for _ in 0..6 {
+            encoding.encode_end_clip();
+        }
+        encoding.encode_begin_clip(layer);
+        encoding.encode_end_clip();
+        assert_eq!(layer_depth(&encoding.draw_tags), 6);
+        let mut packed = Vec::new();
+        let (layout, _, _) = Resolver::new().resolve(&encoding, &mut packed);
+        let cfg = RenderConfig::new(&layout, 1080, 1920, &peniko::Color::TRANSPARENT);
+        assert_eq!(cfg.gpu.blend_size, 8160 * 2 * 256);
+        // a shallow scene after it is back at the set size
+        let (layout, _, _) = Resolver::new().resolve(&Encoding::new(), &mut packed);
+        let cfg = RenderConfig::new(&layout, 1080, 1920, &peniko::Color::TRANSPARENT);
+        assert_eq!(cfg.gpu.blend_size, crate::bump_sizes_for(8160).blend_spill);
+    }
 
     /// raea: frame `f`'s `n` images, each new (a blob of its own) and near a 1080p frame's size, a few px apart and
     /// differently in each frame: raea-page's layers under a moving camera, each a placeholder the size of its box

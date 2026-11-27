@@ -137,7 +137,6 @@ impl<'a> ImageLayerStyles<'a> {
 impl ElementCx<'_, '_> {
     pub(super) fn draw_background(&self, scene: &mut impl PaintScene) {
         let bg_styles = &self.style.get_background();
-        let image_data = &self.element.background_images;
         let layer_count = bg_styles.background_image.0.len();
 
         // The background color is clipped by the clip of the last layer in the list
@@ -156,32 +155,51 @@ impl ElementCx<'_, '_> {
         self.context.layer_manager.maybe_with_blend_layer(scene, isolated, 1.0, Some(peniko::Mix::Normal.into()), self.transform, &bounds, None, None, |scene| {
             // Draw background color (if any)
             self.draw_solid_bg(scene, &background_clip_path);
-
-            for idx in (0..layer_count).rev() {
-                let layer = ImageLayerStyles::from_background(bg_styles, image_data, idx);
-                if layer_paints_nothing(&layer) {
-                    continue;
-                }
-                let background_clip_path = self.box_path(layer.clip);
-
-                self.context.layer_manager.maybe_with_blend_layer(
-                    scene,
-                    true,
-                    1.0,
-                    blends[idx],
-                    self.transform,
-                    &background_clip_path,
-                    None,
-                    None,
-                    |scene| {
-                        self.draw_image_layer(scene, &layer);
-                    },
-                );
-            }
+            self.draw_background_layers(scene, &blends);
             if text {
                 let dest_in = peniko::BlendMode::new(peniko::Mix::Normal, peniko::Compose::DestIn);
                 self.context.layer_manager.maybe_with_blend_layer(scene, true, 1.0, Some(dest_in), self.transform, &bounds, None, None, |scene| self.draw_text_mask(scene));
             }
+        });
+    }
+
+    /// The background's image layers, bottom first, each in its clip and blended by `blends` (draw_background's)
+    fn draw_background_layers(&self, scene: &mut impl PaintScene, blends: &[Option<peniko::BlendMode>]) {
+        let bg_styles = &self.style.get_background();
+        let image_data = &self.element.background_images;
+        for idx in (0..bg_styles.background_image.0.len()).rev() {
+            let layer = ImageLayerStyles::from_background(bg_styles, image_data, idx);
+            if layer_paints_nothing(&layer) {
+                continue;
+            }
+            let background_clip_path = self.box_path(layer.clip);
+
+            self.context.layer_manager.maybe_with_blend_layer(
+                scene,
+                true,
+                1.0,
+                blends.get(idx).copied().flatten(),
+                self.transform,
+                &background_clip_path,
+                None,
+                None,
+                |scene| {
+                    self.draw_image_layer(scene, &layer);
+                },
+            );
+        }
+    }
+
+    /// raea: an inline element's background images on one of its fragments (text.rs draw_inline_backgrounds, raea
+    /// #248), its frame the box its fragments make side by side: the layers alone, as the fragments' colour, borders
+    /// and clip are text.rs's; in a group of their own when a layer blends (blended with each other, not its colour)
+    pub(super) fn draw_inline_background_images(&self, scene: &mut impl PaintScene) {
+        let n = self.style.get_background().background_image.0.len();
+        let blends: Vec<_> = (0..n).map(|i| crate::blend::background_blend(&self.style, i)).collect();
+        let bounds = self.frame.border_box_path().bounding_box();
+        let isolated = blends.iter().any(Option::is_some);
+        self.context.layer_manager.maybe_with_blend_layer(scene, isolated, 1.0, Some(peniko::Mix::Normal.into()), self.transform, &bounds, None, None, |scene| {
+            self.draw_background_layers(scene, &blends);
         });
     }
 

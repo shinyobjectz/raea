@@ -411,7 +411,8 @@ impl BufferSizes {
         let seg_counts = BufferSize::new(bump.seg_counts.max(1));
         let segments = BufferSize::new(bump.segments.max(1));
         // 16 * 16 (1 << 8) is one blend spill, so the default allows for 4096 spills.
-        let blend_spill = BufferSize::new(bump.blend_spill.max(1));
+        // raea: and room for every tile to spill as deep as the scene's layers nest (`blend_spill_for`)
+        let blend_spill = BufferSize::new(bump.blend_spill.max(blend_spill_for(n_tiles, LAYER_DEPTH.get())).max(1));
         let ptcl = BufferSize::new(bump.ptcl.max(1));
         Self {
             path_reduced,
@@ -509,6 +510,41 @@ fn grown(base: BumpAllocationSizes, n_tiles: u32) -> BumpAllocationSizes {
     }
 }
 
+/// raea: the layers a tile's blend stack holds in the fine stage's registers (shader/shared/config.wgsl's
+/// BLEND_STACK_SPLIT); each layer deeper is a spill of the tile's 16x16 pixels into the blend spill buffer
+pub const BLEND_STACK_SPLIT: u32 = 4;
+
+std::thread_local! {
+    /// raea: the nesting of the scene this thread resolved last (resolve.rs `layer_depth`), which the render's config,
+    /// made from that resolve's layout on the same thread (vello's render_encoding_coarse), sizes its blend spill by
+    static LAYER_DEPTH: std::cell::Cell<u32> = const { std::cell::Cell::new(0) };
+}
+
+pub(crate) fn set_layer_depth(depth: u32) {
+    LAYER_DEPTH.set(depth);
+}
+
+/// raea: the largest storage buffer the device binds, in bytes (`set_max_buffer_size`); wgpu's default limit until the
+/// embedder gives its device's
+static MAX_BUFFER_BYTES: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(128 << 20);
+
+/// raea: the largest storage buffer the device binds (wgpu's `max_storage_buffer_binding_size`), which a blend spill
+/// grown for a deep scene stays within
+pub fn set_max_buffer_size(bytes: u64) {
+    MAX_BUFFER_BYTES.store(bytes.max(1 << 20), std::sync::atomic::Ordering::Relaxed);
+}
+
+/// raea: the blend spill (u32 pixels) a render of `n_tiles` needs when its layers nest `depth` deep: every tile spills
+/// what's deeper than BLEND_STACK_SPLIT, 256 pixels a layer (coarse.wgsl's `scratch_size`), up to the largest buffer
+/// the device binds. Vello's fixed size (1 << 20, raea-page's 1 << 18) holds 4096 spills, and a 1080x1920 page has 8160
+/// tiles, so a single full-frame layer past the fourth (two nested masks in a faded group) overflowed it, and the
+/// frame wasn't drawn even at Vello's own sizes (raea #247).
+pub fn blend_spill_for(n_tiles: u32, depth: u32) -> u32 {
+    let need = n_tiles as u64 * depth.saturating_sub(BLEND_STACK_SPLIT) as u64 * (TILE_WIDTH * TILE_HEIGHT) as u64;
+    let most = MAX_BUFFER_BYTES.load(std::sync::atomic::Ordering::Relaxed) / 4;
+    need.min(most).min(u32::MAX as u64) as u32
+}
+
 static BUMP_FULL: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
 
 /// raea: these defaults for the renders from now on (true), the embedder's sizes again (false): a frame drawn again
@@ -530,6 +566,27 @@ mod tests {
 
     fn tiles(w: u32, h: u32) -> u32 {
         w.div_ceil(TILE_WIDTH) * h.div_ceil(TILE_HEIGHT)
+    }
+
+    /// raea #247: two nested masks in a faded group on a 1080x1920 page are layers seven deep over every tile
+    #[test]
+    fn blend_spill_holds_every_tile_spilling_as_deep_as_the_scene_nests() {
+        let n = tiles(1080, 1920);
+        assert_eq!(n, 8160);
+        // four layers or fewer stay in the fine stage's registers: the set size alone
+        assert_eq!(blend_spill_for(n, 4), 0);
+        // one past four on every tile is 8160 spills of 256 pixels: past Vello's 4096 spills, which refused the frame
+        assert_eq!(blend_spill_for(n, 5), 8160 * 256);
+        assert!(blend_spill_for(n, 5) > BumpAllocationSizes::default().blend_spill);
+        // the config a render makes after resolving a scene of that depth has the room
+        set_layer_depth(7);
+        let layout = Layout::default();
+        let cfg = RenderConfig::new(&layout, 1080, 1920, &peniko::Color::TRANSPARENT);
+        assert_eq!(cfg.gpu.blend_size, 8160 * 3 * 256);
+        assert_eq!(cfg.buffer_sizes.blend_spill.len(), cfg.gpu.blend_size);
+        // and never past the largest buffer the device binds (128 MiB until it's given)
+        assert_eq!(blend_spill_for(tiles(15360, 8640), 40) as u64 * 4, 128 << 20);
+        set_layer_depth(0);
     }
 
     #[test]

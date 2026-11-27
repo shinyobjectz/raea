@@ -2,8 +2,13 @@
 // for a web page call them. requestAnimationFrame's callbacks run once per frame the composition draws, given that frame's
 // time (f * 1000 / fps ms), so a frame drawn again (a resumed render, `--at`) gets the same calls; one asked for while a
 // frame draws runs at the next frame. `new Image()` loads: setting its src fires load (and onload) on the next microtask,
-// so a preload resolves. It has no pixel size (naturalWidth and the rest stay 0): nothing reads a file's size
-// synchronously here, and `<img>` draws the file itself.
+// so a preload resolves, and by then naturalWidth and naturalHeight are the picture's size (#253): a data: URL's from its
+// header, a file's or URL's from the host (native asset.load, which finds staticFile's /media/ paths as <Img> does).
+// width and height are the ones given (the constructor's, or set) else the natural size, as a browser has them. A file
+// the host can't find fires error (and onerror) instead. Under plain bun, with no host, a file's size stays 0.
+
+import { hasNative, native } from "@raea/app/native";
+import { sniffSize } from "@raea/ui/canvas";
 
 type FrameCallback = (time: number) => void;
 
@@ -54,13 +59,20 @@ export function frameCallbacks(f: number, fps: number): void {
 
 type Listener = (e: { type: string; target: unknown; currentTarget: unknown }) => void;
 
-/** A preloadable image: its src set, load fires. */
+/** A picture's size: a data: URL's from its header, anything else from the host (asset.load); null when it has none
+ *  (no host, or a format the header doesn't say). Throws the host's error for a file that isn't there. */
+function pictureSize(src: string): [number, number] | null {
+  if (src.startsWith("data:")) return sniffSize(src);
+  if (src.startsWith("blob:") || !hasNative()) return null;
+  const got = native("asset.load", { path: src });
+  return got && typeof got.width === "number" && typeof got.height === "number" ? [got.width, got.height] : null;
+}
+
+/** A preloadable image: its src set, load fires, with the picture's size. */
 class FrameImage {
   onload: Listener | null = null;
   onerror: Listener | null = null;
   complete = true;
-  width = 0;
-  height = 0;
   naturalWidth = 0;
   naturalHeight = 0;
   alt = "";
@@ -68,11 +80,30 @@ class FrameImage {
   decoding = "auto";
   loading = "eager";
   #src = "";
+  #width: number | null;
+  #height: number | null;
+  #loads = 0;
   #listeners = new Map<string, Set<Listener>>();
 
   constructor(width?: number, height?: number) {
-    this.width = width ?? 0;
-    this.height = height ?? 0;
+    this.#width = width ?? null;
+    this.#height = height ?? null;
+  }
+
+  get width(): number {
+    return this.#width ?? this.naturalWidth;
+  }
+
+  set width(v: number) {
+    this.#width = Number(v) || 0;
+  }
+
+  get height(): number {
+    return this.#height ?? this.naturalHeight;
+  }
+
+  set height(v: number) {
+    this.#height = Number(v) || 0;
   }
 
   get src(): string {
@@ -80,13 +111,27 @@ class FrameImage {
   }
 
   set src(v: string) {
-    this.#src = String(v);
+    const src = String(v);
+    this.#src = src;
     this.complete = false;
+    this.naturalWidth = 0;
+    this.naturalHeight = 0;
+    const load = ++this.#loads;
     queueMicrotask(() => {
+      // a src set again before this one loaded: only the last one's load fires, as in a browser
+      if (load !== this.#loads) return;
+      let type = "load";
+      try {
+        const size = pictureSize(src);
+        if (size) [this.naturalWidth, this.naturalHeight] = size;
+      } catch (err) {
+        type = "error";
+        console.warn(`new Image(): ${src} didn't load: ${err instanceof Error ? err.message : String(err)}`);
+      }
       this.complete = true;
-      const e = { type: "load", target: this, currentTarget: this };
-      this.onload?.call(this, e);
-      for (const l of this.#listeners.get("load") ?? []) l.call(this, e);
+      const e = { type, target: this, currentTarget: this };
+      (type === "load" ? this.onload : this.onerror)?.call(this, e);
+      for (const l of this.#listeners.get(type) ?? []) l.call(this, e);
     });
   }
 

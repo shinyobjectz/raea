@@ -66,7 +66,9 @@ else throws a SyntaxError, as Chrome's does.
   that doesn't load rejects, and the text falls back.
 - `window` has `innerWidth`, `innerHeight` and `devicePixelRatio` for the composition's size, and `getComputedStyle`.
 - `requestAnimationFrame` calls back once per frame drawn, given that frame's time, so a frame drawn again gets the
-  same calls. `new Image()` fires `load` when its `src` is set, with no pixel size.
+  same calls. `new Image()` fires `load` when its `src` is set (a `staticFile` path, a data: URL or an http URL), and
+  by then `naturalWidth` and `naturalHeight` are the picture's size; `width` and `height` are the ones you gave, else
+  the same. A file that isn't there fires `error` instead.
 - `ResizeObserver` calls back once when it starts observing, then after any layout that changed an observed element's
   size, with `contentRect`, `borderBoxSize` and `contentBoxSize`.
 
@@ -75,7 +77,6 @@ else throws a SyntaxError, as Chrome's does.
 - `MutationObserver` and `IntersectionObserver` exist, so a component that makes one doesn't throw, but they never
   call back.
 - An `<img>`'s `onError` never fires: an image that doesn't load fails the render, naming its src.
-- `new Image()` has no `naturalWidth` or `naturalHeight` (they stay 0).
 - An element has no `innerHTML` or `outerHTML`: read `textContent`, or walk `children` and `childNodes`.
 - A Range across wrapped lines is one rect, not one per line, and an inline element's `getClientRects()` is one rect
   too.

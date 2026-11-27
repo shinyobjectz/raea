@@ -208,9 +208,12 @@ fn percent_plus_length(
     dim.into()
 }
 
+/// raea: `wrapped` is the table's children with each run of children that are no table box (its text, a block or
+/// an inline element) in an anonymous block (construct.rs `wrap_table_strays`, #254); None when it has no such run
 pub(crate) fn build_table_context(
     doc: &mut BaseDocument,
     table_root_node_id: NodeId,
+    wrapped: Option<Vec<NodeId>>,
 ) -> (TableContext, Vec<NodeId>) {
     let mut cells: Vec<TableCell> = Vec::new();
     let mut oof_children: Vec<(NodeId, taffy::Position)> = Vec::new();
@@ -221,7 +224,8 @@ pub(crate) fn build_table_context(
     let wm = table_wm(doc, table_root_node_id);
     let root_node = &mut doc.nodes[table_root_node_id];
 
-    let children = std::mem::take(&mut root_node.children);
+    let dom_children = std::mem::take(&mut root_node.children);
+    let children = wrapped.unwrap_or_else(|| dom_children.to_vec());
 
     let Some(stylo_styles) = root_node.primary_styles() else {
         panic!("Ignoring table because it has no styles");
@@ -469,7 +473,7 @@ pub(crate) fn build_table_context(
         .chain(oof_children.iter().map(|(node_id, _)| *node_id))
         .collect();
     let root_node = &mut doc.nodes[table_root_node_id];
-    root_node.children = children;
+    root_node.children = dom_children;
 
     (
         TableContext {
@@ -582,7 +586,9 @@ fn collect_table_cells(
 ) {
     let node = &mut doc.nodes[node_id];
 
-    if !node.is_element() {
+    // raea: an anonymous block here is one construct.rs wrapped a run of the table's stray children in (#254)
+    let anonymous = node.is_anonymous();
+    if !node.is_element() && !anonymous {
         return;
     }
 
@@ -605,7 +611,16 @@ fn collect_table_cells(
         return;
     }
 
-    match display.inside() {
+    // raea: it is an anonymous row holding one anonymous cell, as css-tables-3 § 3.3 wraps such a run (#254)
+    let inside = if anonymous {
+        *row += 1;
+        cursor.start_row();
+        rows.push(TableRow { node_id, group: None, height: None, is_constrained: false });
+        DisplayInside::TableCell
+    } else {
+        display.inside()
+    };
+    match inside {
         DisplayInside::TableRowGroup
         | DisplayInside::TableHeaderGroup
         | DisplayInside::TableFooterGroup

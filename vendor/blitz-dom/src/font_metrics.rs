@@ -13,7 +13,8 @@ use style::{
 };
 
 /// Query fontique for the fonts matching `font_styles` (family list and attributes).
-fn query_for_font_styles<'a>(
+/// raea: small_caps.rs asks it for the face it checks for `smcp` (#249)
+pub(crate) fn query_for_font_styles<'a>(
     font_ctx: &'a mut FontContext,
     font_styles: &'a FontStyles,
 ) -> parley::fontique::Query<'a> {

@@ -573,7 +573,9 @@ fn collect_layout_children_with_wrap(
         }
 
         DisplayInside::Table => {
-            let (table_context, tlayout_children) = build_table_context(doc, container_node_id);
+            let wrapped = wrap_table_strays(doc, container_node_id, out);
+            let (table_context, tlayout_children) =
+                build_table_context(doc, container_node_id, wrapped);
             #[allow(clippy::arc_with_non_send_sync)]
             let data = SpecialElementData::TableRoot(Arc::new(table_context));
             doc.nodes[container_node_id]
@@ -800,6 +802,49 @@ fn flush_pseudo_elements(doc: &mut BaseDocument, node_id: NodeId) {
             }
         }
     }
+}
+
+/// raea: a table's children with each run of children that are no table box (text, a block or inline element, a
+/// table inside it) wrapped in an anonymous block, which table.rs lays out as an anonymous row holding one anonymous
+/// cell (css-tables-3 § 3.3, as Chrome does). Blitz dropped them, so a `display: table` element around its text (a
+/// shrink-wrapped line) drew nothing, not even its background (#254). None when there is no such run (no text but
+/// whitespace), so a table of rows builds no anonymous block. The blocks are `out`'s to free on reconstruction.
+fn wrap_table_strays(
+    doc: &mut BaseDocument,
+    table_id: NodeId,
+    out: &mut LayoutChildren,
+) -> Option<Vec<NodeId>> {
+    fn is_stray(node: &Node) -> bool {
+        match node.data.kind() {
+            NodeKind::Text => true,
+            NodeKind::Element => node.primary_styles().is_some_and(|style| {
+                let display = style.clone_display();
+                matches!(display.outside(), DisplayOutside::Block | DisplayOutside::Inline)
+                    && display.inside() != DisplayInside::Contents
+                    && !style.clone_position().is_absolutely_positioned()
+            }),
+            _ => false,
+        }
+    }
+    let children = doc.nodes[table_id].children.clone();
+    let any = children.iter().any(|&id| {
+        let node = &doc.nodes[id];
+        is_stray(node) && !node.is_whitespace_node()
+    });
+    if !any {
+        return None;
+    }
+    let mut runs = LayoutChildren::default();
+    for id in children {
+        match doc.nodes[id].data.kind() {
+            NodeKind::Comment => {}
+            _ if is_stray(&doc.nodes[id]) => runs.push_wrapped(table_id, id, doc),
+            _ => runs.push(id, doc),
+        }
+    }
+    runs.maybe_push_anon_block(doc);
+    out.anonymous_blocks.extend(runs.anonymous_blocks.iter().copied());
+    Some(runs.children.into_iter().collect())
 }
 
 /// Handles the cases where there are text nodes or inline nodes that need to be wrapped in an anonymous block node
@@ -1085,6 +1130,10 @@ pub(crate) fn build_inline_layout_into(
             ..Default::default()
         });
 
+    // raea: which of its elements' text gets synthesised small capitals, asked of the fonts before the builder holds
+    // them (#249)
+    let small_caps = super::small_caps::synthesized(nodes, inline_context_root_node_id, font_ctx);
+
     // Create a parley tree builder
     let mut builder = layout_ctx.tree_builder(font_ctx, scale, true, &parley_style);
     if let Some(style) = root_node_style.as_deref() {
@@ -1124,6 +1173,7 @@ pub(crate) fn build_inline_layout_into(
     };
     // The marker is a separate box, so words in the content don't continue from it.
     let mut text_transformer = TextTransformer::default();
+    text_transformer.small_caps = small_caps;
     text_transformer.word_break(&builder);
 
     // raea: the root's bidi override around its content (stylo_to_parley::bidi_controls)
@@ -1395,10 +1445,18 @@ pub(crate) fn build_inline_layout_into(
                     s.clone_white_space_collapse() != stylo_to_parley::stylo::WhiteSpaceCollapse::Collapse
                 });
                 let bidi = if keeps_newlines { std::mem::take(&mut text_transformer.bidi) } else { Vec::new() };
+                // raea: the font size its synthesised small capitals scale, when they're its parent's (#249)
+                let small_caps = node
+                    .parent
+                    .filter(|p| text_transformer.small_caps.contains(p))
+                    .and_then(|p| nodes[p].primary_styles().map(|s| s.get_font().font_size.used_size.0.px()));
                 let text =
                     text_transformer.transform(&data.content, parent_text_transform, builder);
                 let start = builder.text().len();
-                builder.push_text(&bidi_newlines(text, &bidi));
+                match small_caps {
+                    Some(font_size) => super::small_caps::push(builder, &bidi_newlines(text, &bidi), font_size),
+                    None => builder.push_text(&bidi_newlines(text, &bidi)),
+                }
                 text_transformer.texts.push((node_id, start, builder.text().len()));
                 if keeps_newlines {
                     text_transformer.bidi = bidi;

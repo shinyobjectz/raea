@@ -117,6 +117,8 @@ pub(crate) struct TextTransformer {
     pub(crate) bidi: Vec<(&'static str, &'static str)>,
     /// raea: each text node's bytes in the builder's text, as pushed (TextLayout::text_nodes)
     pub(crate) texts: Vec<(blitz_traits::node_id::NodeId, usize, usize)>,
+    /// raea: the elements whose own text is drawn in synthesised small capitals (layout/small_caps.rs, #249)
+    pub(crate) small_caps: Vec<blitz_traits::node_id::NodeId>,
 }
 
 impl TextTransformer {

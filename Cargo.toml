@@ -407,6 +407,10 @@ vello_encoding = { path = "vendor/vello_encoding" }
 # (changes marked "raea:"): raea-page blends a bevy_ui page as Bevy does (bevy_ui on Blitz). No upstream
 # equivalent yet (linebender/vello blends the encoded values).
 vello_shaders = { path = "vendor/vello_shaders" }
+# taffy 0.15.0 (Blitz's, Bevy UI's, rune-taffy's) with a flex line whose items overflow its container by less than
+# Chrome's layout unit, 1/64 px, kept on one line: f32 rounding wrapped items that add up to the container's width
+# (changes marked "raea:", raea #252). Back to upstream once Taffy breaks flex lines with a tolerance.
+taffy = { path = "vendor/taffy" }
 # Firewheel 0.12 on Bevy 0.20: bevy_reflect 0.20 and a glam-33 feature (BillyDM/Firewheel#144; changes marked "raea:")
 firewheel = { path = "vendor/firewheel" }
 firewheel-core = { path = "vendor/firewheel-core" }

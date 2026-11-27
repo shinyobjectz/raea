@@ -165,7 +165,8 @@ impl Ctx<'_> {
         if let Some(p) = self.images.get(src) {
             return Some(p.clone());
         }
-        let (mime, bytes) = raea_io_net::data_url(src)?;
+        // inline (data:), else the picture's file (a page's /media/: the host's roots, as its videos)
+        let (mime, bytes) = raea_io_net::data_url(src).or_else(|| crate::image_file(src))?;
         let mime = mime.as_str();
         let img = if mime == "image/svg+xml" {
             let size = crate::svg::natural_size(&bytes, self.opt)?;

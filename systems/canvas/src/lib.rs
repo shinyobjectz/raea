@@ -84,8 +84,8 @@ impl Replay {
     }
 }
 
-/// Where a canvas's videos' files are, for a host that draws canvases (raea-page's Blitz page: the page's roots); until
-/// one is given a video's src is read as a file path.
+/// Where a canvas's videos' and pictures' files are, for a host that draws canvases (raea-page's Blitz page: the page's
+/// roots, so a /media/ src is the project's file); until one is given a src is read as a file path.
 pub fn videos(find: fn(&str) -> Option<std::path::PathBuf>) {
     *VIDEO_PATHS.write().unwrap() = Some(find);
 }
@@ -140,8 +140,33 @@ pub(crate) fn page_options() -> usvg::Options<'static> {
     db.map_or_else(usvg::Options::default, |db| page_fonts(&db))
 }
 
-/// Where a video's src is as a file, for its frames drawn on a canvas (`videos`).
+/// Where a video's or a picture's src is as a file, for drawing it on a canvas (`videos`).
 static VIDEO_PATHS: std::sync::RwLock<Option<fn(&str) -> Option<std::path::PathBuf>>> = std::sync::RwLock::new(None);
+
+/// A src as a file: by the host's roots (`videos`), else as a path (a file:// URL's too).
+fn media_file(src: &str) -> Option<std::path::PathBuf> {
+    match *VIDEO_PATHS.read().unwrap() {
+        Some(f) => f(src),
+        None => Some(std::path::PathBuf::from(src.strip_prefix("file://").unwrap_or(src))),
+    }
+}
+
+/// A picture that isn't inline, read from its file, with its type by its name: drawImage of an <img> or new Image()
+/// whose src is the project's /media/ file (raea #253: the card's screenshot drew nothing, as only data: URLs were
+/// decoded).
+pub(crate) fn image_file(src: &str) -> Option<(String, Vec<u8>)> {
+    let path = media_file(src)?;
+    let mime = match path.extension()?.to_str()?.to_ascii_lowercase().as_str() {
+        "png" => "image/png",
+        "jpg" | "jpeg" => "image/jpeg",
+        "webp" => "image/webp",
+        "gif" => "image/gif",
+        "bmp" => "image/bmp",
+        "svg" => "image/svg+xml",
+        _ => return None,
+    };
+    Some((mime.to_string(), std::fs::read(path).ok()?))
+}
 
 /// A video's frame at `t`, as a pixmap: opened and decoded on the CPU when it's asked for (a histogram reads one frame
 /// per seek), the last few kept.
@@ -150,10 +175,7 @@ fn video_frame(src: &str, t: f64) -> Option<sk::Pixmap> {
     if let Some((.., pm)) = FRAMES.lock().unwrap().iter().find(|(s, b, _)| s == src && *b == t.to_bits()) {
         return Some(pm.clone());
     }
-    let path = match *VIDEO_PATHS.read().unwrap() {
-        Some(f) => f(src)?,
-        None => std::path::PathBuf::from(src.strip_prefix("file://").unwrap_or(src)),
-    };
+    let path = media_file(src)?;
     let frame = raea_io_media::preferred().into_iter().find_map(|b| b.open_video(&path).ok()?.frame_at(t).ok())?;
     let mut pm = sk::Pixmap::new(frame.width, frame.height)?;
     for (i, px) in pm.pixels_mut().iter_mut().enumerate() {
@@ -207,6 +229,29 @@ mod tests {
         let at = |x: u32, y: u32| pm.pixel(x, y).unwrap().demultiply();
         assert_eq!((at(5, 5).red(), at(5, 5).alpha()), (255, 255));
         assert_eq!(at(2, 2).alpha(), 0);
+    }
+
+    #[test]
+    fn a_picture_from_a_file_is_drawn() {
+        // raea #253: drawImage of a picture whose src is a file (a page's /media/, found by the host's roots) drew nothing
+        let dir = std::env::temp_dir().join(format!("raea-canvas-pic-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let mut pic = sk::Pixmap::new(3, 2).unwrap();
+        pic.fill(sk::Color::from_rgba8(0, 0, 210, 255));
+        let file = dir.join("shot.png");
+        pic.save_png(&file).unwrap();
+        let opt = usvg::Options::default();
+        let mut pm = sk::Pixmap::new(10, 10).unwrap();
+        let mut cx = Ctx { opt: &opt, images: HashMap::new() };
+        let st = serde_json::json!({"ts": [1, 0, 0, 1, 0, 0], "alpha": 1, "comp": "source-over", "clip": [], "shadow": null, "smooth": false});
+        let src = file.to_string_lossy().to_string();
+        cx.op(&mut pm, &serde_json::json!(["image", src, null, null, null, null, 2, 2, 6, 4, st]));
+        assert_eq!(pm.pixel(4, 4).unwrap().demultiply().blue(), 210, "the picture is drawn");
+        assert_eq!(pm.pixel(1, 1).unwrap().alpha(), 0, "only where it was asked to go");
+        // a file that isn't a picture, or isn't there, draws nothing and doesn't panic
+        cx.op(&mut pm, &serde_json::json!(["image", dir.join("none.png").to_string_lossy(), null, null, null, null, 0, 0, 10, 10, st]));
+        assert_eq!(pm.pixel(1, 1).unwrap().alpha(), 0);
+        std::fs::remove_dir_all(&dir).ok();
     }
 
     #[test]
